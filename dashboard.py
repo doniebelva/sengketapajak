@@ -68,6 +68,11 @@ LABEL_KOREKSI = {
 }
 AMAR_MENANG = ("kabul_seluruhnya", "kabul_sebagian")
 
+# Alamat berkas asli pada peladen Sekretariat. Dipakai sebagai tujuan tombol
+# unduh ketika arsip lokal tidak terjangkau, misalnya pada peladen UAT, agar
+# pembaca tetap bisa mengambil dokumen resminya dari sumber aslinya.
+URL_BERKAS_ASLI = "https://setpp.kemenkeu.go.id/risalah/ambilFileDariDisk/{id}"
+
 
 # ---------------------------------------------------------------------------
 # Lapis data
@@ -1026,10 +1031,20 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
                                f"besar untuk tombol unduh. Lokasinya: "
                                f"{berkas}")
             except OSError:
-                st.caption(f"Berkas asli belum terjangkau. Lokasinya: "
-                           f"{berkas}")
+                st.link_button(
+                    "Unduh berkas asli dari situs Sekretariat",
+                    URL_BERKAS_ASLI.format(id=int(r["doc_id"])),
+                    icon=":material/open_in_new:")
         else:
-            st.caption("Berkas asli tidak ditemukan pada lokasi arsip.")
+            # Arsip lokal tidak ada di mesin ini. Berkasnya publik, jadi
+            # tombolnya menuju dokumen yang sama di peladen resmi.
+            st.link_button(
+                "Unduh berkas asli dari situs Sekretariat",
+                URL_BERKAS_ASLI.format(id=int(r["doc_id"])),
+                icon=":material/open_in_new:")
+            st.caption("Arsip lokal tidak tersedia di peladen ini. Tombol "
+                       "di atas mengambil berkas yang sama langsung dari "
+                       "peladen Sekretariat Pengadilan Pajak.")
 
 
 def hal_telusur() -> None:
