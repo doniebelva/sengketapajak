@@ -3,7 +3,7 @@
 tema_viz.py
 
 Palet, tema bagan, gaya halaman, dan potongan kerangka untuk
-Tax Dispute Analytic Dashboard.
+Dashboard Analitik Sengketa Pajak.
 
 Ditulis ulang dari spesifikasi_redesign_dashboard.md. Seluruh keputusan warna
 dan tata letak berasal dari dokumen itu, dan tidak boleh diubah di sini tanpa
@@ -918,9 +918,9 @@ def catatan_siap(judul: str, isi: str) -> str:
 _IKON_NAV = {
     "Ikhtisar": "%3Cpath d='M4 20V4h9l3 3h4v13z'/%3E%3Cpath d='M8 13h8M8 17h5'/%3E",
     "Nilai Sengketa": "%3Crect x='2' y='6' width='20' height='12' rx='2'/%3E%3Ccircle cx='12' cy='12' r='2.5'/%3E%3Cpath d='M5.5 9h.01M18.5 15h.01'/%3E",
-    "Penelusuran Putusan": "%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E",
+    "Risalah Putusan": "%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E",
     "Preseden Putusan": "%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E",
-    "Konsistensi Putusan": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E",
+    "Konsistensi Putusan Hakim": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E",
     "Sengketa Berulang": "%3Cpath d='M3 17l5-6 4 3 5-7'/%3E%3Cpath d='M17 7h4v4'/%3E",
     "Ketetapan dan Koreksi": "%3Cpath d='M9 11l2 2 4-5'/%3E%3Cpath d='M20 12v7H4V5h9'/%3E",
     "Jalur dan Risiko Perkara": "%3Cpath d='M12 21V3'/%3E%3Cpath d='M12 5h6l2 2-2 2h-6'/%3E%3Cpath d='M12 12H6l-2 2 2 2h6'/%3E",

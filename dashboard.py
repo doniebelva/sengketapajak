@@ -2,7 +2,7 @@
 """
 dashboard.py
 
-Tax Dispute Analytic Dashboard.
+Dashboard Analitik Sengketa Pajak.
 Analitik risalah putusan Pengadilan Pajak.
 
 Dibangun dari rancangan_dashboard_insight.md. Delapan halaman disusun menurut
@@ -502,7 +502,7 @@ def jeda_hari(df_: pd.DataFrame) -> pd.Series:
 # Tema dan kerangka
 # ---------------------------------------------------------------------------
 
-st.set_page_config(page_title="Tax Dispute Analytic Dashboard",
+st.set_page_config(page_title="Dashboard Analitik Sengketa Pajak",
                    page_icon="🔷", layout="wide",
                    initial_sidebar_state="expanded")
 
@@ -560,9 +560,9 @@ except Exception as exc:
 
 cakupan = 100 * corong["unduh"] / max(1, ID_MAKS)
 
-st.html(TV.kop("Tax Dispute Analytic Dashboard",
+st.html(TV.kop("Dashboard Analitik Sengketa Pajak",
                "Analitik Risalah Putusan Pengadilan Pajak · Sumber data: "
-               "Sekretariat Pengadilan Pajak, Kementerian Keuangan", ""))
+               "https://setpp.kemenkeu.go.id/risalah", ""))
 
 with st.container(key="tema"):
     pilih_tema = st.segmented_control(
@@ -583,15 +583,15 @@ if df.empty:
 # Bilah samping
 # ---------------------------------------------------------------------------
 
-HALAMAN = ["Ikhtisar", "Nilai Sengketa", "Penelusuran Putusan", "Preseden Putusan",
-           "Jalur dan Risiko Perkara", "Konsistensi Putusan",
+HALAMAN = ["Ikhtisar", "Nilai Sengketa", "Risalah Putusan", "Preseden Putusan",
+           "Jalur dan Risiko Perkara", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Ketetapan dan Koreksi",
            "Dasar Hukum", "Unit Penerbit",
            "Kinerja Hakim", "Kinerja Proses", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Preseden Putusan": "Prediktif, frekuensi historis",
            "Jalur dan Risiko Perkara": "Preskriptif",
-           "Konsistensi Putusan": "Diagnostik",
+           "Konsistensi Putusan Hakim": "Diagnostik",
            "Sengketa Berulang": "Diagnostik",
            "Ketetapan dan Koreksi": "Diagnostik",
            "Dasar Hukum": "Diagnostik",
@@ -604,14 +604,14 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
 # tidak boleh disembunyikan dari siapa pun.
 MODUL = {
     "Semua": HALAMAN,
-    "Pimpinan": ["Ikhtisar", "Nilai Sengketa", "Penelusuran Putusan",
-                 "Konsistensi Putusan", "Sengketa Berulang", "Kinerja Hakim",
+    "Pimpinan": ["Ikhtisar", "Nilai Sengketa", "Risalah Putusan",
+                 "Konsistensi Putusan Hakim", "Sengketa Berulang", "Kinerja Hakim",
                  "Kinerja Proses", "Metodologi"],
     "Fiskus": ["Ikhtisar", "Ketetapan dan Koreksi",
                "Dasar Hukum", "Unit Penerbit",
-               "Konsistensi Putusan", "Penelusuran Putusan", "Metodologi"],
+               "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
     "Wajib pajak": ["Ikhtisar", "Preseden Putusan",
-                    "Jalur dan Risiko Perkara", "Penelusuran Putusan",
+                    "Jalur dan Risiko Perkara", "Risalah Putusan",
                     "Metodologi"],
 }
 
@@ -623,7 +623,7 @@ if cari_cepat.strip():
     # Kata kunci baru langsung membawa ke halaman telusur.
     if st.session_state.get("cari_lalu") != cari_cepat.strip():
         st.session_state["cari_lalu"] = cari_cepat.strip()
-        st.session_state["nav_tujuan"] = "Penelusuran Putusan"
+        st.session_state["nav_tujuan"] = "Risalah Putusan"
 
 # Bila tujuan drill tidak tersedia pada modul terpilih, modul dipulangkan ke
 # Semua lebih dulu, sebelum pemilih modulnya digambar.
@@ -766,7 +766,7 @@ def hal_ikhtisar() -> None:
         "pada "
         "perkara sejenis, dan sebagian lain sangat seragam. Peta lengkapnya "
         "pada "
-        "halaman Konsistensi Putusan.")
+        "halaman Konsistensi Putusan Hakim.")
 
     t = (d.dropna(subset=["tahun_putusan"])["tahun_putusan"].astype(int)
          .value_counts().sort_index()
@@ -960,7 +960,7 @@ def buka_putusan(doc_id, kunci_daftar: str | None = None) -> None:
     putusan membawa pengguna pulang ke halaman tempat dia berangkat."""
     st.session_state["buka_doc"] = int(doc_id)
     st.session_state["asal_drill"] = st.session_state.get("nav")
-    st.session_state["nav_tujuan"] = "Penelusuran Putusan"
+    st.session_state["nav_tujuan"] = "Risalah Putusan"
     if kunci_daftar:
         st.session_state["hapus_kunci"] = kunci_daftar
     st.rerun()
@@ -1079,14 +1079,14 @@ def hal_telusur() -> None:
             r = r_buka.iloc[0]
             judul = tampil(r["nomor_putusan_raw"], f"Dokumen {r['doc_id']}")
             asal = st.session_state.get("asal_drill")
-            asal = asal if asal in HALAMAN else "Penelusuran Putusan"
-            st.subheader("Penelusuran Putusan")
+            asal = asal if asal in HALAMAN else "Risalah Putusan"
+            st.subheader("Risalah Putusan")
             st.html(f'<div class="jejak">{asal}<i>›</i>'
                     f'Putusan <b>{judul}</b></div>')
             if st.button(f"Kembali ke {asal}", icon=":material/arrow_back:"):
                 st.session_state.pop("buka_doc", None)
                 st.session_state["nav_tujuan"] = st.session_state.pop(
-                    "asal_drill", None) or "Penelusuran Putusan"
+                    "asal_drill", None) or "Risalah Putusan"
                 st.rerun()
             tampil_detail(r)
             return
@@ -1094,7 +1094,7 @@ def hal_telusur() -> None:
 
     kiri, kanan = st.columns([3, 2])
     with kiri:
-        st.subheader("Penelusuran Putusan")
+        st.subheader("Risalah Putusan")
     with kanan:
         panel = st.popover("Saring dan cari", width="stretch")
 
@@ -1386,7 +1386,7 @@ def hal_belajar() -> None:
             "Pengenal berkas": st.column_config.TextColumn(
                 alignment="center")})
     st.caption("Tiga puluh terbaru. Pilih salah satu baris untuk menampilkan "
-                                    "isi putusannya pada halaman Penelusuran "
+                                    "isi putusannya pada halaman Risalah "
                                     "Putusan. Pengenal berkas "
                "adalah nomor arsip pada peladen Sekretariat, kunci untuk "
                "menelusuri sampai berkas aslinya.")
@@ -1525,7 +1525,7 @@ def hal_jalur() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_konsistensi() -> None:
-    st.subheader("Konsistensi Putusan")
+    st.subheader("Konsistensi Putusan Hakim")
     st.caption(
         "Perkara sejenis, yaitu jenis pajak dan jenis koreksi yang sama, "
         "semestinya diputus serupa. Halaman ini mengukur pangsa amar dominan "
@@ -1577,15 +1577,7 @@ def hal_konsistensi() -> None:
         st.html(TV.tabel(t.sort_values("Keseragaman"),
                          kolom_persen=("Keseragaman",)))
 
-    st.html('<div class="tingkat">Pola Antar Hakim Ketua</div>')
-    st.caption(
-        "Tingkat dikabulkan tiap hakim dibandingkan dengan nilai harapannya, "
-        "yaitu tingkat yang wajar mengingat campuran jenis pajak perkara yang "
-        "ditanganinya. Selisih yang jauh dari nol berarti polanya menyimpang "
-        "dari rerata rekan pada perkara sejenis. Sajian ini merupakan bahan "
-        "pembelajaran konsistensi, bukan "
-            "pemeringkatan hakim, dan sebaiknya beredar "
-        "terbatas.")
+    st.html('<div class="tingkat">Konsistensi Putusan Antar Hakim Ketua</div>')
     dd = beramar(d)
     dd = dd[dd["hakim_ketua"].notna() & dd["kode_jenis_pajak"].notna()].copy()
     if len(dd):
@@ -1608,19 +1600,61 @@ def hal_konsistensi() -> None:
             h["Dikabulkan"] = (100 * h["aktual"]).round(1)
             h["Harapan"] = (100 * h["harapan"]).round(1)
             h["Selisih"] = (h["Dikabulkan"] - h["Harapan"]).round(1)
+            # Urutan tabel mengikuti besar simpangan tanpa memandang arahnya,
+            # dari yang polanya paling sejalan dengan rerata sampai yang
+            # paling menyimpang. Mengurutkan menurut selisih bertanda
+            # menempatkan dua ujung yang sama sama menyimpang pada dua tepi
+            # tabel, sehingga pembaca kehilangan urutan konsistensinya.
+            h["Simpangan"] = h["Selisih"].abs().round(1)
             h = (h.rename(columns={"hakim_ketua": "Hakim ketua",
                                    "n": "Putusan"})
                  [["Hakim ketua", "Putusan", "Dikabulkan", "Harapan",
-                   "Selisih"]]
-                 .sort_values("Selisih"))
+                   "Selisih", "Simpangan"]]
+                 .sort_values("Simpangan").reset_index(drop=True))
+
+            # Contoh diambil dari data yang sedang tampil, bukan angka
+            # karangan, supaya penjelasannya selalu cocok dengan tabelnya.
+            paling = h.iloc[-1]
+            arah = ("lebih sering" if paling["Selisih"] > 0
+                    else "lebih jarang")
+            st.markdown(
+                "Kolom **Dikabulkan** adalah tingkat pengabulan yang "
+                "sebenarnya terjadi pada perkara yang ditangani hakim "
+                "tersebut. Kolom **Harapan** adalah tingkat pengabulan yang "
+                "wajar apabila perkara dengan campuran jenis pajak yang sama "
+                "ditangani oleh rerata hakim lain. **Selisih** keduanya "
+                "menunjukkan arah penyimpangan, sedangkan **Simpangan** "
+                "adalah besarnya tanpa memandang arah, dan menjadi dasar "
+                "urutan tabel.\n\n"
+                f"Sebagai contoh, {paling['Hakim ketua']} memutus "
+                f"{int(paling['Putusan']):,} perkara dengan tingkat "
+                f"pengabulan {paling['Dikabulkan']:.1f} persen, sementara "
+                f"nilai harapan bagi campuran perkara yang ditanganinya "
+                f"{paling['Harapan']:.1f} persen. Selisihnya "
+                f"{paling['Selisih']:+.1f} poin, yang berarti beliau {arah} "
+                "mengabulkan permohonan dibandingkan rerata rekan pada "
+                "perkara sejenis.\n\n"
+                "**Simpangan mendekati nol** berarti pola putusannya sejalan "
+                "dengan rerata rekan pada jenis perkara yang sama, dan "
+                "itulah yang dimaksud konsisten. **Selisih positif besar** "
+                "berarti hakim tersebut jauh lebih sering mengabulkan "
+                "daripada rerata rekan, sedangkan **selisih negatif besar** "
+                "berarti jauh lebih jarang. Keduanya sama-sama layak "
+                "ditelaah, karena keduanya menandakan perkara sejenis "
+                "berpeluang berakhir berbeda bergantung pada majelis yang "
+                "menanganinya.\n\n"
+                "Tabel diurutkan dari hakim yang polanya paling sejalan "
+                "dengan rerata sampai yang paling menyimpang.")
+
             st.html(TV.tabel(h, kolom_persen=("Dikabulkan", "Harapan",
-                                              "Selisih")))
+                                              "Selisih", "Simpangan")))
             st.caption(
-                "Penyesuaian baru memperhitungkan campuran jenis pajak, belum "
-                "tahun dan jenis perkara, sehingga selisih kecil belum "
-                "bermakna. Selisih puluhan poin pada puluhan putusan "
-                "yang layak ditindaklanjuti sebagai bahan diskusi "
-                "konsistensi.")
+                "Penyesuaian baru memperhitungkan campuran jenis pajak, "
+                "belum tahun perkara dan jenis perkara, sehingga simpangan "
+                "kecil belum bermakna. Simpangan puluhan poin pada puluhan "
+                "putusan layak ditindaklanjuti sebagai bahan diskusi "
+                "konsistensi. Sajian ini merupakan bahan pembelajaran, bukan "
+                "pemeringkatan hakim, dan sebaiknya beredar terbatas.")
 
     st.html(TV.catatan_siap(
         "Implikasi kebijakan dari halaman ini.",
@@ -1809,7 +1843,7 @@ def hal_ketetapan() -> None:
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
         "Penelaahan sebaiknya dimulai dari koreksi berbobot terbesar. "
-         "Sepuluh putusan teratasnya dapat dibaca melalui halaman Penelusuran "
+         "Sepuluh putusan teratasnya dapat dibaca melalui halaman Risalah "
          "Putusan untuk mengenali dasar pembatalannya, yang kemudian "
          "dituangkan ke dalam pedoman pemeriksaan atau penelaahan keberatan. "
          "Koreksi "
@@ -1914,7 +1948,7 @@ def hal_dasar() -> None:
         "dokumentasi paling kuat sebelum dipertahankan ke pengadilan, "
         "karena di pasal itulah otoritas paling sering kalah. Sepuluh putusan "
         "teratasnya dapat dibaca melalui halaman "
-            "Penelusuran Putusan untuk memahami pola penalarannya."))
+            "Putusan untuk memahami pola penalarannya."))
 
 
 # ---------------------------------------------------------------------------
@@ -2041,7 +2075,7 @@ def hal_unit() -> None:
         "Sajian ini merupakan alat pembinaan, bukan penilaian kinerja. Unit "
         "dengan tingkat koreksi "
         "tinggi pada banyak perkara adalah prioritas telaah: sepuluh "
-        "putusannya dapat dibaca melalui halaman Penelusuran "
+        "putusannya dapat dibaca melalui halaman Risalah "
             "Putusan untuk mengenali apakah polanya berupa koreksi yang "
             "lemah, penanganan keberatan yang tergesa, atau sengketa berulang "
             "dari wajib pajak yang sama, dan temuannya dibawa ke pembinaan "
@@ -2162,7 +2196,7 @@ def hal_hakim() -> None:
             "dibaca sebagai pola. Untuk perbandingan yang memperhitungkan "
             "campuran "
         "jenis perkara tiap hakim, lihat bagian Pola antar hakim ketua di "
-        "halaman Konsistensi Putusan.")
+        "halaman Konsistensi Putusan Hakim.")
 
     n_buang = n_gelar + n_pendek
     if n_buang or n_varian:
@@ -2369,12 +2403,12 @@ def hal_metode() -> None:
 {
     "Ikhtisar": hal_ikhtisar,
     "Nilai Sengketa": hal_nilai,
-    "Penelusuran Putusan": hal_telusur,
+    "Risalah Putusan": hal_telusur,
     "Preseden Putusan": hal_belajar,
     "Jalur dan Risiko Perkara": hal_jalur,
     "Dasar Hukum": hal_dasar,
     "Unit Penerbit": hal_unit,
-    "Konsistensi Putusan": hal_konsistensi,
+    "Konsistensi Putusan Hakim": hal_konsistensi,
     "Sengketa Berulang": hal_berulang,
     "Ketetapan dan Koreksi": hal_ketetapan,
     "Kinerja Hakim": hal_hakim,

@@ -1,3 +1,12 @@
+# Versi dikunci persis sama dengan lingkungan pengembangan. Tampilan
+# dashboard bergantung pada struktur DOM Streamlit, dan versi peladen yang
+# lebih baru pernah membuat menu samping tampil berantakan.
+#
+# Menyentuh berkas ini memaksa peladen memasang ulang lingkungan, sehingga
+# seluruh modul dimuat ulang. Perubahan pada tema_viz pernah tidak terpakai
+# karena peladen hanya menjalankan ulang berkas utama, sedangkan modul yang
+# sudah diimpor tetap yang lama di dalam ingatan, dan ikon menu hilang.
+# Cap penyegaran: 2026-08-08.
 streamlit==1.58.0
 pandas==3.0.3
 plotly==6.8.0
