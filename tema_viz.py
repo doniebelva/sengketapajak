@@ -85,15 +85,14 @@ GELAP = {
 }
 
 SANS = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif'
-# Naskah putusan memakai huruf berkait. Source Serif dipilih karena dirancang
-# untuk teks panjang di layar, berbeda dengan Georgia yang bentuknya melebar
-# dan Times New Roman yang tipis pada layar. Keduanya tetap disiapkan sebagai
-# cadangan bila berkas hurufnya gagal dimuat.
-SERIF = '"Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif'
+# Naskah putusan memakai Aptos, huruf baku dokumen pada lingkungan kerja ini.
+# Aptos tidak tersedia sebagai huruf web, jadi yang terpasang di perangkat
+# pembacalah yang dipakai; pada perangkat tanpa Aptos, cadangannya huruf
+# sistem yang bentuknya paling berdekatan.
+APTOS = ('"Aptos", "Aptos Display", "Segoe UI Variable Text", "Segoe UI", '
+         '"Inter", system-ui, sans-serif')
 FONT_URL = ("https://fonts.googleapis.com/css2?"
-            "family=Inter:wght@400;500;600;700"
-            "&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700"
-            "&display=swap")
+            "family=Inter:wght@400;500;600;700&display=swap")
 
 SISI = "2.2rem"       # jarak tepi bidang isi, dipakai juga oleh kop dan kaki
 TINGGI_KOP = 66
@@ -665,11 +664,11 @@ def gaya(gelap: bool) -> str:
      kertas. Tata letak asli PDF tidak terbawa oleh ekstraksi teks, jadi ini
      susunan ulang yang menyerupai dokumen putusan, bukan salinan persis. */
   .isi-putusan {{
-    max-height: 620px; overflow-y: auto; padding: 40px 52px;
+    max-height: 620px; overflow-y: auto; padding: 34px 44px;
     border: 1px solid {p["tepi"]}; border-radius: 6px;
-    background: {p["permukaan"]}; line-height: 1.75; font-size: 15px;
+    background: {p["permukaan"]}; line-height: 1.65; font-size: 13px;
     color: {p["tinta"]};
-    font-family: {SERIF};
+    font-family: {APTOS};
     font-variant-numeric: normal; letter-spacing: 0;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
   }}
@@ -680,7 +679,7 @@ def gaya(gelap: bool) -> str:
     text-align: justify; text-justify: inter-word; hyphens: auto;
   }}
   .isi-putusan p.doc-judul {{ text-align: center; font-weight: 700;
-                              font-size: 16px; hyphens: none;
+                              font-size: 14px; hyphens: none;
                               margin: 2px auto 16px auto; }}
   .isi-putusan p.doc-tengah {{ text-align: center; font-weight: 700;
                                letter-spacing: .04em; hyphens: none;

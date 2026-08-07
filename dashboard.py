@@ -2321,10 +2321,12 @@ elif _t["menit"] < 90:
 else:
     _ket = f"{_t['menit'] / 60:.1f} jam lalu"
 
+# Sisi kanan kaki dikosongkan. Judulnya sudah terbaca di bilah judul, dan
+# mengulangnya di kaki hanya menambah tulisan tanpa menambah keterangan.
 st.html(TV.kaki("Donny Maha Putra",
                 f"<b>{corong['unduh']:,}</b> berkas · {corong['gb']:.0f} GB · "
                 f"cakupan <b>{cakupan:.1f}%</b> · "
                 f"<b>{corong['urai']:,}</b> putusan terurai",
-                _ket, bool(_t["aktif"]), "Tax Dispute Analytic Dashboard"))
+                _ket, bool(_t["aktif"]), ""))
 
 st.components.v1.html(TV.PAKU_TETAP, height=0)
