@@ -288,7 +288,7 @@ def tampil_tanggal(v, alt: str = "-") -> str:
 # ---------------------------------------------------------------------------
 # Pembakuan nama hakim
 #
-# Nama yang sama tertulis berbeda beda antar risalah: gelarnya berubah ubah,
+# Nama yang sama tertulis berbeda-beda antar risalah: gelarnya berubah ubah,
 # tanda bacanya tidak konsisten, dan pengenalan karakter optis sesekali salah
 # satu huruf. Tanpa pembakuan, satu hakim terhitung sebagai empat baris.
 # ---------------------------------------------------------------------------
@@ -370,13 +370,13 @@ def bakukan_hakim(seri: pd.Series) -> tuple[pd.Series, pd.Series]:
     Varian yang kuncinya persis sama langsung menyatu. Varian yang kuncinya
     berselisih satu huruf, pada nama yang cukup panjang, dianggap salah baca
     optis dan dilebur ke varian yang lebih sering muncul. Nama tampilan tiap
-    kelompok adalah penulisan mentah yang paling sering dipakai."""
+    kelompok adalah penulisan mentah yang paling sering digunakan."""
     kunci = seri.map(kunci_hakim)
     utama: list[str] = []
     peta: dict[str, str] = {}
     for k in kunci.value_counts().index:
         # Kunci kosong berarti hanya gelar. Kunci tiga huruf atau kurang,
-        # seperti jja, adalah potongan tak sahih hasil salah baca, bukan
+        # seperti jja, adalah potongan yang tidak sahih hasil salah baca, bukan
         # nama orang, dan ikut dikeluarkan dari daftar maupun hitungan.
         if not k or len(k.replace(" ", "")) <= 3:
             peta[k] = ""
@@ -574,7 +574,7 @@ if pilih_tema and pilih_tema != st.session_state.tema_pilihan:
     st.stop()
 
 if df.empty:
-    st.warning("Belum ada putusan yang terurai. Jalankan setpp_teks.py extract "
+    st.warning("Belum terdapat putusan yang terurai. Jalankan setpp_teks.py extract "
                "lalu setpp_parse.py parse.")
     st.stop()
 
@@ -583,36 +583,36 @@ if df.empty:
 # Bilah samping
 # ---------------------------------------------------------------------------
 
-HALAMAN = ["Ikhtisar", "Nilai sengketa", "Telusur putusan", "Preseden putusan",
-           "Jalur dan risiko perkara", "Konsistensi putusan",
-           "Sengketa berulang", "Ketetapan dan koreksi",
-           "Dasar hukum yang menentukan", "Peta unit penerbit",
-           "Kinerja hakim", "Kinerja proses", "Catatan metode"]
-DIMENSI = {"Nilai sengketa": "Deskriptif, data resmi",
-           "Preseden putusan": "Prediktif, frekuensi historis",
-           "Jalur dan risiko perkara": "Preskriptif",
-           "Konsistensi putusan": "Diagnostik",
-           "Sengketa berulang": "Diagnostik",
-           "Ketetapan dan koreksi": "Diagnostik",
-           "Dasar hukum yang menentukan": "Diagnostik",
-           "Peta unit penerbit": "Diagnostik",
-           "Kinerja hakim": "Deskriptif",
-           "Kinerja proses": "Prediktif"}
+HALAMAN = ["Ikhtisar", "Nilai Sengketa", "Penelusuran Putusan", "Preseden Putusan",
+           "Jalur dan Risiko Perkara", "Konsistensi Putusan",
+           "Sengketa Berulang", "Ketetapan dan Koreksi",
+           "Dasar Hukum", "Unit Penerbit",
+           "Kinerja Hakim", "Kinerja Proses", "Metodologi"]
+DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
+           "Preseden Putusan": "Prediktif, frekuensi historis",
+           "Jalur dan Risiko Perkara": "Preskriptif",
+           "Konsistensi Putusan": "Diagnostik",
+           "Sengketa Berulang": "Diagnostik",
+           "Ketetapan dan Koreksi": "Diagnostik",
+           "Dasar Hukum": "Diagnostik",
+           "Unit Penerbit": "Diagnostik",
+           "Kinerja Hakim": "Deskriptif",
+           "Kinerja Proses": "Prediktif"}
 
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
 # yang pertama tujuan setiap drill, yang kedua kejujuran metodologis yang
 # tidak boleh disembunyikan dari siapa pun.
 MODUL = {
     "Semua": HALAMAN,
-    "Pimpinan": ["Ikhtisar", "Nilai sengketa", "Telusur putusan",
-                 "Konsistensi putusan", "Sengketa berulang", "Kinerja hakim",
-                 "Kinerja proses", "Catatan metode"],
-    "Fiskus": ["Ikhtisar", "Ketetapan dan koreksi",
-               "Dasar hukum yang menentukan", "Peta unit penerbit",
-               "Konsistensi putusan", "Telusur putusan", "Catatan metode"],
-    "Wajib pajak": ["Ikhtisar", "Preseden putusan",
-                    "Jalur dan risiko perkara", "Telusur putusan",
-                    "Catatan metode"],
+    "Pimpinan": ["Ikhtisar", "Nilai Sengketa", "Penelusuran Putusan",
+                 "Konsistensi Putusan", "Sengketa Berulang", "Kinerja Hakim",
+                 "Kinerja Proses", "Metodologi"],
+    "Fiskus": ["Ikhtisar", "Ketetapan dan Koreksi",
+               "Dasar Hukum", "Unit Penerbit",
+               "Konsistensi Putusan", "Penelusuran Putusan", "Metodologi"],
+    "Wajib pajak": ["Ikhtisar", "Preseden Putusan",
+                    "Jalur dan Risiko Perkara", "Penelusuran Putusan",
+                    "Metodologi"],
 }
 
 cari_cepat = st.sidebar.text_input(
@@ -623,7 +623,7 @@ if cari_cepat.strip():
     # Kata kunci baru langsung membawa ke halaman telusur.
     if st.session_state.get("cari_lalu") != cari_cepat.strip():
         st.session_state["cari_lalu"] = cari_cepat.strip()
-        st.session_state["nav_tujuan"] = "Telusur putusan"
+        st.session_state["nav_tujuan"] = "Penelusuran Putusan"
 
 # Bila tujuan drill tidak tersedia pada modul terpilih, modul dipulangkan ke
 # Semua lebih dulu, sebelum pemilih modulnya digambar.
@@ -714,7 +714,7 @@ def hal_ikhtisar() -> None:
     k[1].html(TV.kartu("Dikabulkan", f"{pangsa:.1f} %",
                        f"{n_menang:,} dari {len(dd):,} putusan beramar"))
     k[2].html(TV.kartu(
-        "Jeda putus ke ucap",
+        "Jeda musyawarah ke pengucapan",
         f"{j.median():.0f} hari" if len(j) else "-",
         f"median dari {len(j):,} putusan bertanggal" if len(j) else ""))
     k[3].html(TV.kartu("Tidak dapat diterima", f"{n_formal:,}",
@@ -735,7 +735,7 @@ def hal_ikhtisar() -> None:
         k2[0].html(TV.kartu("Dikoreksi pengadilan",
                             f"Rp {kor / 1e12:,.1f} T",
                             f"nilai resmi {th0} sampai {th1}, rincian pada "
-                            "halaman Nilai sengketa"))
+                            "halaman Nilai Sengketa"))
         k2[1].html(TV.kartu("Populasi resmi", f"{len(rs):,}",
                             f"putusan {th0} sampai {th1} pada daftar resmi "
                             "Sekretariat"))
@@ -745,7 +745,7 @@ def hal_ikhtisar() -> None:
             f"naik dari {100 * int(m0.sum()) / max(1, len(m0)):.1f} persen "
             f"pada {th0}"))
 
-    st.html('<div class="tingkat">Temuan utama</div>')
+    st.html('<div class="tingkat">Temuan Utama</div>')
     kj = d[d["jenis_ketetapan"].notna() & d["amar"].notna()]
     kj_menang = (100 * kj["amar"].isin(AMAR_MENANG).sum() / len(kj)
                  if len(kj) else 0)
@@ -758,13 +758,15 @@ def hal_ikhtisar() -> None:
         f"**{kj_menang:.0f} persen ketetapan yang disengketakan berujung "
         f"dikabulkan** seluruhnya atau sebagian, dihitung dari {len(kj):,} "
         "putusan yang jenis ketetapannya teridentifikasi. Rinciannya pada "
-        "halaman Ketetapan dan koreksi.\n\n"
+        "halaman Ketetapan dan Koreksi.\n\n"
         f"**{ulang:.0f} persen sengketa datang dari wajib pajak yang "
         "bersengketa lebih dari sekali.** Rinciannya pada halaman Sengketa "
-        "berulang.\n\n"
-        "**Ada kelompok perkara yang putusannya bervariasi tiga arah** pada "
-        "perkara sejenis, dan ada yang sangat seragam. Peta lengkapnya pada "
-        "halaman Konsistensi putusan.")
+        "Berulang.\n\n"
+        "**Terdapat kelompok perkara yang putusannya bervariasi tiga arah** "
+        "pada "
+        "perkara sejenis, dan sebagian lain sangat seragam. Peta lengkapnya "
+        "pada "
+        "halaman Konsistensi Putusan.")
 
     t = (d.dropna(subset=["tahun_putusan"])["tahun_putusan"].astype(int)
          .value_counts().sort_index()
@@ -775,9 +777,9 @@ def hal_ikhtisar() -> None:
         fig.update_xaxes(showgrid=False, dtick=1, title="")
         fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
         bagan(fig, 320, None,
-              "Tinggi batang mencerminkan seberapa banyak yang sudah ditarik "
-              f"(cakupan {cakupan:.1f} persen), bukan seberapa banyak perkara "
-              "yang ada. Penarikan berjalan dengan urutan acak merata, "
+              "Tinggi batang mencerminkan seberapa banyak yang sudah "
+              "terkumpul "
+              f"(cakupan {cakupan:.1f} persen), bukan jumlah perkara yang sesungguhnya. Penarikan berjalan dengan urutan acak merata, "
               "sehingga proporsi antar kategori sudah bermakna sebagai "
               "taksiran, tetapi jumlah mutlak belum.")
 
@@ -794,8 +796,10 @@ def hal_ikhtisar() -> None:
                          ticksuffix="%", range=[0, 100], title="")
         bagan(fig, 300, None,
               "Dihitung dari populasi resmi yang lengkap, bukan dari contoh "
-              "arsip, sehingga trennya boleh dikutip. Hampir dua dari tiga "
-              "sengketa berujung ketetapan dikoreksi, dan arahnya naik.")
+              "arsip, sehingga kecenderungannya dapat dikutip. Hampir dua "
+              "dari tiga "
+              "sengketa berujung ketetapan dikoreksi, dengan kecenderungan "
+              "yang terus naik.")
 
 
 # ---------------------------------------------------------------------------
@@ -803,15 +807,16 @@ def hal_ikhtisar() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_nilai() -> None:
-    st.subheader("Nilai sengketa")
+    st.subheader("Nilai Sengketa")
     rs = muat_resmi()
     if rs.empty:
         st.info("Daftar resmi belum dimuat ke basis data. Jalankan "
-                "setpp_resmi.py impor lebih dulu.")
+                "setpp_resmi.py impor terlebih dahulu.")
         return
     st.caption(
         f"Sumber: daftar resmi putusan Sekretariat, {len(rs):,} putusan "
-        "2021 sampai 2025. Ini populasi lengkap lima tahun, bukan contoh, "
+        "2021 sampai 2025. Angka ini mencakup populasi lengkap lima tahun, "
+        "bukan contoh, "
         "sehingga halaman ini tidak terpengaruh penyaring lingkup di bilah "
         "samping. Nilai dihitung dari putusan Rupiah yang nilai awal dan "
         "akhirnya terisi; amar tolak dan tidak dapat diterima umumnya tidak "
@@ -843,10 +848,11 @@ def hal_nilai() -> None:
                      title="Rp triliun")
     bagan(fig, 320, None,
           "Lonjakan 2022 sebagian besar berasal dari satu putusan bernilai "
-          "Rp 16,7 triliun. Nilai memang menumpuk pada sedikit perkara "
-          "raksasa, itu sifat sebarannya.")
+          "Rp 16,7 triliun. Nilai sengketa terpusat pada sedikit perkara "
+                            "bernilai sangat besar, dan itu merupakan sifat "
+                            "sebarannya.")
 
-    st.html('<div class="tingkat">Ke mana nilainya terkonsentrasi</div>')
+    st.html('<div class="tingkat">Konsentrasi Nilai Sengketa</div>')
     g = (ada.groupby("jenis_pajak")["koreksi"].agg(["sum", "count"])
          .sort_values("sum", ascending=False).head(10).reset_index()
          .rename(columns={"jenis_pajak": "Jenis pajak"}))
@@ -858,10 +864,11 @@ def hal_nilai() -> None:
                            "terbesar", "Ket"),
           max(280, 34 * len(g) + 120), None,
           "PPh Badan menyumbang koreksi terbesar dari jumlah perkara yang "
-          "jauh lebih sedikit daripada PPN. Perkara badan sedikit tetapi "
-          "raksasa, dan di sanalah taruhan fiskalnya.")
+          "jauh lebih sedikit daripada PPN. Jumlah perkara badan sedikit, "
+          "namun nilainya sangat besar, "
+            "sehingga di sanalah risiko fiskal terbesar berada.")
 
-    st.html('<div class="tingkat">Mutu ketetapan bernilai besar</div>')
+    st.html('<div class="tingkat">Mutu Ketetapan Bernilai Besar</div>')
     isi = rp.dropna(subset=["nilai_awal"]).copy()
     isi["menang"] = isi["amar"].isin(AMAR_MENANG)
     tepi = [0, 1e8, 1e9, 1e10, 1e11, float("inf")]
@@ -880,18 +887,18 @@ def hal_nilai() -> None:
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      ticksuffix="%", range=[0, 100], title="")
     bagan(fig, 330, None,
-          "Polanya monoton: semakin besar nilai ketetapan yang dilawan, "
+          "Polanya konsisten: semakin besar nilai ketetapan yang dilawan, "
           "semakin besar peluangnya dikoreksi pengadilan. Di kelas paling "
           "atas hampir sembilan dari sepuluh berujung koreksi.")
     st.html(TV.catatan_siap(
-        "Tindakan yang disarankan dari bagian ini.",
+        "Implikasi kebijakan atas mutu ketetapan bernilai besar.",
         "Ketetapan bernilai besar yang kalah hampir pasti bukan soal "
         "administrasi, melainkan mutu koreksi. Penelaahan mutu sebelum "
         "penerbitan untuk setiap ketetapan di atas Rp 10 miliar berpotensi "
         "menghemat kerugian nilai terbesar dengan beban kerja tambahan "
         "paling kecil, karena jumlah ketetapannya sedikit."))
 
-    st.html('<div class="tingkat">Instansi terbanding</div>')
+    st.html('<div class="tingkat">Instansi Terbanding</div>')
     rr = rs.assign(menang=rs["amar"].isin(AMAR_MENANG))
     gt = (rr.groupby("terbanding")["menang"].agg(["sum", "size"])
           .reset_index().rename(columns={"terbanding": "Terbanding"}))
@@ -904,10 +911,10 @@ def hal_nilai() -> None:
     fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
     bagan(fig, 250, None,
           "Ketetapan DJP dikoreksi jauh lebih sering daripada DJBC, dan "
-          "hampir seluruh nilai koreksi lima tahun ada di DJP. Dua dunia "
-          "yang berbeda kebutuhan pembenahannya.")
+          "hampir seluruh nilai koreksi lima tahun terhimpun pada DJP. "
+          "Keduanya memerlukan pendekatan pembenahan yang berbeda.")
 
-    st.html('<div class="tingkat">Pemohon bernilai terbesar</div>')
+    st.html('<div class="tingkat">Pemohon dengan Nilai Terbesar</div>')
     gp = (ada.groupby("nama_pemohon")
           .agg(Putusan=("koreksi", "size"),
                awal=("nilai_awal", "sum"), kor=("koreksi", "sum"))
@@ -953,7 +960,7 @@ def buka_putusan(doc_id, kunci_daftar: str | None = None) -> None:
     putusan membawa pengguna pulang ke halaman tempat dia berangkat."""
     st.session_state["buka_doc"] = int(doc_id)
     st.session_state["asal_drill"] = st.session_state.get("nav")
-    st.session_state["nav_tujuan"] = "Telusur putusan"
+    st.session_state["nav_tujuan"] = "Penelusuran Putusan"
     if kunci_daftar:
         st.session_state["hapus_kunci"] = kunci_daftar
     st.rerun()
@@ -991,9 +998,10 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
                       for a in anggota_mentah.split("|") if a)
             + (f"- Panitera pengganti: {panitera}\n" if panitera else ""))
     else:
-        st.caption("Susunan majelis tidak tersedia. Risalah era lama, yang "
-                   "berformat Word, memang tidak memuatnya. Ini sifat "
-                   "dokumennya, bukan kegagalan pembacaan.")
+        st.caption("Susunan majelis tidak tersedia. Risalah era lama yang berformat Word tidak memuat susunan "
+            "majelis. Hal tersebut merupakan sifat dokumennya, bukan "
+            "kegagalan "
+            "pembacaan.")
 
     if r["doc_id"] in cuplikan:
         st.markdown("**Cuplikan yang cocok**")
@@ -1016,8 +1024,7 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
         potongan.append(f"<p{atribut}>{sorot(a, istilah)}</p>")
     st.html(f"<div class='isi-putusan'>{''.join(potongan)}</div>")
     if len(isi) > 200000:
-        st.caption("Teks dipotong pada dua ratus ribu karakter. Unduh untuk "
-                   "membaca utuh.")
+        st.caption("Teks dipotong pada dua ratus ribu karakter. Naskah lengkapnya tersedia melalui tombol unduh.")
 
     # Tampilan web di atas adalah susunan ulang untuk membaca cepat. Untuk
     # kutipan resmi, yang disediakan adalah berkas asli dari Sekretariat apa
@@ -1072,14 +1079,14 @@ def hal_telusur() -> None:
             r = r_buka.iloc[0]
             judul = tampil(r["nomor_putusan_raw"], f"Dokumen {r['doc_id']}")
             asal = st.session_state.get("asal_drill")
-            asal = asal if asal in HALAMAN else "Telusur putusan"
-            st.subheader("Telusur putusan")
+            asal = asal if asal in HALAMAN else "Penelusuran Putusan"
+            st.subheader("Penelusuran Putusan")
             st.html(f'<div class="jejak">{asal}<i>›</i>'
                     f'Putusan <b>{judul}</b></div>')
             if st.button(f"Kembali ke {asal}", icon=":material/arrow_back:"):
                 st.session_state.pop("buka_doc", None)
                 st.session_state["nav_tujuan"] = st.session_state.pop(
-                    "asal_drill", None) or "Telusur putusan"
+                    "asal_drill", None) or "Penelusuran Putusan"
                 st.rerun()
             tampil_detail(r)
             return
@@ -1087,13 +1094,14 @@ def hal_telusur() -> None:
 
     kiri, kanan = st.columns([3, 2])
     with kiri:
-        st.subheader("Telusur putusan")
+        st.subheader("Penelusuran Putusan")
     with kanan:
         panel = st.popover("Saring dan cari", width="stretch")
 
     with panel:
-        st.caption("Lima jalur penyaringan dapat dipakai sekaligus dan saling "
-                   "mempersempit. Isi yang perlu saja.")
+        st.caption("Lima jalur penyaringan dapat digunakan sekaligus dan saling "
+                   "mempersempit. Kolom yang tidak diperlukan dapat "
+                   "dikosongkan.")
         q_nomor = st.text_input("Nomor putusan",
                                 placeholder="misalnya 30938 atau PUT-000123")
         q_wp = st.text_input("Nama wajib pajak", placeholder="misalnya PT")
@@ -1143,11 +1151,11 @@ def hal_telusur() -> None:
                      f"Jalankan setpp_parse.py fts. ({exc})")
 
     if h.empty:
-        st.warning("Tidak ada putusan yang cocok. Longgarkan kata kuncinya "
-                   "atau kosongkan penyaring.")
+        st.warning("Tidak terdapat putusan yang cocok. Kriteria pencarian dapat diperlonggar atau penyaring "
+            "dikosongkan.")
         return
 
-    st.html('<div class="tingkat">Tingkat 1 · Kelompokkan</div>')
+    st.html('<div class="tingkat">Tahap 1 · Pengelompokan</div>')
     PETA_DIM = {"Jenis pajak": "kode_jenis_pajak", "Amar putusan": "amar_label",
                 "Instansi terbanding": "instansi_terbanding_label",
                 "Jenis perkara": "jenis_perkara_label",
@@ -1200,22 +1208,25 @@ def hal_telusur() -> None:
     ev = bagan(batang_peringkat(pot, dim_nama, "Putusan",
                                 f"Sebaran menurut {dim_nama.lower()}"),
                max(260, 34 * len(pot) + 120), kel_penuh,
-               "Klik salah satu batang untuk masuk ke kelompoknya.",
+               "Pilih salah satu batang untuk menampilkan rincian "
+               "kelompoknya.",
                kunci=f"kel_{dim}")
 
     nilai_kel = titik_terpilih(ev)
     if nilai_kel is None:
         st.info(f"{len(h):,} putusan terbagi ke dalam {len(kel)} kelompok "
-                f"menurut {dim_nama.lower()}. Klik satu batang untuk masuk.")
+                f"menurut {dim_nama.lower()}. Pilih salah satu batang untuk menampilkan rinciannya.")
         return
     if nilai_kel == LAINNYA:
         st.info("Kelompok gabungan ini berisi campuran kelompok kecil dan "
-                "tidak dapat dimasuki. Rinciannya ada pada panel tabel di "
-                "bawah bagan, atau persempit lewat panel Saring dan cari.")
+                "tidak dapat dimasuki. Rinciannya tersedia pada panel tabel "
+                "di "
+                "bawah bagan, atau populasinya dipersempit melalui panel "
+                "penyaringan.")
         return
     if len(kel) > 14 and nilai_kel not in set(pot[dim_nama]):
-        st.info("Kelompok itu di luar empat belas terbesar. Persempit dulu "
-                "lewat panel Saring dan cari.")
+        st.info("Kelompok itu di luar empat belas terbesar. Populasi perlu dipersempit terlebih dahulu melalui panel "
+            "penyaringan.")
         return
 
     hk = h[h["doc_id"].isin(set(sumber[sumber["nilai"] == nilai_kel]["doc_id"]))]
@@ -1224,8 +1235,8 @@ def hal_telusur() -> None:
     st.html(f'<div class="jejak">Dalam lingkup <b>{len(h):,}</b><i>›</i>'
             f'{dim_nama} <b>{nilai_kel}</b><i>›</i><b>{len(hk):,}</b> '
             'putusan</div>')
-    st.html('<div class="tingkat">Tingkat 2 · Daftar putusan</div>')
-    st.caption("Klik satu baris untuk membuka isi putusannya.")
+    st.html('<div class="tingkat">Tahap 2 · Daftar Putusan</div>')
+    st.caption("Pilih salah satu baris untuk menampilkan isi putusannya.")
 
     ringkas = pd.DataFrame({
         "Nomor putusan": hk["nomor_putusan_raw"].fillna("tidak dikenali"),
@@ -1253,7 +1264,7 @@ def hal_telusur() -> None:
     judul = tampil(r["nomor_putusan_raw"], f"Dokumen {r['doc_id']}")
     st.html(f'<div class="jejak">{dim_nama} <b>{nilai_kel}</b><i>›</i>'
             f'Putusan <b>{judul}</b></div>')
-    st.html('<div class="tingkat">Tingkat 3 · Isi putusan</div>')
+    st.html('<div class="tingkat">Tahap 3 · Isi Putusan</div>')
     tampil_detail(r, cuplikan, q_isi)
 
 
@@ -1262,12 +1273,15 @@ def hal_telusur() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_belajar() -> None:
-    st.subheader("Preseden putusan")
+    st.subheader("Preseden Putusan")
     st.caption(
-        "Pilih ciri perkara Anda, dan halaman ini menjawab dari sejarah: "
+        "Setelah ciri perkara dipilih, halaman ini menyajikan rekam jejak "
+        "historisnya: "
         "bagaimana perkara serupa diputus, argumen hukum apa yang menyertai "
-        "yang dikabulkan, dan jebakan formal apa yang menggugurkan. Seluruh "
-        "angka adalah frekuensi historis atas putusan yang sudah ada, bukan "
+        "yang dikabulkan, serta aspek formal apa yang menggugurkan perkara. "
+        "Seluruh "
+        "angka adalah frekuensi historis atas putusan yang telah dijatuhkan, "
+        "bukan "
         "ramalan atas perkara Anda.")
 
     kode_ada = sorted(d["kode_jenis_pajak"].dropna().astype(str).unique())
@@ -1298,8 +1312,9 @@ def hal_belajar() -> None:
     if len(ss) < 10:
         st.warning(
             f"Hanya {len(ss)} putusan serupa yang beramar pada pilihan ini. "
-            "Terlalu sedikit untuk dibaca sebagai pola. Longgarkan salah satu "
-            "pilihan, atau tunggu cakupan data bertambah.")
+            "Terlalu sedikit untuk dibaca sebagai pola. Salah satu pilihan "
+            "dapat diperlonggar, atau penelaahan ditunda "
+            "sampai cakupan data bertambah.")
         return
 
     n_menang = int(ss["amar"].isin(AMAR_MENANG).sum())
@@ -1322,12 +1337,12 @@ def hal_belajar() -> None:
                            "Bagaimana perkara serupa diputus", "Ket"),
           max(240, 42 * len(t) + 110))
 
-    st.html('<div class="tingkat">Argumen hukum pada yang dikabulkan</div>')
+    st.html('<div class="tingkat">Argumen Hukum pada Putusan yang Dikabulkan</div>')
     dh = muat_dasar_hukum()
     menang_id = set(ss[ss["amar"].isin(AMAR_MENANG)]["doc_id"])
     dh = dh[dh["doc_id"].isin(menang_id) & dh["uu_nomor"].notna()]
     if dh.empty:
-        st.info("Belum ada rujukan dasar hukum pada kelompok ini.")
+        st.info("Belum terdapat rujukan dasar hukum pada kelompok ini.")
     else:
         dh = dh.assign(rujukan="Pasal " + dh["pasal"].astype(str) + " "
                        + dh["uu_nama"].fillna("UU " + dh["uu_nomor"].astype(str)))
@@ -1338,20 +1353,21 @@ def hal_belajar() -> None:
                                "Pasal yang paling sering menyertai putusan "
                                "yang dikabulkan"),
               max(240, 36 * len(r) + 110), None,
-              "Kemunculan bersama, bukan sebab akibat. Pasal ini yang paling "
+              "Hubungan yang tersaji berupa kemunculan bersama, bukan sebab "
+              "akibat. Pasal ini yang paling "
               "sering dirujuk pada perkara serupa yang dikabulkan, dan layak "
               "dipelajari ketika menyusun argumen.")
 
     j = jeda_hari(s)
     if len(j) >= 10:
-        st.html('<div class="tingkat">Lama proses yang realistis</div>')
+        st.html('<div class="tingkat">Lama Proses Penyelesaian</div>')
         st.markdown(
             f"Pada perkara serupa yang tanggalnya terbaca ({len(j):,} "
             f"putusan), jeda dari putusan diambil sampai diucapkan median "
             f"**{j.median():.0f} hari**, dan sepersepuluh terlama menunggu "
             f"lebih dari **{j.quantile(0.9):.0f} hari**.")
 
-    st.html('<div class="tingkat">Baca putusannya sendiri</div>')
+    st.html('<div class="tingkat">Daftar Putusan Terkait</div>')
     daftar = ss.sort_values("tahun_putusan", ascending=False).head(30)
     pilih_baca = st.dataframe(
         pd.DataFrame({
@@ -1369,8 +1385,9 @@ def hal_belajar() -> None:
                 alignment="center"),
             "Pengenal berkas": st.column_config.TextColumn(
                 alignment="center")})
-    st.caption("Tiga puluh terbaru. Klik satu baris untuk langsung membuka "
-               "isi putusannya di halaman Telusur putusan. Pengenal berkas "
+    st.caption("Tiga puluh terbaru. Pilih salah satu baris untuk menampilkan "
+                                    "isi putusannya pada halaman Penelusuran "
+                                    "Putusan. Pengenal berkas "
                "adalah nomor arsip pada peladen Sekretariat, kunci untuk "
                "menelusuri sampai berkas aslinya.")
     b = pilih_baca.selection.rows if pilih_baca and pilih_baca.selection else []
@@ -1383,18 +1400,20 @@ def hal_belajar() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_jalur() -> None:
-    st.subheader("Jalur dan risiko perkara")
+    st.subheader("Jalur dan Risiko Perkara")
     st.caption(
-        "Halaman untuk wajib pajak sebelum melangkah: jalur mana yang "
-        "sesuai, berapa peluang historisnya, jebakan formal apa yang "
-        "menggugurkan, dan risiko apa yang jarang disadari. Seluruh angka "
-        "adalah frekuensi historis atas putusan yang sudah ada, bukan "
+        "Halaman ini disusun bagi wajib pajak sebelum mengajukan perkara, "
+        "memuat jalur mana yang "
+        "sesuai, berapa peluang historisnya, aspek formal apa yang "
+        "menggugurkan perkara, dan risiko apa yang jarang disadari. Seluruh "
+        "angka "
+        "adalah frekuensi historis atas putusan yang telah dijatuhkan, bukan "
         "nasihat hukum atas perkara Anda.")
 
     rs = muat_resmi()
     if rs.empty:
         st.info("Halaman ini membutuhkan daftar resmi. Jalankan "
-                "setpp_resmi.py impor lebih dulu.")
+                "setpp_resmi.py impor terlebih dahulu.")
         return
 
     # Proksi jalur pada daftar resmi: baris berjenis pajak Gugatan Pajak
@@ -1442,18 +1461,20 @@ def hal_jalur() -> None:
                     xanchor="left", x=0),
         margin=dict(b=70))
     bagan(fig, 380, None,
-          "Banding menyerang materi ketetapan, gugatan menyerang keabsahan "
-          "penetapan dan prosedurnya. Peluangnya bumi dan langit: dua dari "
+          "Banding mempersoalkan materi ketetapan, sedangkan gugatan "
+           "mempersoalkan keabsahan penetapan beserta prosedurnya. Perbedaan "
+           "peluangnya sangat tajam: dua dari "
           "tiga banding dikabulkan, gugatan sebaliknya lebih sering ditolak "
           "atau gugur di aspek formal tanpa pernah diperiksa pokoknya.")
 
     st.html(TV.catatan_siap(
-        "Pilih pintu menurut apa yang dilawan, dan jaga tenggatnya.",
-        "Surat ketetapan pajak dan keputusan keberatan dilawan lewat "
+        "Pemilihan jalur perkara dan ketaatan pada tenggat waktu.",
+        "Surat ketetapan pajak dan keputusan keberatan dilawan melalui jalur "
         "banding. Surat tagihan, tindakan penagihan, dan cacat prosedur "
-        "penerbitan dilawan lewat gugatan. Perkara yang masuk lewat pintu "
-        "yang keliru atau lewat tenggat berhenti di Tidak dapat diterima "
-        "tanpa diperiksa pokoknya. Tenggat banding tiga bulan sejak "
+        "penerbitan dilawan melalui jalur gugatan. Perkara yang diajukan "
+        "melalui jalur yang keliru atau melampaui "
+            "tenggat waktu berakhir dengan amar Tidak dapat diterima tanpa "
+            "pemeriksaan pokok sengketa. Tenggat banding tiga bulan sejak "
         "keputusan diterima; tenggat gugatan jauh lebih pendek, empat belas "
         "hari untuk penagihan dan tiga puluh hari untuk keputusan lainnya."))
 
@@ -1468,10 +1489,12 @@ def hal_jalur() -> None:
         fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
         bagan(fig, 280, None,
               "Pengadilan berwenang menetapkan pajak lebih besar daripada "
-              "ketetapan yang dilawan, dan pemakaian kewenangan itu sedang "
-              "menanjak. Jumlahnya kecil, tetapi artinya besar: berperkara "
-              "bukan tanpa risiko, terutama bila pembukuan menyimpan "
-              "persoalan lain yang ikut terbuka di persidangan.")
+              "ketetapan yang dilawan, dan penggunaan kewenangan tersebut "
+                                       "menunjukkan kecenderungan naik. "
+                                       "Jumlahnya kecil, namun maknanya "
+                                       "penting. Mengajukan perkara "
+            "bukan tanpa risiko, terutama apabila pembukuan memuat persoalan "
+            "lain yang turut terungkap dalam persidangan.")
 
     st.html('<div class="tingkat">Lama menunggu pengucapan, dari arsip '
             'risalah</div>')
@@ -1489,8 +1512,9 @@ def hal_jalur() -> None:
         st.caption(
             "Jeda dari putusan diambil di musyawarah sampai diucapkan di "
             "sidang terbuka, dihitung dari arsip risalah yang tanggalnya "
-            "terbaca. Rencanakan arus kas dengan angka median, siapkan "
-            "kesabaran untuk skenario terlamanya.")
+            "terbaca. Perencanaan arus kas sebaiknya menggunakan angka "
+                      "median, dengan memperhitungkan kemungkinan skenario "
+                      "terlama.")
     else:
         st.caption("Putusan bertanggal lengkap pada lingkup ini belum cukup "
                    "untuk membandingkan lama proses per jalur.")
@@ -1501,13 +1525,13 @@ def hal_jalur() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_konsistensi() -> None:
-    st.subheader("Konsistensi putusan")
+    st.subheader("Konsistensi Putusan")
     st.caption(
         "Perkara sejenis, yaitu jenis pajak dan jenis koreksi yang sama, "
         "semestinya diputus serupa. Halaman ini mengukur pangsa amar dominan "
         "pada tiap kelompok. Kelompok yang seragam berarti hukumnya terbaca "
         "jelas. Kelompok yang bervariasi berarti normanya multitafsir, dan "
-        "itulah daftar prioritas pembenahan peraturan.")
+        "kelompok itulah yang menjadi prioritas pembenahan peraturan.")
 
     k = ledak_koreksi(beramar(d))
     dom = []
@@ -1523,7 +1547,7 @@ def hal_konsistensi() -> None:
             "Amar dominan": LABEL_AMAR.get(amar_dom, amar_dom),
             "Keseragaman": round(100 * int(cnt.max()) / n, 1)})
     if not dom:
-        st.info("Belum ada kelompok dengan sedikitnya lima belas putusan.")
+        st.info("Belum terdapat kelompok dengan sedikitnya lima belas putusan.")
         return
     t = pd.DataFrame(dom).sort_values("Keseragaman")
 
@@ -1540,7 +1564,7 @@ def hal_konsistensi() -> None:
         fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
         bagan(fig, max(260, 44 * len(pecah) + 110), None,
               "Amar dominan di bawah lima puluh persen berarti perkara "
-              "sejenis diputus berbeda beda arah.")
+              "sejenis diputus berbeda-beda arah.")
     with c2:
         seragam = t.tail(7).copy()
         seragam["Ket"] = [f"{v:.0f}%" for v in seragam["Keseragaman"]]
@@ -1553,13 +1577,14 @@ def hal_konsistensi() -> None:
         st.html(TV.tabel(t.sort_values("Keseragaman"),
                          kolom_persen=("Keseragaman",)))
 
-    st.html('<div class="tingkat">Pola antar hakim ketua</div>')
+    st.html('<div class="tingkat">Pola Antar Hakim Ketua</div>')
     st.caption(
         "Tingkat dikabulkan tiap hakim dibandingkan dengan nilai harapannya, "
         "yaitu tingkat yang wajar mengingat campuran jenis pajak perkara yang "
         "ditanganinya. Selisih yang jauh dari nol berarti polanya menyimpang "
-        "dari rerata rekan pada perkara sejenis. Ini bahan pembelajaran "
-        "konsistensi, bukan pemeringkatan hakim, dan sebaiknya beredar "
+        "dari rerata rekan pada perkara sejenis. Sajian ini merupakan bahan "
+        "pembelajaran konsistensi, bukan "
+            "pemeringkatan hakim, dan sebaiknya beredar "
         "terbatas.")
     dd = beramar(d)
     dd = dd[dd["hakim_ketua"].notna() & dd["kode_jenis_pajak"].notna()].copy()
@@ -1578,7 +1603,7 @@ def hal_konsistensi() -> None:
                   harapan=("harapan", "mean")).reset_index())
         h = h[h["n"] >= 20].copy()
         if h.empty:
-            st.info("Belum ada hakim ketua dengan dua puluh putusan beramar.")
+            st.info("Belum terdapat hakim ketua dengan dua puluh putusan beramar.")
         else:
             h["Dikabulkan"] = (100 * h["aktual"]).round(1)
             h["Harapan"] = (100 * h["harapan"]).round(1)
@@ -1593,17 +1618,19 @@ def hal_konsistensi() -> None:
             st.caption(
                 "Penyesuaian baru memperhitungkan campuran jenis pajak, belum "
                 "tahun dan jenis perkara, sehingga selisih kecil belum "
-                "berarti apa apa. Selisih puluhan poin pada puluhan putusan "
+                "bermakna. Selisih puluhan poin pada puluhan putusan "
                 "yang layak ditindaklanjuti sebagai bahan diskusi "
                 "konsistensi.")
 
     st.html(TV.catatan_siap(
-        "Tindakan yang disarankan dari halaman ini.",
+        "Implikasi kebijakan dari halaman ini.",
         "Kelompok paling bervariasi adalah daftar prioritas pembenahan "
         "norma, "
-        "lewat surat edaran, pedoman internal, atau usulan peraturan "
-        "pelaksana. Mulai dari kelompok dengan jumlah perkara terbesar, "
-        "karena di sanalah ketidakpastian hukum paling banyak menelan biaya."))
+        "melalui surat edaran, pedoman internal, atau usulan peraturan "
+        "pelaksana. Penanganan sebaiknya dimulai dari kelompok dengan jumlah "
+        "perkara terbesar, "
+        "karena pada kelompok itulah ketidakpastian hukum menimbulkan biaya "
+        "terbesar."))
 
 
 # ---------------------------------------------------------------------------
@@ -1611,21 +1638,21 @@ def hal_konsistensi() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_berulang() -> None:
-    st.subheader("Sengketa berulang")
+    st.subheader("Sengketa Berulang")
     st.caption(
         "Wajib pajak yang bersengketa berulang kali dengan pokok serupa "
         "menandakan persoalan yang tidak selesai di tingkat keberatan lalu "
-        "membebani pengadilan berulang ulang.")
+        "membebani pengadilan berulang-ulang.")
 
     n_samar = int((d["nama_disamarkan"] == 1).sum())
     dn = d[(d["nama_disamarkan"] == 0) & d["nama_pemohon_norm"].notna()]
     if dn.empty:
-        st.info("Belum ada nama pemohon yang terbaca pada lingkup ini.")
+        st.info("Belum terdapat nama pemohon yang terbaca pada lingkup ini.")
         return
     st.html(TV.catatan_siap(
-        "Cakupan halaman ini terbatas.",
-        f"Sebanyak {n_samar:,} putusan memakai nama samaran era lama seperti "
-        "XXX dan AAA, yang memang dilakukan Sekretariat pada risalah lama, "
+        "Cakupan analisis pada halaman ini.",
+        f"Sebanyak {n_samar:,} putusan menggunakan nama samaran era lama seperti "
+        "XXX dan AAA, sebagaimana dilakukan Sekretariat pada risalah lama, "
         "dan dikeluarkan dari analisis ini karena tidak dapat dikenali "
         f"sebagai entitas. Analisis berjalan atas {len(dn):,} putusan yang "
         "namanya terbaca utuh."))
@@ -1649,8 +1676,9 @@ def hal_berulang() -> None:
     # bersengketa tunggal tidak pantas tampil di halaman berjudul berulang.
     vc2 = vc[vc >= 2]
     if vc2.empty:
-        st.info("Tidak ada wajib pajak dengan dua sengketa atau lebih pada "
-                "lingkup ini. Longgarkan penyaring tahun di bilah samping.")
+        st.info("Tidak terdapat wajib pajak dengan dua sengketa atau lebih pada "
+                "lingkup ini. Penyaring tahun pada bilah samping dapat "
+                "diperlonggar.")
         return
 
     # Kunci drill adalah bentuk baku nama, sejajar baris tabel lewat urutan,
@@ -1674,9 +1702,9 @@ def hal_berulang() -> None:
             "Pokok terbanyak": kor.index[0] if len(kor) else "-",
             "Dikabulkan": round(100 * ga["menang"].mean(), 2)
             if len(ga) else 0.0})
-    st.html('<div class="tingkat">Lima belas teratas</div>')
-    st.caption("Klik satu baris untuk membuka daftar sengketa wajib pajak "
-               "itu.")
+    st.html('<div class="tingkat">Lima Belas Wajib Pajak Teratas</div>')
+    st.caption("Pilih salah satu baris untuk menampilkan daftar sengketa "
+                "wajib pajak tersebut.")
     pilih15 = st.dataframe(
         pd.DataFrame(baris), width="stretch", hide_index=True,
         on_select="rerun", selection_mode="single-row", key="wp_teratas",
@@ -1707,10 +1735,10 @@ def hal_berulang() -> None:
             column_config={
                 "Tanggal putusan": st.column_config.TextColumn(
                     alignment="center")})
-        st.caption("Klik satu baris untuk membuka isi putusannya. Perhatikan "
-                   "apakah pokok dan hasilnya sama dari tahun ke tahun. "
+        st.caption("Pilih salah satu baris untuk menampilkan isi putusannya. Perlu diperhatikan apakah pokok sengketa dan hasilnya sama dari "
+            "tahun ke tahun. "
                    "Sengketa yang sama diputus sama berulang kali adalah "
-                   "pemborosan yang dapat dihentikan lewat pedoman.")
+                   "pemborosan yang dapat dihentikan melalui pedoman.")
         b = (pilih_sen.selection.rows
              if pilih_sen and pilih_sen.selection else [])
         if b:
@@ -1718,8 +1746,8 @@ def hal_berulang() -> None:
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
-        "Untuk pimpinan, sengketa kronis dengan hasil yang itu itu juga "
-        "adalah calon penyelesaian di hulu, lewat pedoman keberatan atau "
+        "Untuk pimpinan, sengketa berulang dengan hasil yang konsisten sama "
+        "berpotensi diselesaikan pada tahap keberatan, melalui pedoman atau "
         "kesepakatan penafsiran dengan unit teknis, supaya perkara serupa "
         "tidak terus dikirim ke pengadilan."))
 
@@ -1729,16 +1757,16 @@ def hal_berulang() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_ketetapan() -> None:
-    st.subheader("Ketetapan dan koreksi")
+    st.subheader("Ketetapan dan Koreksi")
     st.caption(
-        "Membaca sengketa dari sisi hulu, yaitu ketetapan yang diterbitkan "
-        "unit dan koreksi yang mendasarinya. Inilah halaman kerja fiskus.")
+        "Menelaah sengketa dari sisi penerbitan, yaitu ketetapan yang "
+         "diterbitkan unit beserta koreksi yang mendasarinya.")
 
     kj = beramar(d)
     kj = kj[kj["jenis_ketetapan"].notna()].copy()
     kj["menang"] = kj["amar"].isin(AMAR_MENANG)
     if kj.empty:
-        st.info("Belum ada ketetapan yang teridentifikasi jenisnya.")
+        st.info("Belum terdapat ketetapan yang teridentifikasi jenisnya.")
         return
 
     g = (kj.groupby("jenis_ketetapan")
@@ -1757,7 +1785,7 @@ def hal_ketetapan() -> None:
           "berarti mayoritas ketetapan jenis itu yang dilawan berujung "
           "dikoreksi pengadilan.")
 
-    st.html('<div class="tingkat">Koreksi yang paling layak ditinjau</div>')
+    st.html('<div class="tingkat">Koreksi yang Paling Layak Ditinjau</div>')
     kor = ledak_koreksi(beramar(d))
     gk = (kor.groupby("Jenis koreksi")
           .agg(Putusan=("doc_id", "nunique"), menang=("menang", "sum"))
@@ -1774,16 +1802,18 @@ def hal_ketetapan() -> None:
                                        "Batas atas")))
     st.caption(
         "Bobot adalah jumlah putusan dikalikan tingkat dikabulkan, yaitu "
-        "perkiraan kasar berapa banyak ketetapan yang sebenarnya batal pada "
-        "jenis koreksi itu. Urutan inilah daftar prioritas peninjauan "
-        "pedoman pemeriksaan.")
+        "perkiraan kasar atas jumlah ketetapan yang sebenarnya batal pada "
+        "jenis koreksi itu. Urutan tersebut menjadi prioritas peninjauan "
+                            "pedoman pemeriksaan.")
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
-        "Mulai dari koreksi berbobot terbesar: baca sepuluh putusan "
-        "teratasnya lewat halaman Telusur, kenali dasar pembatalannya, lalu "
-        "tuangkan ke pedoman pemeriksaan atau penelaahan keberatan. Koreksi "
-        "yang jarang tetapi hampir selalu batal cukup ditangani lewat "
+        "Penelaahan sebaiknya dimulai dari koreksi berbobot terbesar. "
+         "Sepuluh putusan teratasnya dapat dibaca melalui halaman Penelusuran "
+         "Putusan untuk mengenali dasar pembatalannya, yang kemudian "
+         "dituangkan ke dalam pedoman pemeriksaan atau penelaahan keberatan. "
+         "Koreksi "
+        "yang jarang tetapi hampir selalu batal cukup ditangani melalui "
         "penegasan teknis, koreksi yang sering dan sering batal perlu "
         "pembenahan pedoman."))
 
@@ -1793,17 +1823,19 @@ def hal_ketetapan() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_dasar() -> None:
-    st.subheader("Dasar hukum yang menentukan")
+    st.subheader("Dasar Hukum")
     st.caption(
-        "Peta pasal yang paling sering hadir ketika ketetapan dikoreksi "
-        "pengadilan, dari arsip risalah yang sudah terurai. Untuk penelaah "
-        "keberatan dan penyusun pedoman: di pasal pasal inilah argumen "
-        "diadu. Kemunculan bersama, bukan sebab akibat.")
+        "Rekapitulasi pasal yang paling sering dirujuk ketika ketetapan "
+        "dikoreksi "
+        "pengadilan, dari arsip risalah yang sudah terurai. Bagi penelaah "
+        "keberatan dan penyusun pedoman, pasal-pasal inilah "
+            "yang paling menentukan arah pembuktian. Hubungan yang tersaji "
+            "berupa kemunculan bersama, bukan sebab akibat.")
 
     dh = muat_dasar_hukum()
     dd = beramar(d)
     if dh.empty or dd.empty:
-        st.info("Belum ada rujukan dasar hukum pada lingkup ini.")
+        st.info("Belum terdapat rujukan dasar hukum pada lingkup ini.")
         return
 
     k1, k2 = st.columns(2)
@@ -1835,8 +1867,8 @@ def hal_dasar() -> None:
     rt = (du[du["doc_id"].isin(tolak_id)]
           .groupby("Rujukan")["doc_id"].nunique())
     if rk.empty:
-        st.info("Belum ada rujukan dasar hukum pada putusan dikabulkan di "
-                "pilihan ini. Longgarkan salah satu pilihan.")
+        st.info("Belum terdapat rujukan dasar hukum pada putusan dikabulkan di "
+                "pilihan ini. Salah satu pilihan dapat diperlonggar.")
         return
 
     t = (pd.DataFrame({"Dikabulkan merujuk": rk, "Ditolak merujuk": rt})
@@ -1862,8 +1894,9 @@ def hal_dasar() -> None:
           "Batang dihitung dari jumlah putusan dikabulkan yang merujuk "
           "pasal itu. Keterangan di ujung batang membandingkan kehadiran "
           "pasal yang sama: angka pertama pada putusan yang dikabulkan, "
-          "angka kedua pada yang ditolak. Pasal yang timpang kehadirannya "
-          "itulah penentu arah.")
+          "angka kedua pada yang ditolak. Pasal yang kehadirannya paling "
+          "timpang merupakan penentu arah "
+            "putusan.")
 
     with st.expander("Dua puluh rujukan teratas sebagai tabel"):
         st.html(TV.tabel(
@@ -1875,12 +1908,13 @@ def hal_dasar() -> None:
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
-        "Jadikan daftar ini kurikulum penelaahan keberatan. Koreksi yang "
+        "Daftar ini dapat menjadi acuan materi penelaahan keberatan. Koreksi "
+        "yang "
         "bersinggungan dengan pasal berselisih besar perlu argumen dan "
         "dokumentasi paling kuat sebelum dipertahankan ke pengadilan, "
-        "karena di pasal itulah otoritas paling sering kalah. Baca sepuluh "
-        "putusannya lewat halaman Telusur untuk memahami pola "
-        "penalarannya."))
+        "karena di pasal itulah otoritas paling sering kalah. Sepuluh putusan "
+        "teratasnya dapat dibaca melalui halaman "
+            "Penelusuran Putusan untuk memahami pola penalarannya."))
 
 
 # ---------------------------------------------------------------------------
@@ -1925,10 +1959,11 @@ def rapikan_unit(v) -> str:
 
 
 def hal_unit() -> None:
-    st.subheader("Peta unit penerbit")
+    st.subheader("Unit Penerbit")
     st.caption(
-        "Membaca sengketa dari pintu keluarnya: unit mana yang ketetapannya "
-        "paling sering dilawan, dan bagaimana nasibnya di pengadilan. "
+        "Menelaah sengketa menurut unit penerbitnya, yaitu unit mana yang "
+         "ketetapannya paling sering disengketakan dan bagaimana hasilnya di "
+         "pengadilan. "
         "Sumbernya arsip risalah yang sudah terurai, cakupan "
         f"{cakupan:.1f} persen, sehingga angka per unit adalah taksiran "
         "yang akan bergeser saat arsip bertambah. Selang keyakinan pada "
@@ -1937,7 +1972,7 @@ def hal_unit() -> None:
     du = beramar(d)
     du = du[du["unit_penerbit"].notna()].copy()
     if du.empty:
-        st.info("Belum ada unit penerbit yang terbaca pada lingkup ini.")
+        st.info("Belum terdapat unit penerbit yang terbaca pada lingkup ini.")
         return
     du["unit"] = du["unit_penerbit"].map(rapikan_unit)
     du = du[du["unit"] != ""]
@@ -1952,9 +1987,10 @@ def hal_unit() -> None:
          .rename(columns={"unit": "Unit penerbit", "size": "Putusan"}))
     g = g[g["Putusan"] >= 15].copy()
     if g.empty:
-        st.info("Belum ada unit dengan sedikitnya lima belas putusan "
-                "beramar pada pilihan ini. Tunggu cakupan arsip bertambah, "
-                "atau longgarkan penyaring.")
+        st.info("Belum terdapat unit dengan sedikitnya lima belas putusan "
+                "beramar pada pilihan ini. Penelaahan dapat ditunda sampai "
+                "cakupan arsip bertambah, atau "
+            "penyaring diperlonggar.")
         return
     g["Dikabulkan"] = (100 * g["sum"] / g["Putusan"]).round(2)
     batas = [selang_wilson(int(m), int(n))
@@ -1984,11 +2020,13 @@ def hal_unit() -> None:
           max(300, 34 * len(atas) + 120), None,
           "Panjang batang adalah banyaknya putusan di arsip, keterangan "
           "menunjukkan berapa persen yang berujung ketetapan dikoreksi. "
-          "Banyak dilawan belum tentu buruk, unit besar wajar sering "
-          "digugat; yang layak ditelaah adalah tingkat koreksi yang tinggi "
+          "Jumlah sengketa yang banyak tidak dengan sendirinya menunjukkan "
+           "mutu yang rendah, karena unit besar memang lebih sering "
+           "disengketakan; yang layak ditelaah adalah tingkat koreksi yang "
+           "tinggi "
           "pada jumlah perkara yang besar.")
 
-    st.html('<div class="tingkat">Seluruh unit sebagai tabel</div>')
+    st.html('<div class="tingkat">Rekapitulasi Seluruh Unit</div>')
     st.html('<div class="gulung">' + TV.tabel(
         g.sort_values(["Dikabulkan", "Putusan"], ascending=False),
         kolom_persen=("Dikabulkan", "Batas bawah", "Batas atas"))
@@ -2000,13 +2038,15 @@ def hal_unit() -> None:
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
-        "Ini alat pembinaan, bukan penilaian. Unit dengan tingkat koreksi "
-        "tinggi pada banyak perkara adalah prioritas telaah: baca sepuluh "
-        "putusannya lewat halaman Telusur, kenali apakah polanya koreksi "
-        "yang lemah, penanganan keberatan yang tergesa, atau sengketa "
-        "berulang dari wajib pajak yang sama, lalu bawa temuannya ke "
-        "pembinaan teknis unit itu. Peringkat ini akan bergeser saat arsip "
-        "bertambah, jangan dikutip sebagai angka final."))
+        "Sajian ini merupakan alat pembinaan, bukan penilaian kinerja. Unit "
+        "dengan tingkat koreksi "
+        "tinggi pada banyak perkara adalah prioritas telaah: sepuluh "
+        "putusannya dapat dibaca melalui halaman Penelusuran "
+            "Putusan untuk mengenali apakah polanya berupa koreksi yang "
+            "lemah, penanganan keberatan yang tergesa, atau sengketa berulang "
+            "dari wajib pajak yang sama, dan temuannya dibawa ke pembinaan "
+            "teknis unit tersebut. Peringkat ini akan bergeser saat arsip "
+        "bertambah, sehingga belum layak dikutip sebagai angka final."))
 
 
 # ---------------------------------------------------------------------------
@@ -2014,13 +2054,14 @@ def hal_unit() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_hakim() -> None:
-    st.subheader("Kinerja hakim")
+    st.subheader("Kinerja Hakim")
     st.caption(
         "Rekapitulasi putusan yang telah diucapkan menurut hakim, dipilah "
         "per kategori amar. Susunan majelis hanya termuat pada risalah era "
         "PDF, sehingga yang terhitung adalah putusan yang majelisnya "
-        "terbaca. Ini bahan pembelajaran konsistensi dan beban kerja, bukan "
-        "pemeringkatan hakim perorangan, dan sebaiknya beredar terbatas.")
+        "terbaca. Sajian ini merupakan bahan pembelajaran konsistensi dan "
+                  "beban kerja, bukan pemeringkatan hakim perorangan, dan "
+                  "sebaiknya beredar terbatas.")
 
     peran = st.radio("Peran dalam majelis", ["Hakim ketua", "Hakim anggota"],
                      horizontal=True)
@@ -2049,7 +2090,7 @@ def hal_hakim() -> None:
     s["hakim"] = kunci_f.map(nama_tampil)
     s = s[s["hakim"].notna()]
     if s.empty:
-        st.info("Belum ada putusan yang susunan majelisnya terbaca pada "
+        st.info("Belum terdapat putusan yang susunan majelisnya terbaca pada "
                 "lingkup ini.")
         return
 
@@ -2060,7 +2101,7 @@ def hal_hakim() -> None:
     k[1].html(TV.kartu("Putusan bermajelis", f"{s['doc_id'].nunique():,}",
                        f"dari {len(d):,} putusan dalam lingkup"))
     k[2].html(TV.kartu("Median putusan per hakim",
-                       f"{per_hakim.median():.0f}", "putusan diucap"))
+                       f"{per_hakim.median():.0f}", "putusan diucapkan"))
 
     atas = (per_hakim.sort_values(ascending=False).head(15)
             .rename_axis("Hakim").reset_index(name="Putusan"))
@@ -2068,32 +2109,32 @@ def hal_hakim() -> None:
                            "Lima belas hakim dengan putusan terbanyak"),
           max(280, 34 * len(atas) + 120), None,
           "Jumlah putusan mencerminkan sebaran perkara pada arsip yang "
-          f"sudah tertarik (cakupan {cakupan:.1f} persen), bukan beban "
+          f"sudah terkumpul, dengan cakupan {cakupan:.1f} persen), bukan beban "
           "kerja sesungguhnya.")
 
-    st.html('<div class="tingkat">Rincian per kategori amar</div>')
+    st.html('<div class="tingkat">Rincian menurut Kategori Amar</div>')
     URUT_AMAR = [LABEL_AMAR[a] for a in
                  ("kabul_seluruhnya", "kabul_sebagian", "tolak",
                   "tidak_dapat_diterima", "cabut", "batal", "gugur",
                   "pembetulan")]
-    s["Amar"] = s["amar"].map(LABEL_AMAR).fillna("Tak terbaca")
+    s["Amar"] = s["amar"].map(LABEL_AMAR).fillna("Tidak terbaca")
     tab = pd.crosstab(s["hakim"], s["Amar"])
-    for c in URUT_AMAR + ["Tak terbaca"]:
+    for c in URUT_AMAR + ["Tidak terbaca"]:
         if c not in tab.columns:
             tab[c] = 0
-    tab = tab[URUT_AMAR + ["Tak terbaca"]]
-    tab.insert(0, "Putusan diucap", tab.sum(axis=1))
+    tab = tab[URUT_AMAR + ["Tidak terbaca"]]
+    tab.insert(0, "Putusan diucapkan", tab.sum(axis=1))
 
     # Pangsa dikabulkan dihitung atas putusan beramar substantif saja,
-    # yaitu tanpa pembetulan kesalahan tulis dan tanpa amar tak terbaca.
-    n_substantif = (tab["Putusan diucap"] - tab["Tak terbaca"]
+    # yaitu tanpa pembetulan kesalahan tulis dan tanpa amar yang tidak terbaca.
+    n_substantif = (tab["Putusan diucapkan"] - tab["Tidak terbaca"]
                     - tab[LABEL_AMAR["pembetulan"]])
     tab["Dikabulkan"] = (
         100 * (tab[LABEL_AMAR["kabul_seluruhnya"]]
                + tab[LABEL_AMAR["kabul_sebagian"]])
         / n_substantif.clip(lower=1)).round(2)
 
-    tab = (tab.sort_values("Putusan diucap", ascending=False)
+    tab = (tab.sort_values("Putusan diucapkan", ascending=False)
            .rename_axis("Hakim").reset_index())
 
     # Rentang tahun bertugas menurut arsip: tahun putusan tertua sampai
@@ -2110,15 +2151,18 @@ def hal_hakim() -> None:
     st.caption(
         "Seluruh kategori tampil selebar halaman dengan kolom sama lebar, "
         "diurutkan menurut jumlah putusan. Varian penulisan nama yang sama, "
-        "termasuk beda gelar, beda tanda baca, dan salah baca satu huruf, "
-        "disatukan ke penulisan yang paling sering dipakai, dan potongan "
+        "termasuk perbedaan gelar, perbedaan tanda baca, dan salah baca satu "
+        "huruf, "
+        "disatukan ke penulisan yang paling sering digunakan, dan potongan "
         "yang hanya berisi gelar dikeluarkan. Pangsa dikabulkan dihitung "
         "atas putusan beramar substantif, tanpa pembetulan kesalahan tulis "
-        "dan tanpa amar tak terbaca. Hakim dengan sedikit putusan wajar "
-        "berpangsa ekstrem, nol atau seratus persen, dan belum bermakna "
-        "sebagai pola. Untuk perbandingan yang memperhitungkan campuran "
+        "dan tanpa amar yang tidak terbaca. Hakim dengan jumlah putusan "
+        "sedikit wajar memperlihatkan pangsa "
+            "ekstrem, yaitu nol atau seratus persen, sehingga belum dapat "
+            "dibaca sebagai pola. Untuk perbandingan yang memperhitungkan "
+            "campuran "
         "jenis perkara tiap hakim, lihat bagian Pola antar hakim ketua di "
-        "halaman Konsistensi putusan.")
+        "halaman Konsistensi Putusan.")
 
     n_buang = n_gelar + n_pendek
     if n_buang or n_varian:
@@ -2126,7 +2170,7 @@ def hal_hakim() -> None:
             "Catatan pembersihan data.",
             f"Sebanyak {n_buang:,} baris nama dikeluarkan dari tampilan dan "
             f"seluruh hitungan: {n_gelar:,} hanya memuat gelar tanpa nama, "
-            f"dan {n_pendek:,} berupa potongan tak sahih seperti Jja. "
+            f"dan {n_pendek:,} berupa potongan yang tidak sahih seperti Jja. "
             f"Sisanya {n_varian:,} varian penulisan disatukan menjadi "
             f"{s['hakim'].nunique():,} nama hakim baku."))
 
@@ -2136,10 +2180,11 @@ def hal_hakim() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_kinerja() -> None:
-    st.subheader("Kinerja proses")
+    st.subheader("Kinerja Proses")
     st.caption(
-        "Berapa lama perkara berjalan, dan di mana tersendatnya. Temuan "
-        "utamanya justru pada jeda yang jarang dilaporkan, yaitu antara "
+        "Lama penyelesaian perkara dan titik proses yang paling lama "
+        "tertahan. Temuan utamanya terletak pada jeda yang jarang dilaporkan, "
+        "yaitu antara "
         "putusan diambil di musyawarah dan diucapkan di sidang terbuka.")
 
     j = jeda_hari(d)
@@ -2148,7 +2193,7 @@ def hal_kinerja() -> None:
         return
 
     k = st.columns(3)
-    k[0].html(TV.kartu("Median jeda putus ke ucap", f"{j.median():.0f} hari",
+    k[0].html(TV.kartu("Median jeda musyawarah ke pengucapan", f"{j.median():.0f} hari",
                        f"dari {len(j):,} putusan bertanggal lengkap"))
     k[1].html(TV.kartu("Sepersepuluh terlama", f"{j.quantile(0.9):.0f} hari",
                        "atau lebih lama lagi"))
@@ -2166,11 +2211,11 @@ def hal_kinerja() -> None:
     fig.update_xaxes(showgrid=False, title="")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
     bagan(fig, 320, None,
-          "Putusan yang sudah diambil belum berkekuatan apa apa bagi para "
-          "pihak sebelum diucapkan. Jeda panjang pada ekor kanan adalah "
+          "Putusan yang sudah diambil belum berkekuatan hukum bagi para pihak "
+          "sebelum diucapkan. Jeda panjang pada ekor kanan adalah "
           "temuan tata kelola proses yang tidak tampak pada statistik resmi.")
 
-    st.html('<div class="tingkat">Lama sengketa masuk sampai putus</div>')
+    st.html('<div class="tingkat">Lama Sengketa dari Masuk sampai Putus</div>')
     lag = d.dropna(subset=["lag_tahun"])
     lag = lag[lag["lag_tahun"].between(0, 15)]
     if len(lag) >= 20:
@@ -2185,7 +2230,7 @@ def hal_kinerja() -> None:
               "Sebaran ini mengandung penyensoran kanan. Perkara yang lambat "
               "belum muncul di arsip karena belum diputus, sehingga batang "
               "kiri terlihat lebih tinggi daripada keadaan sebenarnya. Karena "
-              "itu tidak ada rata rata yang ditampilkan, dan perbandingan "
+              "itu rata-rata tidak ditampilkan, dan perbandingan "
               "antar kohort menunggu data lengkap.")
     else:
         st.info("Putusan berpola nomor baru dengan tahun lengkap belum cukup "
@@ -2197,14 +2242,14 @@ def hal_kinerja() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_metode() -> None:
-    st.subheader("Catatan metode")
+    st.subheader("Metodologi")
     st.markdown(
         "Seluruh dokumen diambil dari laman Sekretariat Pengadilan Pajak, "
-        "yang menyediakannya untuk diakses umum. Setiap berkas disimpan apa "
-        "adanya beserta nilai hash SHA-256, sehingga setiap angka pada "
+        "yang menyediakannya untuk diakses umum. Setiap berkas disimpan tanpa "
+        "perubahan beserta nilai hash SHA-256, sehingga setiap angka pada "
         "dashboard ini dapat ditelusuri mundur sampai ke berkas aslinya.")
 
-    st.html('<div class="tingkat">Data processing</div>')
+    st.html('<div class="tingkat">Tahapan Pengolahan Data</div>')
     baris = [("Berkas terkumpul", corong["unduh"]),
              ("Punya lapis teks", corong["teks"]),
              ("Masuk dataset terstruktur", corong["urai"])]
@@ -2214,7 +2259,7 @@ def hal_metode() -> None:
         for i in range(1, len(baris))]
     st.html(TV.tabel(t))
 
-    st.html('<div class="tingkat">Kelengkapan ruas</div>')
+    st.html('<div class="tingkat">Kelengkapan Ruas Data</div>')
     n = len(df)
     # Nama ruas ditampilkan sebagai istilah, bukan nama kolom basis data.
     ruas = [("nomor_putusan_raw", "Nomor putusan"),
@@ -2235,21 +2280,21 @@ def hal_metode() -> None:
         for k, label in ruas if k in df])
     st.html(TV.tabel(t, kolom_persen=("Persen",)))
 
-    st.html('<div class="tingkat">Peta kode jenis pajak</div>')
+    st.html('<div class="tingkat">Peta Kode Jenis Pajak</div>')
     if kode_peta:
         st.html(TV.tabel(pd.DataFrame([
             {"Kode": k, "Jenis pajak menurut data": v["label"],
              "Putusan": v["n"], "Keyakinan": v["pangsa"],
-             "Perlu dicek": "ya" if v["pangsa"] < 80 else ""}
+             "Perlu diperiksa": "ya" if v["pangsa"] < 80 else ""}
             for k, v in sorted(kode_peta.items())]),
             kolom_persen=("Keyakinan",)))
-        st.caption("Nama dibangun dari data itu sendiri, bukan tabel resmi. "
+        st.caption("Nama disusun dari data yang terbaca, bukan dari tabel kode resmi. "
                    "Keyakinan di bawah delapan puluh persen ditandai tanda "
                    "tanya di seluruh halaman.")
 
     rs = muat_resmi()
     if not rs.empty:
-        st.html('<div class="tingkat">Validasi silang dengan daftar resmi'
+        st.html('<div class="tingkat">Validasi Silang dengan Daftar Resmi'
                 '</div>')
         kiri = df.dropna(subset=["nomor_sengketa", "kode_jenis_pajak",
                                  "tahun_sengketa_masuk"]).copy()
@@ -2279,38 +2324,41 @@ def hal_metode() -> None:
             f"Daftar resmi 2021 sampai 2025 memuat {len(rs):,} putusan dan "
             "menjadi pembanding kebenaran otomatis bagi penguraian teks. "
             f"Dari arsip yang sudah terurai, {len(gab):,} putusan terhubung "
-            "ke daftar itu lewat nomor sengketanya. Pada baris yang "
+            "ke daftar itu melalui nomor sengketanya. Pada baris yang "
             f"terhubung, amar hasil penguraian cocok **{c_amar:.1f} persen** "
             f"dan tanggal ucap cocok **{c_tgl:.1f} persen** dengan catatan "
-            "resmi. Ketidakcocokan amar terbanyak ada pada kelas pembetulan "
+            "resmi. Ketidakcocokan amar terbanyak terpusat pada kelas "
+            "pembetulan "
             "dan pada risalah yang memuat lebih dari satu amar, dan menjadi "
             "antrean perbaikan penguraian.")
 
-    st.html('<div class="tingkat">Keterbatasan yang harus dinyatakan</div>')
+    st.html('<div class="tingkat">Keterbatasan Data dan Metode</div>')
     st.markdown(
         f"**Data belum lengkap.** Cakupan baru {cakupan:.1f} persen dari "
         "perkiraan seluruh arsip. Penarikan berjalan dengan urutan acak "
         "merata, sehingga proporsi bermakna sebagai taksiran, jumlah mutlak "
         "belum. Kecuali dinyatakan bersumber daftar resmi, angka sebaiknya "
         "dikutip sebagai taksiran.\n\n"
-        "**Nama era lama disamarkan oleh sumbernya.** Risalah lama memakai "
+        "**Nama era lama disamarkan oleh sumbernya.** Risalah lama "
+        "menggunakan "
         "XXX, AAA, dan sejenisnya, sehingga analisis sengketa berulang hanya "
         "menjangkau era yang namanya utuh.\n\n"
-        "**Susunan majelis hanya ada pada risalah era PDF.** Risalah era "
-        "Word tidak memuatnya sama sekali.\n\n"
-        "**Nilai sengketa dari ekstraksi teks tidak pernah dipakai**, karena "
+        "**Susunan majelis hanya termuat pada risalah era PDF.** Risalah era "
+        "Word tidak memuatnya sepenuhnya.\n\n"
+        "**Nilai sengketa dari ekstraksi teks tidak pernah digunakan**, "
+        "karena "
         "hasilnya hanya proksi. Nilai yang tampil pada halaman Nilai "
         "sengketa seluruhnya berasal dari daftar resmi Sekretariat.\n\n"
         "**Pola antar hakim disajikan dengan penyesuaian kasar** dan "
         "berlabel bahan pembelajaran, bukan penilaian kinerja, serta "
         "sebaiknya beredar terbatas.")
 
-    st.html('<div class="tingkat">Yang masih harus dikerjakan manusia</div>')
+    st.html('<div class="tingkat">Rencana Validasi Manual</div>')
     st.markdown(
         "Amar dan tanggal kini tervalidasi otomatis terhadap daftar resmi "
         "di atas. Yang tersisa untuk validasi manual adalah ruas yang tidak "
         "tercakup daftar resmi: jenis ketetapan, jenis koreksi, susunan "
-        "majelis, dan dasar hukum, pada contoh acak berlapis kira kira "
+        "majelis, dan dasar hukum, pada contoh acak berlapis kira-kira "
         "seratus putusan. Tingkat kesalahannya nanti dicantumkan di sini.")
 
 
@@ -2320,23 +2368,23 @@ def hal_metode() -> None:
 
 {
     "Ikhtisar": hal_ikhtisar,
-    "Nilai sengketa": hal_nilai,
-    "Telusur putusan": hal_telusur,
-    "Preseden putusan": hal_belajar,
-    "Jalur dan risiko perkara": hal_jalur,
-    "Dasar hukum yang menentukan": hal_dasar,
-    "Peta unit penerbit": hal_unit,
-    "Konsistensi putusan": hal_konsistensi,
-    "Sengketa berulang": hal_berulang,
-    "Ketetapan dan koreksi": hal_ketetapan,
-    "Kinerja hakim": hal_hakim,
-    "Kinerja proses": hal_kinerja,
-    "Catatan metode": hal_metode,
+    "Nilai Sengketa": hal_nilai,
+    "Penelusuran Putusan": hal_telusur,
+    "Preseden Putusan": hal_belajar,
+    "Jalur dan Risiko Perkara": hal_jalur,
+    "Dasar Hukum": hal_dasar,
+    "Unit Penerbit": hal_unit,
+    "Konsistensi Putusan": hal_konsistensi,
+    "Sengketa Berulang": hal_berulang,
+    "Ketetapan dan Koreksi": hal_ketetapan,
+    "Kinerja Hakim": hal_hakim,
+    "Kinerja Proses": hal_kinerja,
+    "Metodologi": hal_metode,
 }[halaman]()
 
 _t = keadaan_tarikan()
 if _t["menit"] is None:
-    _ket = "belum ada unduhan"
+    _ket = "belum terdapat unduhan"
 elif _t["menit"] < 1:
     _ket = "baru saja"
 elif _t["menit"] < 90:

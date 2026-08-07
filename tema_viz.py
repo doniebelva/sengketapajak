@@ -792,7 +792,7 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
     nyala = "berjalan" if aktif else "berhenti"
     return (
         '<div class="kaki">'
-        f'<span class="kiri">&copy; 2026 Powered by <b>{nama}</b>'
+        f'<span class="kiri">&copy; 2026 Dikembangkan oleh <b>{nama}</b>'
         '<span class="purwarupa">Purwarupa</span></span>'
         f'<span class="tengah">{status_data}<span class="pisah"> · </span>'
         f'<span class="titik" style="background:{warna}"></span>'
@@ -917,18 +917,18 @@ def catatan_siap(judul: str, isi: str) -> str:
 
 _IKON_NAV = {
     "Ikhtisar": "%3Cpath d='M4 20V4h9l3 3h4v13z'/%3E%3Cpath d='M8 13h8M8 17h5'/%3E",
-    "Nilai sengketa": "%3Crect x='2' y='6' width='20' height='12' rx='2'/%3E%3Ccircle cx='12' cy='12' r='2.5'/%3E%3Cpath d='M5.5 9h.01M18.5 15h.01'/%3E",
-    "Telusur putusan": "%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E",
-    "Preseden putusan": "%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E",
-    "Konsistensi putusan": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E",
-    "Sengketa berulang": "%3Cpath d='M3 17l5-6 4 3 5-7'/%3E%3Cpath d='M17 7h4v4'/%3E",
-    "Ketetapan dan koreksi": "%3Cpath d='M9 11l2 2 4-5'/%3E%3Cpath d='M20 12v7H4V5h9'/%3E",
-    "Jalur dan risiko perkara": "%3Cpath d='M12 21V3'/%3E%3Cpath d='M12 5h6l2 2-2 2h-6'/%3E%3Cpath d='M12 12H6l-2 2 2 2h6'/%3E",
-    "Dasar hukum yang menentukan": "%3Cpath d='M12 3v18M4 21h16'/%3E%3Cpath d='M5 7l-2.5 5a3 3 0 0 0 5 0zM19 7l-2.5 5a3 3 0 0 0 5 0z'/%3E%3Cpath d='M6 7h12'/%3E",
-    "Peta unit penerbit": "%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V4l8-2v19'/%3E%3Cpath d='M13 21h6V9l-6-2'/%3E%3Cpath d='M8 8h.01M8 12h.01M8 16h.01'/%3E",
-    "Kinerja hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
-    "Kinerja proses": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
-    "Catatan metode": "%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E",
+    "Nilai Sengketa": "%3Crect x='2' y='6' width='20' height='12' rx='2'/%3E%3Ccircle cx='12' cy='12' r='2.5'/%3E%3Cpath d='M5.5 9h.01M18.5 15h.01'/%3E",
+    "Penelusuran Putusan": "%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E",
+    "Preseden Putusan": "%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E",
+    "Konsistensi Putusan": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E",
+    "Sengketa Berulang": "%3Cpath d='M3 17l5-6 4 3 5-7'/%3E%3Cpath d='M17 7h4v4'/%3E",
+    "Ketetapan dan Koreksi": "%3Cpath d='M9 11l2 2 4-5'/%3E%3Cpath d='M20 12v7H4V5h9'/%3E",
+    "Jalur dan Risiko Perkara": "%3Cpath d='M12 21V3'/%3E%3Cpath d='M12 5h6l2 2-2 2h-6'/%3E%3Cpath d='M12 12H6l-2 2 2 2h6'/%3E",
+    "Dasar Hukum": "%3Cpath d='M12 3v18M4 21h16'/%3E%3Cpath d='M5 7l-2.5 5a3 3 0 0 0 5 0zM19 7l-2.5 5a3 3 0 0 0 5 0z'/%3E%3Cpath d='M6 7h12'/%3E",
+    "Unit Penerbit": "%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V4l8-2v19'/%3E%3Cpath d='M13 21h6V9l-6-2'/%3E%3Cpath d='M8 8h.01M8 12h.01M8 16h.01'/%3E",
+    "Kinerja Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
+    "Kinerja Proses": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
+    "Metodologi": "%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E",
 }
 
 _IKON_AWAL = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "
