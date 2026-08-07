@@ -654,12 +654,16 @@ st.sidebar.html('<div class="sb-judul">Halaman</div>')
 # gaya, sehingga ikon dan penanda terpilih tidak bergantung urutan unsur.
 halaman = st.session_state["nav"]
 st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
-for _h in daftar_hal:
-    if st.sidebar.button(_h, key=TV.kunci_nav(_h), width="stretch"):
-        if _h != halaman:
-            st.session_state["nav"] = _h
-            st.session_state.pop("buka_doc", None)
-            st.rerun()
+# Seluruh tombol menu dikumpulkan dalam satu wadah bernama, supaya jarak
+# antar barisnya dapat dirapatkan sekaligus tanpa mengganggu jarak antar
+# unsur lain di bilah samping.
+with st.sidebar.container(key="menu-nav"):
+    for _h in daftar_hal:
+        if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
+            if _h != halaman:
+                st.session_state["nav"] = _h
+                st.session_state.pop("buka_doc", None)
+                st.rerun()
 
 st.sidebar.html('<div class="sb-judul">Ruang lingkup data</div>')
 st.sidebar.caption("Menentukan populasi yang diamati pada seluruh halaman.")
@@ -1427,7 +1431,13 @@ def hal_jalur() -> None:
     fig.update_xaxes(showgrid=False, title="")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      ticksuffix="%", range=[0, 100], title="")
-    bagan(fig, 340, None,
+    # Legenda diletakkan mendatar di bawah bagan. Di sudut kanan atas,
+    # keterangan terpanjang tersundul keluar dari kartu dan terpotong.
+    fig.update_layout(
+        legend=dict(orientation="h", yanchor="top", y=-0.08,
+                    xanchor="left", x=0),
+        margin=dict(b=70))
+    bagan(fig, 380, None,
           "Banding menyerang materi ketetapan, gugatan menyerang keabsahan "
           "penetapan dan prosedurnya. Peluangnya bumi dan langit: dua dari "
           "tiga banding dikabulkan, gugatan sebaliknya lebih sering ditolak "
@@ -1516,8 +1526,11 @@ def hal_konsistensi() -> None:
     c1, c2 = st.columns(2)
     with c1:
         pecah = t.head(7).copy()
-        pecah["Ket"] = [f"{v:.0f}%  (n={n})" for v, n in
-                        zip(pecah["Keseragaman"], pecah["Putusan"])]
+        # Keterangan cukup persentasenya. Kartu ini hanya separuh lebar
+        # halaman, dan menambahkan jumlah putusan di ujung batang membuat
+        # tulisannya tersundul keluar kartu. Jumlahnya tetap ada pada tabel
+        # di bawah bagan.
+        pecah["Ket"] = [f"{v:.0f}%" for v in pecah["Keseragaman"]]
         fig = batang_peringkat(pecah, "Kelompok", "Keseragaman",
                                "Paling bervariasi", "Ket")
         fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
@@ -1526,8 +1539,7 @@ def hal_konsistensi() -> None:
               "sejenis diputus berbeda beda arah.")
     with c2:
         seragam = t.tail(7).copy()
-        seragam["Ket"] = [f"{v:.0f}%  (n={n})" for v, n in
-                          zip(seragam["Keseragaman"], seragam["Putusan"])]
+        seragam["Ket"] = [f"{v:.0f}%" for v in seragam["Keseragaman"]]
         fig = batang_peringkat(seragam, "Kelompok", "Keseragaman",
                                "Paling seragam", "Ket")
         fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
@@ -1833,18 +1845,21 @@ def hal_dasar() -> None:
     t = t.sort_values("Dikabulkan merujuk", ascending=False)
 
     atas = t.head(10).reset_index()
+    # Keterangan dibuat ringkas. Kalimat penuh di ujung batang tersundul
+    # keluar kartu dan terpotong; maknanya dijelaskan pada catatan bagan.
     atas["Ket"] = [
-        f"{r['Pangsa saat dikabulkan']:.0f}% saat dikabulkan, "
-        f"{r['Pangsa saat ditolak']:.0f}% saat ditolak"
+        f"{r['Pangsa saat dikabulkan']:.0f}% lawan "
+        f"{r['Pangsa saat ditolak']:.0f}%"
         for _, r in atas.iterrows()]
     bagan(batang_peringkat(atas, "Rujukan", "Dikabulkan merujuk",
                            "Pasal yang paling sering menyertai koreksi "
                            "pengadilan", "Ket"),
           max(300, 36 * len(atas) + 120), None,
           "Batang dihitung dari jumlah putusan dikabulkan yang merujuk "
-          "pasal itu. Keterangan membandingkan seberapa sering pasal yang "
-          "sama hadir pada putusan yang ditolak: pasal yang timpang "
-          "kehadirannya itulah penentu arah.")
+          "pasal itu. Keterangan di ujung batang membandingkan kehadiran "
+          "pasal yang sama: angka pertama pada putusan yang dikabulkan, "
+          "angka kedua pada yang ditolak. Pasal yang timpang kehadirannya "
+          "itulah penentu arah.")
 
     with st.expander("Dua puluh rujukan teratas sebagai tabel"):
         st.html(TV.tabel(
@@ -1868,6 +1883,24 @@ def hal_dasar() -> None:
 # Peta unit penerbit, untuk fiskus
 # ---------------------------------------------------------------------------
 
+# Nama unit hasil penguraian kerap berekor potongan kalimat dokumen, seperti
+# "dengan perhitungan" atau "sebagaimana diubah terakhir dengan Keputusan".
+# Ekor itu dipangkas untuk tampilan, tanpa mengubah data tersimpan, supaya
+# unit yang sama tidak terpecah menjadi beberapa baris.
+RE_EKOR_UNIT = re.compile(
+    r"\s+(?:dengan\s+perhitungan|dengan\s+perhi\w*|sebagaimana\b|"
+    r"berdasarkan\b|sesuai\b|yang\s+diwakili\b|nomor\b|nomer\b|no\.)"
+    r".*$", re.IGNORECASE)
+
+
+def rapikan_unit(v) -> str:
+    s = " ".join(str(v).split())
+    s = RE_EKOR_UNIT.sub("", s).strip(" ,.;:-")
+    if len(s) > 54:
+        s = s[:54].rsplit(" ", 1)[0].rstrip(" ,.;:-")
+    return s
+
+
 def hal_unit() -> None:
     st.subheader("Peta unit penerbit")
     st.caption(
@@ -1883,7 +1916,8 @@ def hal_unit() -> None:
     if du.empty:
         st.info("Belum ada unit penerbit yang terbaca pada lingkup ini.")
         return
-    du["unit"] = du["unit_penerbit"].map(lambda v: " ".join(str(v).split()))
+    du["unit"] = du["unit_penerbit"].map(rapikan_unit)
+    du = du[du["unit"] != ""]
     du["menang"] = du["amar"].isin(AMAR_MENANG)
 
     inst = st.radio("Instansi", ["Semua", "DJP", "DJBC"], horizontal=True,
@@ -1920,7 +1954,7 @@ def hal_unit() -> None:
                        f"n={int(tertinggi['Putusan'])}"))
 
     atas = g.sort_values("Putusan", ascending=False).head(12).copy()
-    atas["Ket"] = [f"{v:.0f}% dikabulkan  (n={n:,})" for v, n in
+    atas["Ket"] = [f"{n:,} · {v:.0f}% dikabulkan" for v, n in
                    zip(atas["Dikabulkan"], atas["Putusan"])]
     bagan(batang_peringkat(atas, "Unit penerbit", "Putusan",
                            "Unit dengan sengketa terbanyak di arsip", "Ket"),
@@ -2159,14 +2193,23 @@ def hal_metode() -> None:
 
     st.html('<div class="tingkat">Kelengkapan ruas</div>')
     n = len(df)
-    ruas = ["nomor_putusan_raw", "amar", "tahun_putusan", "tanggal_ucap",
-            "tanggal_musyawarah", "jenis_ketetapan", "nomor_kep_terbanding",
-            "nama_pemohon", "hakim_ketua", "jenis_koreksi", "masa_pajak"]
+    # Nama ruas ditampilkan sebagai istilah, bukan nama kolom basis data.
+    ruas = [("nomor_putusan_raw", "Nomor putusan"),
+            ("amar", "Amar putusan"),
+            ("tahun_putusan", "Tahun putusan"),
+            ("tanggal_ucap", "Tanggal ucap"),
+            ("tanggal_musyawarah", "Tanggal musyawarah"),
+            ("jenis_ketetapan", "Jenis ketetapan"),
+            ("nomor_kep_terbanding", "Nomor keputusan terbanding"),
+            ("nama_pemohon", "Nama pemohon"),
+            ("hakim_ketua", "Hakim ketua"),
+            ("jenis_koreksi", "Jenis koreksi"),
+            ("masa_pajak", "Masa pajak")]
     t = pd.DataFrame([
-        {"Ruas": k,
+        {"Ruas": label,
          "Terisi": int(df[k].notna().sum()),
          "Persen": round(100 * df[k].notna().sum() / n, 1)}
-        for k in ruas if k in df])
+        for k, label in ruas if k in df])
     st.html(TV.tabel(t, kolom_persen=("Persen",)))
 
     st.html('<div class="tingkat">Peta kode jenis pajak</div>')

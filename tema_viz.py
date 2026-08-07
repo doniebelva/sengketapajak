@@ -470,8 +470,16 @@ def gaya(gelap: bool) -> str:
      membuat pembaca mengira harus mencentang dulu, padahal maksudnya
      berpindah halaman, jadi bentuknya dibuat seperti menu yang tinggal
      diklik. Keadaan terpilih ditandai latar dan bayangan lembut. */
+  /* Jarak antar baris menu dirapatkan. Streamlit memberi jarak seragam
+     antar unsur di bilah samping, yang pada deretan tiga belas tombol
+     membuat menunya renggang dan memaksa pengguna menggulir. */
+  section[data-testid="stSidebar"] .st-key-menu-nav,
+  section[data-testid="stSidebar"] .st-key-menu-nav
+    div[data-testid="stVerticalBlock"] {{
+    gap: 0 !important; row-gap: 0 !important;
+  }}
   section[data-testid="stSidebar"] div[class*="st-key-nav-"] {{
-    margin-bottom: 2px !important;
+    margin: 0 !important; padding: 0 !important;
   }}
   section[data-testid="stSidebar"] div[class*="st-key-nav-"] button {{
     display: flex !important;
