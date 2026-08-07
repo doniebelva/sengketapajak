@@ -14,7 +14,8 @@ import urllib.request
 
 import streamlit as st
 
-BAWAAN = ""  # diisi alamat aset release, misalnya https://github.com/.../setpp_uat.db.gz
+BAWAAN = ("https://github.com/doniebelva/sengketapajak/releases/download/"
+          "data-v1/setpp_uat.db.gz")
 
 
 def siapkan_data() -> None:
