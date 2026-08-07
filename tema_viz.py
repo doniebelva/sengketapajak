@@ -916,7 +916,7 @@ def catatan_siap(judul: str, isi: str) -> str:
 # ---------------------------------------------------------------------------
 
 _IKON_NAV = {
-    "Ikhtisar": "%3Cpath d='M4 20V4h9l3 3h4v13z'/%3E%3Cpath d='M8 13h8M8 17h5'/%3E",
+    "Ringkasan Eksekutif": "%3Cpath d='M4 20V4h9l3 3h4v13z'/%3E%3Cpath d='M8 13h8M8 17h5'/%3E",
     "Nilai Sengketa": "%3Crect x='2' y='6' width='20' height='12' rx='2'/%3E%3Ccircle cx='12' cy='12' r='2.5'/%3E%3Cpath d='M5.5 9h.01M18.5 15h.01'/%3E",
     "Risalah Putusan": "%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E",
     "Pola Putusan Sejenis": "%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E",

@@ -583,7 +583,7 @@ if df.empty:
 # Bilah samping
 # ---------------------------------------------------------------------------
 
-HALAMAN = ["Ikhtisar", "Nilai Sengketa", "Risalah Putusan", "Pola Putusan Sejenis",
+HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Putusan Sejenis",
            "Jalur dan Risiko Perkara", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Ketetapan dan Koreksi",
            "Dasar Hukum", "Unit Penerbit",
@@ -604,13 +604,13 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
 # tidak boleh disembunyikan dari siapa pun.
 MODUL = {
     "Semua": HALAMAN,
-    "Pimpinan": ["Ikhtisar", "Nilai Sengketa", "Risalah Putusan",
+    "Pimpinan": ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan",
                  "Konsistensi Putusan Hakim", "Sengketa Berulang", "Kinerja Hakim",
                  "Kinerja Proses", "Metodologi"],
-    "Fiskus": ["Ikhtisar", "Ketetapan dan Koreksi",
+    "Fiskus": ["Ringkasan Eksekutif", "Ketetapan dan Koreksi",
                "Dasar Hukum", "Unit Penerbit",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
-    "Wajib pajak": ["Ikhtisar", "Pola Putusan Sejenis",
+    "Wajib pajak": ["Ringkasan Eksekutif", "Pola Putusan Sejenis",
                     "Jalur dan Risiko Perkara", "Risalah Putusan",
                     "Metodologi"],
 }
@@ -698,7 +698,7 @@ if halaman in DIMENSI:
 
 
 # ---------------------------------------------------------------------------
-# 1. Ikhtisar
+# 1. Ringkasan eksekutif
 # ---------------------------------------------------------------------------
 
 def hal_ikhtisar() -> None:
@@ -2401,7 +2401,7 @@ def hal_metode() -> None:
 # ---------------------------------------------------------------------------
 
 {
-    "Ikhtisar": hal_ikhtisar,
+    "Ringkasan Eksekutif": hal_ikhtisar,
     "Nilai Sengketa": hal_nilai,
     "Risalah Putusan": hal_telusur,
     "Pola Putusan Sejenis": hal_belajar,
