@@ -343,15 +343,15 @@ def gaya(gelap: bool) -> str:
 
   /* Ikon menu digambar sebagai bentuk bertopeng, sehingga warnanya mengikuti
      warna tulisan dan selalu satu warna. Emoji tidak dipakai karena selalu
-     tampil berwarna penuh dan bentuknya berbeda antar sistem. */
-  section[data-testid="stSidebar"] div[role="radiogroup"] label::before {{
+     tampil berwarna penuh dan bentuknya berbeda antar sistem. Topeng tiap
+     halaman dibangkitkan ikon_nav(), disasar lewat kunci tombolnya, bukan
+     lewat urutan, supaya susunan menu boleh berubah menurut modul dan
+     tampilannya tidak bergantung struktur dalam Streamlit. */
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"]
+    button p::before {{
     content: ""; display: inline-block; width: 17px; height: 17px;
     margin-right: 10px; vertical-align: -3px; background-color: currentColor;
   }}
-  /* Topeng ikon per halaman tidak lagi ditulis di sini. Daftar halaman kini
-     berubah ubah menurut modul pengguna, sedangkan aturan nth-of-type
-     terikat urutan, sehingga topengnya dibangkitkan dinamis oleh ikon_nav()
-     mengikuti susunan menu yang sedang tampil. */
 
   /* Pemilih tema, ditempatkan di sudut kanan atas menimpa bilah judul.
      Lapisannya di atas bilah judul supaya tetap dapat ditekan, dan warnanya
@@ -415,27 +415,34 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stAppDeployButton"],
   button[data-testid="stAppDeployButton"] {{ display: none !important; }}
 
-  /* Daftar halaman dibuat menyerupai menu, dengan keadaan terpilih ditandai
-     latar dan bayangan lembut, bukan garis tegak di kiri. */
-  section[data-testid="stSidebar"] div[role="radiogroup"] {{ gap: 2px; }}
-  section[data-testid="stSidebar"] div[role="radiogroup"] label {{
-    padding: 8px 12px; font-size: 13.5px; border-radius: 9px; width: 100%;
+  /* Daftar halaman berupa tombol, bukan pilihan bulat. Lingkaran radio
+     membuat pembaca mengira harus mencentang dulu, padahal maksudnya
+     berpindah halaman, jadi bentuknya dibuat seperti menu yang tinggal
+     diklik. Keadaan terpilih ditandai latar dan bayangan lembut. */
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] {{
+    margin-bottom: 2px !important;
+  }}
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button {{
+    justify-content: flex-start !important; text-align: left !important;
+    padding: 8px 12px !important; border-radius: 9px !important;
+    width: 100% !important; border: 1px solid transparent !important;
+    background: transparent !important; box-shadow: none !important;
+    min-height: 0 !important;
     transition: background .12s ease, box-shadow .12s ease;
   }}
-  section[data-testid="stSidebar"] div[role="radiogroup"] label:hover {{
-    background: {lembut(p["seri"][0], .10)};
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button p {{
+    font-size: 13.5px !important; font-weight: 500 !important;
+    color: {p["tinta_2"]} !important; margin: 0 !important;
+    text-align: left !important;
   }}
-  section[data-testid="stSidebar"] div[role="radiogroup"]
-    label:has(input:checked) {{
-    background: {p["permukaan"]};
-    box-shadow: 0 1px 3px rgba(0,0,0,.10), 0 0 0 1px {p["tepi"]};
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button:hover {{
+    background: {lembut(p["seri"][0], .10)} !important;
   }}
-  section[data-testid="stSidebar"] div[role="radiogroup"]
-    label:has(input:checked) p {{
-    color: {p["tinta"]} !important; font-weight: 620 !important;
-  }}
-  section[data-testid="stSidebar"] div[role="radiogroup"]
-    label > div:first-child {{ display: none; }}
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"]
+    button:hover p {{ color: {p["tinta"]} !important; }}
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button:focus,
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"]
+    button:focus-visible {{ outline: none !important; }}
 
   /* --- Kartu angka ------------------------------------------------------ */
   /* Tinggi kartu angka disamakan. Keterangan yang panjangnya berbeda beda
@@ -835,21 +842,37 @@ _IKON_AWAL = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "
               "stroke-linejoin='round'%3E")
 
 
-def ikon_nav(daftar: list) -> str:
-    """Aturan topeng ikon untuk susunan menu yang sedang tampil. Halaman
-    tanpa ikon terdaftar dibiarkan tanpa topeng dan tampil sebagai kotak
-    pekat, sengaja mencolok supaya kelalaiannya cepat ketahuan."""
+def kunci_nav(halaman: str) -> str:
+    """Kunci tombol menu, dipakai bersama oleh dashboard dan gaya menu."""
+    return "nav-" + re.sub(r"[^a-z0-9]+", "-", str(halaman).lower()).strip("-")
+
+
+def ikon_nav(daftar: list, terpilih: str = "", gelap: bool = False) -> str:
+    """Aturan topeng ikon dan penanda halaman terpilih, disasar lewat kunci
+    tombol. Halaman tanpa ikon terdaftar dibiarkan tanpa topeng, sengaja
+    mencolok supaya kelalaiannya cepat ketahuan."""
+    p = palet(gelap)
     aturan = []
-    for i, h in enumerate(daftar, start=1):
+    for h in daftar:
         isi = _IKON_NAV.get(h)
         if not isi:
             continue
         u = _IKON_AWAL + isi + "%3C/svg%3E"
         aturan.append(
-            f'section[data-testid="stSidebar"] div[role="radiogroup"] '
-            f'label:nth-of-type({i})::before {{'
+            f'section[data-testid="stSidebar"] .st-key-{kunci_nav(h)} '
+            f'button p::before {{'
             f'-webkit-mask: url("{u}") no-repeat center/contain;'
             f'mask: url("{u}") no-repeat center/contain;}}')
+    if terpilih:
+        k = kunci_nav(terpilih)
+        aturan.append(
+            f'section[data-testid="stSidebar"] .st-key-{k} button {{'
+            f'background: {p["permukaan"]} !important;'
+            f'box-shadow: 0 1px 3px rgba(0,0,0,.10) !important;'
+            f'border-color: {p["tepi"]} !important;}}')
+        aturan.append(
+            f'section[data-testid="stSidebar"] .st-key-{k} button p {{'
+            f'color: {p["tinta"]} !important; font-weight: 620 !important;}}')
     return "<style>" + "\n".join(aturan) + "</style>"
 
 

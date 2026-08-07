@@ -649,11 +649,17 @@ if st.session_state.get("nav") not in daftar_hal:
     st.session_state["nav"] = daftar_hal[0]
 
 st.sidebar.html('<div class="sb-judul">Halaman</div>')
-halaman = st.sidebar.radio("Halaman", daftar_hal, label_visibility="collapsed",
-                           key="nav")
-# Ikon menu mengikuti susunan halaman modul terpilih, digambar dinamis
-# karena aturan CSS-nya berbasis urutan.
-st.html(TV.ikon_nav(daftar_hal))
+# Menu berupa tombol, bukan pilihan bulat: yang dimaksud pengguna adalah
+# berpindah halaman, bukan mencentang sesuatu. Kuncinya juga menjadi sasaran
+# gaya, sehingga ikon dan penanda terpilih tidak bergantung urutan unsur.
+halaman = st.session_state["nav"]
+st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
+for _h in daftar_hal:
+    if st.sidebar.button(_h, key=TV.kunci_nav(_h), width="stretch"):
+        if _h != halaman:
+            st.session_state["nav"] = _h
+            st.session_state.pop("buka_doc", None)
+            st.rerun()
 
 st.sidebar.html('<div class="sb-judul">Ruang lingkup data</div>')
 st.sidebar.caption("Menentukan populasi yang diamati pada seluruh halaman.")
