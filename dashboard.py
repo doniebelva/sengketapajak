@@ -462,7 +462,11 @@ def batang_peringkat(t: pd.DataFrame, kolom_label: str, kolom_nilai: str,
                      judul: str, teks: str | None = None):
     fig = px.bar(t.sort_values(kolom_nilai), x=kolom_nilai, y=kolom_label,
                  orientation="h", text=teks or kolom_nilai, title=judul)
-    fig.update_xaxes(title="")
+    # Sumbu mendatar dimatikan. Tiap batang sudah menuliskan nilainya sendiri
+    # di ujungnya, sehingga deret angka di bawahnya hanya mengulang, dan
+    # angka terakhirnya kerap tersundul keluar kartu lalu terpotong.
+    fig.update_xaxes(title="", showticklabels=False, showgrid=False,
+                     zeroline=False)
     fig.update_yaxes(title="")
     return fig
 
@@ -1892,12 +1896,31 @@ RE_EKOR_UNIT = re.compile(
     r"berdasarkan\b|sesuai\b|yang\s+diwakili\b|nomor\b|nomer\b|no\.)"
     r".*$", re.IGNORECASE)
 
+# Singkatan baku administrasi perpajakan dan kepabeanan. Nama panjang seperti
+# Kantor Pengawasan dan Pelayanan Bea dan Cukai memakan seluruh lebar kartu
+# dan label bagan, padahal singkatannya justru lebih dikenal pembacanya.
+SINGKAT_UNIT = (
+    ("Kantor Pengawasan dan Pelayanan Bea dan Cukai", "KPPBC"),
+    ("Kantor Pelayanan Utama Bea dan Cukai", "KPUBC"),
+    ("Kantor Pelayanan Pajak Penanaman Modal Asing", "KPP PMA"),
+    ("Kantor Pelayanan Pajak", "KPP"),
+    ("Kantor Wilayah Direktorat Jenderal Pajak", "Kanwil DJP"),
+    ("Kantor Wilayah DJP", "Kanwil DJP"),
+    ("Kantor Wilayah", "Kanwil"),
+    ("Direktorat Jenderal Bea dan Cukai", "DJBC"),
+    ("Direktorat Jenderal Pajak", "DJP"),
+)
+
 
 def rapikan_unit(v) -> str:
     s = " ".join(str(v).split())
     s = RE_EKOR_UNIT.sub("", s).strip(" ,.;:-")
-    if len(s) > 54:
-        s = s[:54].rsplit(" ", 1)[0].rstrip(" ,.;:-")
+    for panjang, pendek in SINGKAT_UNIT:
+        if s.lower().startswith(panjang.lower()):
+            s = pendek + s[len(panjang):]
+            break
+    if len(s) > 46:
+        s = s[:46].rsplit(" ", 1)[0].rstrip(" ,.;:-")
     return s
 
 
@@ -1945,12 +1968,12 @@ def hal_unit() -> None:
                        "dengan lima belas putusan beramar atau lebih"))
     k[1].html(TV.kartu("Paling banyak dilawan",
                        str(g.sort_values('Putusan').iloc[-1]
-                           ['Unit penerbit'])[:34],
+                           ['Unit penerbit']),
                        f"{int(g['Putusan'].max()):,} putusan beramar"))
     tertinggi = g.sort_values("Dikabulkan").iloc[-1]
     k[2].html(TV.kartu("Tingkat koreksi tertinggi",
                        f"{tertinggi['Dikabulkan']:.0f} %",
-                       f"{str(tertinggi['Unit penerbit'])[:30]}, "
+                       f"{tertinggi['Unit penerbit']}, "
                        f"n={int(tertinggi['Putusan'])}"))
 
     atas = g.sort_values("Putusan", ascending=False).head(12).copy()

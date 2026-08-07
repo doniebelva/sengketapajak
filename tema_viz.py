@@ -411,8 +411,12 @@ def gaya(gelap: bool) -> str:
      dipahami tanpa keterangan, dan di atas bilah judul yang sempit setiap
      kata tambahan hanya membuatnya ramai. Lambangnya dipaksa tampil sebagai
      huruf, bukan sebagai emoji berwarna. */
+  /* Pemilih tema diturunkan sedikit dari tepi atas. Pada peladen Streamlit
+     Cloud, tombol Fork milik peladen digambar menempel di tepi atas kanan,
+     di luar bingkai aplikasi sehingga tidak dapat disentuh dari sini, dan
+     pada posisi semula kedua unsur itu tampak bertumpuk. */
   .st-key-tema {{
-    position: fixed !important; top: 14px !important; right: 22px !important;
+    position: fixed !important; top: 27px !important; right: 22px !important;
     z-index: 1000003 !important; width: auto !important;
   }}
   .st-key-tema div[data-testid="stElementContainer"] {{ margin: 0 !important; }}
@@ -538,7 +542,14 @@ def gaya(gelap: bool) -> str:
   .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
                 text-transform: uppercase; color: {p["tinta_2"]}; }}
   .kpi-nilai {{ font-size: 27px; font-weight: 650; color: {p["tinta"]};
-                line-height: 1.15; margin-top: 6px; }}
+                line-height: 1.15; margin-top: 6px;
+                overflow-wrap: anywhere; }}
+  /* Nilai berupa nama, bukan angka, kerap jauh lebih panjang daripada
+     ruang kartunya. Ukurannya diturunkan menurut panjang tulisan supaya
+     namanya utuh terbaca, bukan terpenggal di tengah kata. */
+  .kpi-nilai.panjang {{ font-size: 19px; line-height: 1.25; }}
+  .kpi-nilai.sangat-panjang {{ font-size: 15px; line-height: 1.3;
+                               font-weight: 620; }}
   .kpi-ket {{ font-size: 11.5px; color: {p["tinta_2"]}; margin-top: 4px; }}
 
   /* --- Bagan dan tabel -------------------------------------------------- */
@@ -793,8 +804,11 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
 
 def kartu(label: str, nilai: str, ket: str = "") -> str:
     ekor = f'<div class="kpi-ket">{ket}</div>' if ket else ""
+    n = len(str(nilai))
+    kelas = ("kpi-nilai sangat-panjang" if n > 34
+             else "kpi-nilai panjang" if n > 18 else "kpi-nilai")
     return (f'<div class="kpi"><div class="kpi-label">{label}</div>'
-            f'<div class="kpi-nilai">{nilai}</div>{ekor}</div>')
+            f'<div class="{kelas}">{nilai}</div>{ekor}</div>')
 
 
 # Nama kolom yang isinya persentase. Dipakai untuk memutuskan pembulatan dan
