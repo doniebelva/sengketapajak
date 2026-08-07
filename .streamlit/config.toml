@@ -1,0 +1,26 @@
+# Setelan bawaan Streamlit untuk Tax Dispute Analytic Dashboard.
+#
+# Warna utama diganti dari merah bawaan menjadi biru merek. Merah bawaan
+# muncul pada penggeser, kotak centang, dan tautan, dan warna itu sudah
+# dipesan sebagai warna status genting sehingga tidak boleh dipakai sebagai
+# warna antarmuka biasa.
+
+[theme]
+primaryColor = "#2f6cc0"
+font = "sans serif"
+
+[theme.light]
+backgroundColor = "#eef1f5"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#0b0b0b"
+
+[theme.dark]
+backgroundColor = "#12141a"
+secondaryBackgroundColor = "#1c1f26"
+textColor = "#ffffff"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

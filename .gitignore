@@ -1,0 +1,4 @@
+setpp.db
+setpp_uat.db
+*.gz
+__pycache__/
