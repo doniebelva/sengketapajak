@@ -893,7 +893,7 @@ def hal_nilai() -> None:
     fig = batang_peringkat(gt, "Terbanding", "Dikabulkan",
                            "Tingkat dikabulkan menurut instansi terbanding",
                            "Ket")
-    fig.update_xaxes(ticksuffix="%", range=[0, 118])
+    fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
     bagan(fig, 250, None,
           "Ketetapan DJP dikoreksi jauh lebih sering daripada DJBC, dan "
           "hampir seluruh nilai koreksi lima tahun ada di DJP. Dua dunia "
@@ -1520,7 +1520,7 @@ def hal_konsistensi() -> None:
                         zip(pecah["Keseragaman"], pecah["Putusan"])]
         fig = batang_peringkat(pecah, "Kelompok", "Keseragaman",
                                "Paling bervariasi", "Ket")
-        fig.update_xaxes(ticksuffix="%", range=[0, 118])
+        fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
         bagan(fig, max(260, 44 * len(pecah) + 110), None,
               "Amar dominan di bawah lima puluh persen berarti perkara "
               "sejenis diputus berbeda beda arah.")
@@ -1530,7 +1530,7 @@ def hal_konsistensi() -> None:
                           zip(seragam["Keseragaman"], seragam["Putusan"])]
         fig = batang_peringkat(seragam, "Kelompok", "Keseragaman",
                                "Paling seragam", "Ket")
-        fig.update_xaxes(ticksuffix="%", range=[0, 118])
+        fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
         bagan(fig, max(260, 44 * len(seragam) + 110))
 
     with st.expander("Seluruh kelompok sebagai tabel"):
@@ -1734,7 +1734,7 @@ def hal_ketetapan() -> None:
                 zip(g["Dikabulkan"], g["Putusan"])]
     fig = batang_peringkat(g, "Jenis ketetapan", "Dikabulkan",
                            "Tingkat dikabulkan menurut jenis ketetapan", "Ket")
-    fig.update_xaxes(ticksuffix="%", range=[0, 118])
+    fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
     bagan(fig, max(240, 44 * len(g) + 110), None,
           "SPTNP dan SPKTNP adalah penetapan kepabeanan, SKPKB dan STP "
           "penetapan pajak. Tingkat dikabulkan di atas lima puluh persen "

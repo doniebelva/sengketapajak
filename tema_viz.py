@@ -85,8 +85,15 @@ GELAP = {
 }
 
 SANS = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif'
+# Naskah putusan memakai huruf berkait. Source Serif dipilih karena dirancang
+# untuk teks panjang di layar, berbeda dengan Georgia yang bentuknya melebar
+# dan Times New Roman yang tipis pada layar. Keduanya tetap disiapkan sebagai
+# cadangan bila berkas hurufnya gagal dimuat.
+SERIF = '"Source Serif 4", "Source Serif Pro", Georgia, "Times New Roman", serif'
 FONT_URL = ("https://fonts.googleapis.com/css2?"
-            "family=Inter:wght@400;500;600;700&display=swap")
+            "family=Inter:wght@400;500;600;700"
+            "&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700"
+            "&display=swap")
 
 SISI = "2.2rem"       # jarak tepi bidang isi, dipakai juga oleh kop dan kaki
 TINGGI_KOP = 66
@@ -252,7 +259,14 @@ def gaya(gelap: bool) -> str:
 <style>
   html, body, [class*="css"], .stApp, button, input, select, textarea {{
     font-family: {SANS}; -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Angka dibuat sama lebar di seluruh dashboard supaya deret bilangan
+       pada tabel dan kartu berbaris lurus, dan huruf dirapatkan sedikit,
+       lazim pada huruf berukuran layar. */
+    font-variant-numeric: tabular-nums; font-synthesis-weight: none;
+    letter-spacing: -.006em;
   }}
+  h1, h2, h3, h4, .kop-judul {{ letter-spacing: -.018em; }}
   .stApp {{ background: {p["bidang"]}; }}
   .block-container {{
     padding: calc({TINGGI_KOP}px + 20px) {SISI}
@@ -277,13 +291,49 @@ def gaya(gelap: bool) -> str:
   .kop-kanan {{ margin-left: auto; text-align: right;
                 font-size: 11.5px; color: rgba(255,255,255,.84); }}
 
-  /* Bilah alat bawaan Streamlit disembunyikan seluruhnya.
-     Isinya tombol tiga titik berisi muat ulang, rekam layar, dan setelan
-     pengembang. Tidak satu pun berguna bagi pemakai dashboard ini, dan
-     letaknya di pojok kanan atas justru bertabrakan dengan bilah judul. */
-  header[data-testid="stHeader"] {{ display: none !important; }}
-  div[data-testid="stAppDeployButton"],
-  button[data-testid="stAppDeployButton"] {{ display: none !important; }}
+  /* Bilah alat bawaan Streamlit dikosongkan, bukan dihapus. Isinya tombol
+     tiga titik berisi muat ulang, rekam layar, dan setelan pengembang, yang
+     tidak berguna bagi pemakai dashboard ini dan letaknya bertabrakan
+     dengan bilah judul. Namun di dalam bilah alat itu juga bersarang tombol
+     pembuka bilah samping. Menyembunyikan seluruh bilah alat pernah membuat
+     bilah samping yang sudah ditutup tidak dapat dibuka lagi sama sekali,
+     jadi kerangkanya dibiarkan hidup, isinya saja yang dimatikan. */
+  header[data-testid="stHeader"] {{
+    background: transparent !important; height: 0 !important;
+    min-height: 0 !important; pointer-events: none !important;
+    z-index: 1000002 !important;
+  }}
+  header[data-testid="stHeader"] div[data-testid="stToolbar"] {{
+    background: transparent !important; pointer-events: none !important;
+  }}
+  /* Yang dimatikan hanya isi bilah alat yang tidak berguna bagi pemakai:
+     menu tiga titik, tombol sebar, dan penanda proses. Kerangka bilah
+     alatnya tetap hidup karena tombol pembuka bilah samping ada di dalamnya.
+     Pemilihnya sengaja tanpa nama elemen: menu tiga titik digambar sebagai
+     span, bukan div, dan pemilih bernama div sempat meleset sehingga
+     ikonnya menyembul di pojok kanan atas. */
+  [data-testid="stMainMenu"],
+  [data-testid="stMainMenuButton"],
+  [data-testid="stStatusWidget"],
+  [data-testid="stAppDeployButton"] {{ display: none !important; }}
+
+  /* Tombol pembuka bilah samping dikembalikan sebagai tombol tersendiri di
+     bawah bilah judul, cukup besar untuk ditekan dan jelas terlihat. */
+  button[data-testid="stExpandSidebarButton"] {{
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: calc({TINGGI_KOP}px + 12px) !important; left: 12px !important;
+    width: 34px !important; height: 34px !important;
+    display: inline-flex !important; align-items: center !important;
+    justify-content: center !important;
+    background: {p["permukaan"]} !important; color: {p["tinta"]} !important;
+    border: 1px solid {p["tepi"]} !important; border-radius: 9px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+    z-index: 1000002 !important;
+  }}
+  button[data-testid="stExpandSidebarButton"]:hover {{
+    background: {p["bidang"]} !important;
+  }}
 
   /* --- Kaki, dipaku di dasar jendela, satu baris ------------------------ */
   .kaki {{
@@ -350,7 +400,8 @@ def gaya(gelap: bool) -> str:
   section[data-testid="stSidebar"] div[class*="st-key-nav-"]
     button p::before {{
     content: ""; display: inline-block; width: 17px; height: 17px;
-    margin-right: 10px; vertical-align: -3px; background-color: currentColor;
+    margin-right: 10px; background-color: currentColor;
+    flex: 0 0 17px;
   }}
 
   /* Pemilih tema, ditempatkan di sudut kanan atas menimpa bilah judul.
@@ -423,6 +474,7 @@ def gaya(gelap: bool) -> str:
     margin-bottom: 2px !important;
   }}
   section[data-testid="stSidebar"] div[class*="st-key-nav-"] button {{
+    display: flex !important;
     justify-content: flex-start !important; text-align: left !important;
     padding: 8px 12px !important; border-radius: 9px !important;
     width: 100% !important; border: 1px solid transparent !important;
@@ -430,10 +482,24 @@ def gaya(gelap: bool) -> str:
     min-height: 0 !important;
     transition: background .12s ease, box-shadow .12s ease;
   }}
+  /* Tombol Streamlit membungkus labelnya dua lapis, dan kedua lapis itu
+     memusatkan isinya sendiri. Rata kiri pada tombol saja tidak cukup:
+     pembungkusnya harus ikut dilebarkan penuh dan dirata kiri, kalau tidak
+     labelnya tetap mengambang di tengah. */
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button > div,
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button > div
+    > span,
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button
+    div[data-testid="stMarkdownContainer"] {{
+    width: 100% !important; justify-content: flex-start !important;
+    text-align: left !important;
+  }}
   section[data-testid="stSidebar"] div[class*="st-key-nav-"] button p {{
     font-size: 13.5px !important; font-weight: 500 !important;
     color: {p["tinta_2"]} !important; margin: 0 !important;
-    text-align: left !important;
+    text-align: left !important; width: 100% !important;
+    display: flex !important; align-items: center !important;
+    letter-spacing: -.004em !important; line-height: 1.35 !important;
   }}
   section[data-testid="stSidebar"] div[class*="st-key-nav-"] button:hover {{
     background: {lembut(p["seri"][0], .10)} !important;
@@ -591,20 +657,28 @@ def gaya(gelap: bool) -> str:
      kertas. Tata letak asli PDF tidak terbawa oleh ekstraksi teks, jadi ini
      susunan ulang yang menyerupai dokumen putusan, bukan salinan persis. */
   .isi-putusan {{
-    max-height: 560px; overflow-y: auto; padding: 34px 44px;
+    max-height: 620px; overflow-y: auto; padding: 40px 52px;
     border: 1px solid {p["tepi"]}; border-radius: 6px;
-    background: {p["permukaan"]}; line-height: 1.85; font-size: 13.5px;
+    background: {p["permukaan"]}; line-height: 1.75; font-size: 15px;
     color: {p["tinta"]};
-    font-family: Georgia, "Times New Roman", serif;
+    font-family: {SERIF};
+    font-variant-numeric: normal; letter-spacing: 0;
     box-shadow: 0 1px 4px rgba(0,0,0,.08);
   }}
-  .isi-putusan p {{ margin: 0 0 11px 0; text-align: justify;
-                    text-justify: inter-word; }}
+  /* Baris naskah dibatasi lebarnya. Kolom teks selebar layar besar melelahkan
+     dibaca karena mata kehilangan awal baris berikutnya. */
+  .isi-putusan p {{
+    margin: 0 auto 12px auto; max-width: 78ch;
+    text-align: justify; text-justify: inter-word; hyphens: auto;
+  }}
   .isi-putusan p.doc-judul {{ text-align: center; font-weight: 700;
-                              margin: 2px 0 14px 0; }}
+                              font-size: 16px; hyphens: none;
+                              margin: 2px auto 16px auto; }}
   .isi-putusan p.doc-tengah {{ text-align: center; font-weight: 700;
-                               letter-spacing: .04em; margin: 14px 0; }}
-  .isi-putusan p.doc-bagian {{ font-weight: 700; margin-top: 14px; }}
+                               letter-spacing: .04em; hyphens: none;
+                               margin: 16px auto; }}
+  .isi-putusan p.doc-bagian {{ font-weight: 700; margin-top: 16px;
+                               hyphens: none; }}
   .isi-putusan mark {{ background: {lembut(p["awas"], .45)}; color: inherit;
                        padding: 0 2px; border-radius: 3px; }}
 </style>
