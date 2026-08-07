@@ -584,20 +584,20 @@ if df.empty:
 # ---------------------------------------------------------------------------
 
 HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Putusan Sejenis",
-           "Jalur dan Risiko Perkara", "Konsistensi Putusan Hakim",
-           "Sengketa Berulang", "Ketetapan dan Koreksi",
-           "Dasar Hukum", "Unit Penerbit",
-           "Kinerja Hakim", "Kinerja Proses", "Metodologi"]
+           "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
+           "Sengketa Berulang", "Mutu Ketetapan",
+           "Pasal Penentu", "Unit Penerbit",
+           "Rekapitulasi Hakim", "Lama Penyelesaian", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
-           "Jalur dan Risiko Perkara": "Preskriptif",
+           "Pilihan Upaya Hukum": "Preskriptif",
            "Konsistensi Putusan Hakim": "Diagnostik",
            "Sengketa Berulang": "Diagnostik",
-           "Ketetapan dan Koreksi": "Diagnostik",
-           "Dasar Hukum": "Diagnostik",
+           "Mutu Ketetapan": "Diagnostik",
+           "Pasal Penentu": "Diagnostik",
            "Unit Penerbit": "Diagnostik",
-           "Kinerja Hakim": "Deskriptif",
-           "Kinerja Proses": "Prediktif"}
+           "Rekapitulasi Hakim": "Deskriptif",
+           "Lama Penyelesaian": "Prediktif"}
 
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
 # yang pertama tujuan setiap drill, yang kedua kejujuran metodologis yang
@@ -605,13 +605,13 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
 MODUL = {
     "Semua": HALAMAN,
     "Pimpinan": ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan",
-                 "Konsistensi Putusan Hakim", "Sengketa Berulang", "Kinerja Hakim",
-                 "Kinerja Proses", "Metodologi"],
-    "Fiskus": ["Ringkasan Eksekutif", "Ketetapan dan Koreksi",
-               "Dasar Hukum", "Unit Penerbit",
+                 "Konsistensi Putusan Hakim", "Sengketa Berulang", "Rekapitulasi Hakim",
+                 "Lama Penyelesaian", "Metodologi"],
+    "Fiskus": ["Ringkasan Eksekutif", "Mutu Ketetapan",
+               "Pasal Penentu", "Unit Penerbit",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
     "Wajib pajak": ["Ringkasan Eksekutif", "Pola Putusan Sejenis",
-                    "Jalur dan Risiko Perkara", "Risalah Putusan",
+                    "Pilihan Upaya Hukum", "Risalah Putusan",
                     "Metodologi"],
 }
 
@@ -758,7 +758,7 @@ def hal_ikhtisar() -> None:
         f"**{kj_menang:.0f} persen ketetapan yang disengketakan berujung "
         f"dikabulkan** seluruhnya atau sebagian, dihitung dari {len(kj):,} "
         "putusan yang jenis ketetapannya teridentifikasi. Rinciannya pada "
-        "halaman Ketetapan dan Koreksi.\n\n"
+        "halaman Mutu Ketetapan.\n\n"
         f"**{ulang:.0f} persen sengketa datang dari wajib pajak yang "
         "bersengketa lebih dari sekali.** Rinciannya pada halaman Sengketa "
         "Berulang.\n\n"
@@ -1396,19 +1396,18 @@ def hal_belajar() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Jalur dan risiko perkara, untuk wajib pajak
+# Pilihan upaya hukum, untuk wajib pajak
 # ---------------------------------------------------------------------------
 
 def hal_jalur() -> None:
-    st.subheader("Jalur dan Risiko Perkara")
+    st.subheader("Pilihan Upaya Hukum")
     st.caption(
-        "Halaman ini disusun bagi wajib pajak sebelum mengajukan perkara, "
-        "memuat jalur mana yang "
-        "sesuai, berapa peluang historisnya, aspek formal apa yang "
-        "menggugurkan perkara, dan risiko apa yang jarang disadari. Seluruh "
-        "angka "
-        "adalah frekuensi historis atas putusan yang telah dijatuhkan, bukan "
-        "nasihat hukum atas perkara Anda.")
+        "Halaman ini membantu wajib pajak menentukan jalur pengajuan "
+        "sengketa sebelum perkara didaftarkan. Disajikan peluang "
+        "keberhasilan tiap jalur menurut putusan yang telah dijatuhkan, "
+        "tenggat waktu yang mengikat, serta risiko yang jarang disadari. "
+        "Seluruh angka merupakan frekuensi historis, bukan nasihat hukum "
+        "atas perkara tertentu.")
 
     rs = muat_resmi()
     if rs.empty:
@@ -1527,12 +1526,15 @@ def hal_jalur() -> None:
 def hal_konsistensi() -> None:
     st.subheader("Konsistensi Putusan Hakim")
     st.caption(
-        "Perkara sejenis, yaitu jenis pajak dan jenis koreksi yang sama, "
-        "semestinya diputus serupa. Halaman ini mengukur pangsa amar dominan "
-        "pada tiap kelompok. Kelompok yang seragam berarti hukumnya terbaca "
-        "jelas. Kelompok yang bervariasi berarti normanya multitafsir, dan "
-        "kelompok itulah yang menjadi prioritas pembenahan peraturan.")
+        "Perkara sejenis semestinya diputus serupa, siapa pun majelis yang "
+        "menanganinya. Halaman ini menguji keserupaan itu dari dua sisi. "
+        "Bagian pertama mengukur keseragaman putusan pada tiap kelompok "
+        "perkara sejenis, yaitu jenis pajak dan jenis koreksi yang sama, "
+        "untuk menemukan norma yang multitafsir. Bagian kedua mengukur "
+        "sejauh mana pola putusan tiap hakim ketua menyimpang dari rerata "
+        "rekannya pada perkara sejenis.")
 
+    st.html('<div class="tingkat">Keseragaman Antar Kelompok Perkara</div>')
     k = ledak_koreksi(beramar(d))
     dom = []
     for (kode, kor), grp in k.groupby(["kode_jenis_pajak", "Jenis koreksi"]):
@@ -1791,7 +1793,7 @@ def hal_berulang() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_ketetapan() -> None:
-    st.subheader("Ketetapan dan Koreksi")
+    st.subheader("Mutu Ketetapan")
     st.caption(
         "Menelaah sengketa dari sisi penerbitan, yaitu ketetapan yang "
          "diterbitkan unit beserta koreksi yang mendasarinya.")
@@ -1857,7 +1859,7 @@ def hal_ketetapan() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_dasar() -> None:
-    st.subheader("Dasar Hukum")
+    st.subheader("Pasal Penentu")
     st.caption(
         "Rekapitulasi pasal yang paling sering dirujuk ketika ketetapan "
         "dikoreksi "
@@ -2088,7 +2090,7 @@ def hal_unit() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_hakim() -> None:
-    st.subheader("Kinerja Hakim")
+    st.subheader("Rekapitulasi Hakim")
     st.caption(
         "Rekapitulasi putusan yang telah diucapkan menurut hakim, dipilah "
         "per kategori amar. Susunan majelis hanya termuat pada risalah era "
@@ -2214,7 +2216,7 @@ def hal_hakim() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_kinerja() -> None:
-    st.subheader("Kinerja Proses")
+    st.subheader("Lama Penyelesaian")
     st.caption(
         "Lama penyelesaian perkara dan titik proses yang paling lama "
         "tertahan. Temuan utamanya terletak pada jeda yang jarang dilaporkan, "
@@ -2405,14 +2407,14 @@ def hal_metode() -> None:
     "Nilai Sengketa": hal_nilai,
     "Risalah Putusan": hal_telusur,
     "Pola Putusan Sejenis": hal_belajar,
-    "Jalur dan Risiko Perkara": hal_jalur,
-    "Dasar Hukum": hal_dasar,
+    "Pilihan Upaya Hukum": hal_jalur,
+    "Pasal Penentu": hal_dasar,
     "Unit Penerbit": hal_unit,
     "Konsistensi Putusan Hakim": hal_konsistensi,
     "Sengketa Berulang": hal_berulang,
-    "Ketetapan dan Koreksi": hal_ketetapan,
-    "Kinerja Hakim": hal_hakim,
-    "Kinerja Proses": hal_kinerja,
+    "Mutu Ketetapan": hal_ketetapan,
+    "Rekapitulasi Hakim": hal_hakim,
+    "Lama Penyelesaian": hal_kinerja,
     "Metodologi": hal_metode,
 }[halaman]()
 
