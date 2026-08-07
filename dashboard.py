@@ -583,13 +583,13 @@ if df.empty:
 # Bilah samping
 # ---------------------------------------------------------------------------
 
-HALAMAN = ["Ikhtisar", "Nilai Sengketa", "Risalah Putusan", "Preseden Putusan",
+HALAMAN = ["Ikhtisar", "Nilai Sengketa", "Risalah Putusan", "Pola Putusan Sejenis",
            "Jalur dan Risiko Perkara", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Ketetapan dan Koreksi",
            "Dasar Hukum", "Unit Penerbit",
            "Kinerja Hakim", "Kinerja Proses", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
-           "Preseden Putusan": "Prediktif, frekuensi historis",
+           "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
            "Jalur dan Risiko Perkara": "Preskriptif",
            "Konsistensi Putusan Hakim": "Diagnostik",
            "Sengketa Berulang": "Diagnostik",
@@ -610,7 +610,7 @@ MODUL = {
     "Fiskus": ["Ikhtisar", "Ketetapan dan Koreksi",
                "Dasar Hukum", "Unit Penerbit",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
-    "Wajib pajak": ["Ikhtisar", "Preseden Putusan",
+    "Wajib pajak": ["Ikhtisar", "Pola Putusan Sejenis",
                     "Jalur dan Risiko Perkara", "Risalah Putusan",
                     "Metodologi"],
 }
@@ -1269,11 +1269,11 @@ def hal_telusur() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Preseden putusan
+# 3. Pola putusan sejenis
 # ---------------------------------------------------------------------------
 
 def hal_belajar() -> None:
-    st.subheader("Preseden Putusan")
+    st.subheader("Pola Putusan Sejenis")
     st.caption(
         "Setelah ciri perkara dipilih, halaman ini menyajikan rekam jejak "
         "historisnya: "
@@ -2404,7 +2404,7 @@ def hal_metode() -> None:
     "Ikhtisar": hal_ikhtisar,
     "Nilai Sengketa": hal_nilai,
     "Risalah Putusan": hal_telusur,
-    "Preseden Putusan": hal_belajar,
+    "Pola Putusan Sejenis": hal_belajar,
     "Jalur dan Risiko Perkara": hal_jalur,
     "Dasar Hukum": hal_dasar,
     "Unit Penerbit": hal_unit,
