@@ -84,7 +84,6 @@ def sambung() -> sqlite3.Connection:
     return sqlite3.connect(uri, uri=True, timeout=30, check_same_thread=False)
 
 
-@st.cache_data(ttl=120)
 def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
     """
     Nomor putusan untuk ditampilkan, dirangkai kembali bila perlu.
@@ -131,6 +130,13 @@ def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
     return raw.where(utuh, s)
 
 
+# Singgahan pemuatan tabel utama. Dekorator ini pernah tergeser ke fungsi
+# perangkaian nomor ketika fungsi itu disisipkan di antara dekorator dan
+# fungsi aslinya, sehingga tabel utama dibaca ulang dari basis data pada
+# setiap gerakan pengguna dan seluruh dashboard terasa berat. Pesan
+# pemuatannya ditulis sendiri, karena pesan bawaan menampilkan nama fungsi
+# dalam bahasa Inggris yang tidak berarti bagi pemakai.
+@st.cache_data(ttl=120, show_spinner="Memuat data putusan...")
 def muat_putusan() -> pd.DataFrame:
     with sambung() as c:
         df = pd.read_sql_query("SELECT * FROM putusan", c)
@@ -143,7 +149,7 @@ def muat_putusan() -> pd.DataFrame:
     return df
 
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=120, show_spinner="Menghitung cakupan arsip...")
 def muat_corong() -> dict:
     def satu(c, sql):
         try:
@@ -161,7 +167,7 @@ def muat_corong() -> dict:
         }
 
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=600, show_spinner="Memuat daftar resmi Sekretariat...")
 def muat_resmi() -> pd.DataFrame:
     """Daftar resmi putusan 2021 sampai 2025, dimuat setpp_resmi.py impor.
     Kosong bila tabelnya belum ada, dan halaman pemakainya wajib bersikap
@@ -176,7 +182,7 @@ def muat_resmi() -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner="Memuat peta kode jenis pajak...")
 def peta_kode() -> dict:
     """
     Nama jenis pajak dibangun dari data itu sendiri, dengan menyilangkan kode
@@ -237,7 +243,7 @@ def label_kode(kode, peta: dict) -> str:
     return f"{kode} · {info['label']}" + (" (?)" if info["pangsa"] < 80 else "")
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=30, show_spinner=False)
 def keadaan_tarikan() -> dict:
     import datetime as _dt
 
@@ -257,7 +263,7 @@ def keadaan_tarikan() -> dict:
     return {"aktif": menit < 5, "menit": menit}
 
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=120, show_spinner="Memuat rujukan dasar hukum...")
 def muat_dasar_hukum() -> pd.DataFrame:
     with sambung() as c:
         return pd.read_sql_query(
@@ -274,7 +280,7 @@ def cari_teks(kueri: str, batas: int) -> pd.DataFrame:
                ORDER BY rank LIMIT ?""", c, params=(kueri, batas))
 
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=300, show_spinner="Membuka isi putusan...")
 def muat_isi(doc_id: int) -> tuple[str, str]:
     with sambung() as c:
         b = c.execute(

@@ -410,6 +410,28 @@ def gaya(gelap: bool) -> str:
     visibility: hidden !important;
   }}
 
+  /* --- Penanda pemuatan ------------------------------------------------- */
+  /* Data tumbuh mengikuti arsip, dan jeda pemuatan ikut memanjang. Penanda
+     pemuatan diseragamkan dengan tema supaya jeda itu terasa sebagai bagian
+     aplikasi yang sedang bekerja, bukan sebagai halaman yang membeku. */
+  div[data-testid="stSpinner"] {{
+    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
+    border-radius: 10px; padding: 10px 16px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.08);
+  }}
+  div[data-testid="stSpinner"] i {{
+    border-color: {p["seri"][0]} rgba(0,0,0,0) rgba(0,0,0,0) !important;
+  }}
+  div[data-testid="stSpinner"] > div {{
+    color: {p["tinta_2"]}; font-size: 13px;
+  }}
+  div[data-testid="stProgress"] div[role="progressbar"] > div {{
+    background: {p["seri"][0]} !important;
+  }}
+  div[data-testid="stProgress"] p {{
+    color: {p["tinta_2"]} !important; font-size: 12.5px !important;
+  }}
+
   /* --- Tab penelaahan --------------------------------------------------- */
   /* Satu halaman kerap memuat beberapa sudut telaah atas pokok yang sama.
      Menaruh semuanya berderet ke bawah membuat halaman sangat panjang dan

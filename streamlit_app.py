@@ -68,11 +68,42 @@ def siapkan_data() -> None:
     if sudah_ada and (not penanda_baru or penanda_baru == penanda_lama):
         return
 
-    pesan = ("Menyiapkan basis data UAT, sekali saja saat pertama dinyalakan..."
+    pesan = ("Menyiapkan basis data, hanya pada penyalaan pertama."
              if not sudah_ada else
-             "Data baru terbit, mengunduh pembaruan basis data UAT...")
-    with st.spinner(pesan):
-        urllib.request.urlretrieve(url, "setpp_uat.db.gz")
+             "Data baru terbit, mengunduh pembaruan basis data.")
+
+    # Unduhan disajikan sebagai bilah kemajuan berpersentase, bukan putaran
+    # bisu. Basis datanya tumbuh mengikuti arsip, dan makin besar berkasnya
+    # makin lama pula jeda yang harus ditunggu pemakai pada penyalaan
+    # pertama. Putaran tanpa keterangan membuat jeda itu terasa seperti
+    # aplikasi macet, sedangkan persentase beserta ukuran berjalannya
+    # memberi tahu bahwa semuanya bekerja dan kira kira berapa lama lagi.
+    tempat = st.empty()
+    tempat.markdown(f"**{pesan}**")
+    batang = st.progress(0, text="Menghubungi peladen data...")
+    try:
+        with urllib.request.urlopen(url, timeout=300) as jawab, \
+                open("setpp_uat.db.gz", "wb") as fkeluar:
+            total = int(jawab.headers.get("Content-Length") or 0)
+            terunduh = 0
+            while True:
+                potong = jawab.read(1 << 20)
+                if not potong:
+                    break
+                fkeluar.write(potong)
+                terunduh += len(potong)
+                if total:
+                    batang.progress(
+                        min(terunduh / total, 1.0),
+                        text=f"Mengunduh data {terunduh / 1e6:,.0f} dari "
+                             f"{total / 1e6:,.0f} MB "
+                             f"({100 * terunduh / total:.0f} persen)")
+                else:
+                    batang.progress(
+                        0.5, text=f"Mengunduh data, "
+                                  f"{terunduh / 1e6:,.0f} MB diterima...")
+
+        batang.progress(1.0, text="Membongkar berkas data...")
         with gzip.open("setpp_uat.db.gz", "rb") as fmasuk, \
                 open("setpp.db.baru", "wb") as fkeluar:
             shutil.copyfileobj(fmasuk, fkeluar)
@@ -83,6 +114,9 @@ def siapkan_data() -> None:
         if penanda_baru:
             with open(PENANDA, "w", encoding="utf-8") as fh:
                 fh.write(penanda_baru)
+    finally:
+        batang.empty()
+        tempat.empty()
 
 
 siapkan_data()
