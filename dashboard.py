@@ -642,7 +642,7 @@ if df.empty:
 HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Putusan Sejenis",
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Mutu Ketetapan",
-           "Pasal Penentu", "Unit Penerbit",
+           "Pasal Penentu", "Unit Penerbit Ketetapan",
            "Profil Hakim", "Durasi Penyelesaian Sengketa", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
@@ -651,7 +651,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Sengketa Berulang": "Diagnostik",
            "Mutu Ketetapan": "Diagnostik",
            "Pasal Penentu": "Diagnostik",
-           "Unit Penerbit": "Diagnostik",
+           "Unit Penerbit Ketetapan": "Diagnostik",
            "Profil Hakim": "Deskriptif",
            "Durasi Penyelesaian Sengketa": "Prediktif"}
 
@@ -664,7 +664,7 @@ MODUL = {
                  "Konsistensi Putusan Hakim", "Sengketa Berulang", "Profil Hakim",
                  "Durasi Penyelesaian Sengketa", "Metodologi"],
     "Fiskus": ["Ringkasan Eksekutif", "Mutu Ketetapan",
-               "Pasal Penentu", "Unit Penerbit",
+               "Pasal Penentu", "Unit Penerbit Ketetapan",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
     "Wajib pajak": ["Ringkasan Eksekutif", "Pola Putusan Sejenis",
                     "Pilihan Upaya Hukum", "Risalah Putusan",
@@ -2179,7 +2179,7 @@ def rapikan_unit(v) -> str:
 
 
 def hal_unit() -> None:
-    st.subheader("Unit Penerbit")
+    st.subheader("Unit Penerbit Ketetapan")
     st.caption(
         "Menelaah sengketa menurut unit penerbitnya, yaitu unit mana yang "
          "ketetapannya paling sering disengketakan dan bagaimana hasilnya di "
@@ -2593,7 +2593,7 @@ def hal_metode() -> None:
     "Pola Putusan Sejenis": hal_belajar,
     "Pilihan Upaya Hukum": hal_jalur,
     "Pasal Penentu": hal_dasar,
-    "Unit Penerbit": hal_unit,
+    "Unit Penerbit Ketetapan": hal_unit,
     "Konsistensi Putusan Hakim": hal_konsistensi,
     "Sengketa Berulang": hal_berulang,
     "Mutu Ketetapan": hal_ketetapan,
