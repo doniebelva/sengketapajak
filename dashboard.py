@@ -2171,27 +2171,65 @@ def hal_ketetapan() -> None:
     # sumbunya bersamaan sehingga kelompok penanganannya langsung terbaca.
     st.html('<div class="tingkat">Peta Prioritas Penanganan</div>')
     batas_x = float(gk["Putusan"].median())
-    fig = px.scatter(gk, x="Putusan", y="Tingkat dikabulkan",
-                     text="Jenis koreksi",
+    # Titik berdesakan di sisi kiri karena sebagian besar jenis koreksi
+    # jumlahnya kecil sementara beberapa sangat besar. Sumbu mendatar dibuat
+    # berskala lipat agar kerumunan itu merenggang, dan letak tulisan
+    # diselang seling atas bawah supaya label yang berdekatan tidak
+    # bertumpuk sampai tidak terbaca.
+    # Nama koreksi dipendekkan khusus untuk peta ini. Nama penuh sepanjang
+    # dua tiga kata membuat label titik yang berdekatan saling menutupi
+    # sampai tidak satu pun terbaca, sedangkan pada tabel di atas nama
+    # penuhnya tetap tersaji.
+    RINGKAS = {"Penyusutan dan amortisasi": "Penyusutan",
+               "Harga pokok penjualan": "HPP",
+               "Fasilitas dan pembebasan": "Fasilitas",
+               "Kompensasi kerugian": "Kompensasi",
+               "Hubungan istimewa": "Hub. istimewa",
+               "Klasifikasi dan tarif": "Klasifikasi",
+               "Sanksi administrasi": "Sanksi",
+               "PPh potong pungut": "PPh potput",
+               "Peredaran usaha": "Peredaran",
+               "Kredit pajak": "Kredit",
+               "Pajak masukan": "Pajak masukan",
+               "Nilai pabean": "Nilai pabean",
+               "Aspek formal": "Formal"}
+    q = gk.sort_values("Putusan").reset_index(drop=True)
+    # Yang diberi label hanya titik yang menentukan keputusan, yaitu seluruh
+    # penghuni kuadran prioritas di kanan atas, ditambah titik tertinggi dan
+    # terendah sebagai penanda ujung. Titik lain yang berdesakan dibiarkan
+    # tanpa tulisan, karena label yang saling menutupi tidak terbaca dan
+    # nama lengkapnya sudah tersaji pada tabel di atas serta pada keterangan
+    # yang muncul saat titiknya disentuh.
+    penting = ((q["Putusan"] >= batas_x) & (q["Tingkat dikabulkan"] >= 50))
+    penting.iloc[int(q["Tingkat dikabulkan"].argmax())] = True
+    penting.iloc[int(q["Tingkat dikabulkan"].argmin())] = True
+    q["Label"] = [RINGKAS.get(v, v) if p else ""
+                  for v, p in zip(q["Jenis koreksi"], penting)]
+    letak = ["top center" if i % 2 == 0 else "bottom center"
+             for i in range(len(q))]
+    fig = px.scatter(q, x="Putusan", y="Tingkat dikabulkan",
+                     text="Label", log_x=True,
+                     hover_name="Jenis koreksi",
                      title="Frekuensi dibandingkan tingkat pembatalan")
-    fig.update_traces(mode="markers+text", textposition="top center",
+    fig.update_traces(mode="markers+text", textposition=letak,
                       textfont=dict(size=10, color=P["tinta_2"]),
-                      hovertemplate="%{text}<br>%{x:,} putusan<br>"
-                                    "%{y:.1f} persen dikabulkan<extra></extra>")
+                      hovertemplate="<b>%{hovertext}</b><br>%{x:,} putusan"
+                                    "<br>%{y:.1f} persen dikabulkan"
+                                    "<extra></extra>")
     fig.add_vline(x=batas_x, line_dash="dot", line_color=P["sumbu"])
     fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
-    fig.update_xaxes(showgrid=False, title="Jumlah putusan")
+    fig.update_xaxes(showgrid=False, title="Jumlah putusan, skala lipat")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
-                     ticksuffix="%", range=[0, 105],
+                     ticksuffix="%", range=[0, 112],
                      title="Tingkat dikabulkan")
-    fig.update_layout(margin=dict(t=64, r=28))
+    fig.update_layout(margin=dict(t=64, r=40, b=58, l=40))
     for x_, y_, teks_, ax_ in (
             (0.99, 1.02, "Sering dan sering batal", "right"),
             (0.01, 1.02, "Jarang tetapi sering batal", "left")):
         fig.add_annotation(text=teks_, xref="paper", yref="paper",
                            x=x_, y=y_, showarrow=False, xanchor=ax_,
                            font=dict(size=11, color=P["tinta_2"]))
-    bagan(fig, 460, None,
+    bagan(fig, 560, None,
           "Garis mendatar berada pada lima puluh persen, garis tegak pada "
           "jumlah putusan pertengahan. Titik di kanan atas adalah koreksi "
           "yang sering dipakai sekaligus sering batal, dan itulah prioritas "
