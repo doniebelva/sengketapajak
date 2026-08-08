@@ -223,6 +223,28 @@ def rapikan(fig, tinggi: int | None = None, gelap: bool = False):
             t.insidetextfont = dict(color=p["tinta"], size=12)
         t.hoverlabel = dict(bordercolor=warna)
 
+    # Deret garis. Bagan bersumbu waktu digambar sebagai garis, bukan batang,
+    # karena yang dibaca pembaca adalah arah pergerakannya. Titik penanda
+    # diberi tepi sewarna permukaan supaya tetap terbaca ketika dua deret
+    # saling berdekatan, dan bidang di bawah garis diberi warna sangat lembut
+    # agar tidak menutupi garis lain.
+    garis = [t for t in fig.data if getattr(t, "type", None) == "scatter"]
+    for i, t in enumerate(garis):
+        warna = None
+        if getattr(t, "line", None) is not None:
+            warna = getattr(t.line, "color", None)
+        if not isinstance(warna, str):
+            warna = p["seri"][i % len(p["seri"])]
+            t.line.color = warna
+        t.line.width = 2.6
+        t.marker.size = 7
+        t.marker.color = warna
+        t.marker.line.color = p["permukaan"]
+        t.marker.line.width = 1.6
+        if getattr(t, "fill", None) in ("tozeroy", "tonexty"):
+            t.fillcolor = lembut(warna, 0.20 if gelap else 0.13)
+        t.hoverlabel = dict(bordercolor=warna)
+
     # Label di luar ujung batang memerlukan ruang yang tidak disediakan Plotly.
     # Tanpa kelonggaran ini, angka pada batang terpanjang terpotong tepi kartu.
     mendatar = any(getattr(t, "orientation", None) == "h"
@@ -926,7 +948,7 @@ _IKON_NAV = {
     "Pilihan Upaya Hukum": "%3Cpath d='M12 21V3'/%3E%3Cpath d='M12 5h6l2 2-2 2h-6'/%3E%3Cpath d='M12 12H6l-2 2 2 2h6'/%3E",
     "Pasal Penentu": "%3Cpath d='M12 3v18M4 21h16'/%3E%3Cpath d='M5 7l-2.5 5a3 3 0 0 0 5 0zM19 7l-2.5 5a3 3 0 0 0 5 0z'/%3E%3Cpath d='M6 7h12'/%3E",
     "Unit Penerbit": "%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V4l8-2v19'/%3E%3Cpath d='M13 21h6V9l-6-2'/%3E%3Cpath d='M8 8h.01M8 12h.01M8 16h.01'/%3E",
-    "Rekapitulasi Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
+    "Profil Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
     "Durasi Penyelesaian Sengketa": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
     "Metodologi": "%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E",
 }

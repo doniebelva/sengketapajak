@@ -30,6 +30,7 @@ import sys
 
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -458,6 +459,61 @@ def titik_terpilih(ev) -> str | None:
     return t.get("y") if t.get("y") is not None else t.get("x")
 
 
+def saring_tahun(df_: pd.DataFrame, kolom: str, kunci: str,
+                 label: str = "Rentang tahun ucap") -> pd.DataFrame:
+    """
+    Penyaring rentang tahun untuk halaman bersumber daftar resmi.
+
+    Penyaring lingkup di bilah samping hanya mengatur arsip risalah, yang
+    rentang tahunnya jauh lebih panjang daripada daftar resmi. Menyatukan
+    keduanya di bawah satu kendali akan membuat pilihan tahun di luar
+    jangkauan daftar resmi mengosongkan halaman tanpa penjelasan, jadi
+    halaman yang bersumber daftar resmi diberi penyaringnya sendiri.
+    """
+    th = df_[kolom].dropna()
+    if th.empty:
+        return df_
+    awal, akhir = int(th.min()), int(th.max())
+    if awal >= akhir:
+        return df_
+    pilih = st.slider(label, awal, akhir, (awal, akhir), key=kunci)
+    hasil = df_[df_[kolom].between(pilih[0], pilih[1])]
+    if pilih != (awal, akhir):
+        st.caption(f"Menampilkan tahun ucap {pilih[0]} sampai {pilih[1]}, "
+                   f"yaitu {len(hasil):,} dari {len(df_):,} putusan pada "
+                   "daftar resmi.")
+    return hasil
+
+
+def garis_waktu(t: pd.DataFrame, kolom_x: str, kolom_y: str, judul: str,
+                teks: str | None = None, isi: bool = True):
+    """
+    Bagan garis untuk deret bersumbu waktu.
+
+    Deret tahunan digambar sebagai garis, bukan batang, karena yang dicari
+    pembaca adalah arah pergerakannya dari tahun ke tahun. Batang menyuruh
+    mata membandingkan tinggi antar kategori yang sebenarnya bersambung.
+    """
+    fig = px.line(t, x=kolom_x, y=kolom_y, markers=True, title=judul,
+                  text=teks)
+    if isi:
+        fig.update_traces(fill="tozeroy")
+    if teks:
+        fig.update_traces(textposition="top center",
+                          textfont=dict(size=11, color=P["tinta"]))
+    # Kelonggaran di kedua ujung sumbu waktu. Tanpa ini titik pertama dan
+    # terakhir menempel tepat di tepi kartu, dan angka tahunnya terpotong.
+    try:
+        xs = pd.to_numeric(t[kolom_x])
+        fig.update_xaxes(range=[float(xs.min()) - 0.6,
+                                float(xs.max()) + 0.6])
+    except (TypeError, ValueError):
+        pass
+    fig.update_xaxes(showgrid=False, title="", dtick=1)
+    fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
+    return fig
+
+
 def batang_peringkat(t: pd.DataFrame, kolom_label: str, kolom_nilai: str,
                      judul: str, teks: str | None = None):
     fig = px.bar(t.sort_values(kolom_nilai), x=kolom_nilai, y=kolom_label,
@@ -587,7 +643,7 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Mutu Ketetapan",
            "Pasal Penentu", "Unit Penerbit",
-           "Rekapitulasi Hakim", "Durasi Penyelesaian Sengketa", "Metodologi"]
+           "Profil Hakim", "Durasi Penyelesaian Sengketa", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
            "Pilihan Upaya Hukum": "Preskriptif",
@@ -596,7 +652,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Mutu Ketetapan": "Diagnostik",
            "Pasal Penentu": "Diagnostik",
            "Unit Penerbit": "Diagnostik",
-           "Rekapitulasi Hakim": "Deskriptif",
+           "Profil Hakim": "Deskriptif",
            "Durasi Penyelesaian Sengketa": "Prediktif"}
 
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
@@ -605,7 +661,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
 MODUL = {
     "Semua": HALAMAN,
     "Pimpinan": ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan",
-                 "Konsistensi Putusan Hakim", "Sengketa Berulang", "Rekapitulasi Hakim",
+                 "Konsistensi Putusan Hakim", "Sengketa Berulang", "Profil Hakim",
                  "Durasi Penyelesaian Sengketa", "Metodologi"],
     "Fiskus": ["Ringkasan Eksekutif", "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit",
@@ -772,10 +828,8 @@ def hal_ikhtisar() -> None:
          .value_counts().sort_index()
          .rename_axis("Tahun").reset_index(name="Putusan"))
     if not t.empty:
-        fig = px.bar(t, x="Tahun", y="Putusan", text="Putusan",
-                     title="Putusan menurut tahun")
-        fig.update_xaxes(showgrid=False, dtick=1, title="")
-        fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
+        fig = garis_waktu(t, "Tahun", "Putusan",
+                          "Putusan terurai menurut tahun")
         bagan(fig, 320, None,
               "Tinggi batang mencerminkan seberapa banyak yang sudah "
               "terkumpul "
@@ -789,11 +843,11 @@ def hal_ikhtisar() -> None:
                 .reset_index())
         tren["Dikabulkan"] = 100 * tren["sum"] / tren["size"]
         tren["Ket"] = [f"{v:.1f}%" for v in tren["Dikabulkan"]]
-        fig = px.bar(tren, x="tahun_ucap", y="Dikabulkan", text="Ket",
-                     title="Tingkat dikabulkan resmi per tahun ucap")
-        fig.update_xaxes(showgrid=False, dtick=1, title="")
-        fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
-                         ticksuffix="%", range=[0, 100], title="")
+        tren = tren.rename(columns={"tahun_ucap": "Tahun"})
+        fig = garis_waktu(tren, "Tahun", "Dikabulkan",
+                          "Tingkat dikabulkan menurut tahun ucap, data resmi",
+                          teks="Ket", isi=False)
+        fig.update_yaxes(ticksuffix="%", range=[0, 100])
         bagan(fig, 300, None,
               "Dihitung dari populasi resmi yang lengkap, bukan dari contoh "
               "arsip, sehingga kecenderungannya dapat dikutip. Hampir dua "
@@ -816,12 +870,17 @@ def hal_nilai() -> None:
     st.caption(
         f"Sumber: daftar resmi putusan Sekretariat, {len(rs):,} putusan "
         "2021 sampai 2025. Angka ini mencakup populasi lengkap lima tahun, "
-        "bukan contoh, "
-        "sehingga halaman ini tidak terpengaruh penyaring lingkup di bilah "
-        "samping. Nilai dihitung dari putusan Rupiah yang nilai awal dan "
-        "akhirnya terisi; amar tolak dan tidak dapat diterima umumnya tidak "
-        "memuat nilai akhir, sehingga angka koreksi cenderung taksiran "
+        "bukan contoh, sehingga halaman ini memakai penyaring tahunnya "
+        "sendiri, bukan penyaring lingkup di bilah samping yang mengatur "
+        "arsip risalah. Nilai dihitung dari putusan Rupiah yang nilai awal "
+        "dan akhirnya terisi; amar tolak dan tidak dapat diterima umumnya "
+        "tidak memuat nilai akhir, sehingga angka koreksi cenderung taksiran "
         "bawah.")
+
+    rs = saring_tahun(rs, "tahun_ucap", "tahun_nilai")
+    if rs.empty:
+        st.info("Tidak terdapat putusan pada rentang tahun tersebut.")
+        return
 
     rp = rs[rs["mata_uang"] == "Rupiah"]
     ada = rp.dropna(subset=["nilai_awal", "nilai_akhir"]).copy()
@@ -838,19 +897,35 @@ def hal_nilai() -> None:
                        f"Rp {ada['koreksi'].sum() / 1e12:,.1f} T",
                        "selisihnya, sepanjang 2021 sampai 2025"))
 
-    t = (ada.groupby("tahun_ucap")["koreksi"].sum().div(1e12)
-         .rename_axis("Tahun").reset_index(name="Triliun"))
-    t["Ket"] = t["Triliun"].map(lambda v: f"Rp {v:,.1f} T")
-    fig = px.bar(t, x="Tahun", y="Triliun", text="Ket",
-                 title="Nilai dikoreksi pengadilan per tahun ucap")
+    # Dua garis, bukan satu batang selisih. Jarak antar garis itulah nilai
+    # yang dikoreksi pengadilan, dan menggambarkannya sebagai bidang di
+    # antara keduanya membuat besaran koreksi terbaca tanpa perlu dihitung
+    # sendiri oleh pembaca, sekaligus menunjukkan skala sengketa awalnya.
+    t = (ada.groupby("tahun_ucap")[["nilai_awal", "nilai_akhir"]]
+         .sum().div(1e12).rename_axis("Tahun").reset_index())
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=t["Tahun"], y=t["nilai_akhir"], name="Nilai setelah putusan",
+        mode="lines+markers",
+        hovertemplate="%{x}: Rp %{y:.1f} T<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=t["Tahun"], y=t["nilai_awal"], name="Nilai sengketa awal",
+        mode="lines+markers", fill="tonexty",
+        hovertemplate="%{x}: Rp %{y:.1f} T<extra></extra>"))
+    fig.update_layout(
+        title="Nilai sengketa sebelum dan sesudah putusan, per tahun ucap",
+        legend=dict(orientation="h", yanchor="top", y=-0.12,
+                    xanchor="left", x=0),
+        margin=dict(b=64))
     fig.update_xaxes(showgrid=False, dtick=1, title="")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      title="Rp triliun")
-    bagan(fig, 320, None,
-          "Lonjakan 2022 sebagian besar berasal dari satu putusan bernilai "
-          "Rp 16,7 triliun. Nilai sengketa terpusat pada sedikit perkara "
-                            "bernilai sangat besar, dan itu merupakan sifat "
-                            "sebarannya.")
+    bagan(fig, 360, None,
+          "Bidang di antara kedua garis adalah nilai yang dikoreksi "
+          "pengadilan pada tahun itu. Lonjakan 2022 sebagian besar berasal "
+          "dari satu putusan bernilai Rp 16,7 triliun. Nilai sengketa "
+          "terpusat pada sedikit perkara bernilai sangat besar, dan itu "
+          "merupakan sifat sebarannya.")
 
     st.html('<div class="tingkat">Konsentrasi Nilai Sengketa</div>')
     g = (ada.groupby("jenis_pajak")["koreksi"].agg(["sum", "count"])
@@ -881,12 +956,23 @@ def hal_nilai() -> None:
     gs["Dikabulkan"] = 100 * gs["sum"] / gs["size"]
     gs["Ket"] = [f"{v:.1f}%  (n={n:,})"
                  for v, n in zip(gs["Dikabulkan"], gs["size"])]
-    fig = px.bar(gs, x="Kelas", y="Dikabulkan", text="Ket",
-                 title="Tingkat dikabulkan menurut besaran sengketa")
+    # Kelas nilai tersusun berurutan dari terkecil ke terbesar, jadi yang
+    # dibaca pembaca adalah arah pergerakannya, bukan perbandingan antar
+    # kategori yang berdiri sendiri. Garis menyampaikan itu, batang tidak.
+    fig = px.line(gs, x="Kelas", y="Dikabulkan", markers=True, text="Ket",
+                  title="Tingkat dikabulkan menurut besaran sengketa")
+    fig.update_traces(textposition="top center",
+                      textfont=dict(size=11, color=P["tinta"]))
     fig.update_xaxes(showgrid=False, title="")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      ticksuffix="%", range=[0, 100], title="")
-    bagan(fig, 330, None,
+    # Garis lima puluh persen menjadi patokan baca: di atas garis itu,
+    # mayoritas ketetapan yang dilawan berujung dikoreksi.
+    fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"],
+                  annotation_text="separuh perkara",
+                  annotation_position="bottom right",
+                  annotation_font=dict(size=11, color=P["tinta_2"]))
+    bagan(fig, 340, None,
           "Polanya konsisten: semakin besar nilai ketetapan yang dilawan, "
           "semakin besar peluangnya dikoreksi pengadilan. Di kelas paling "
           "atas hampir sembilan dari sepuluh berujung koreksi.")
@@ -1415,6 +1501,11 @@ def hal_jalur() -> None:
                 "setpp_resmi.py impor terlebih dahulu.")
         return
 
+    rs = saring_tahun(rs, "tahun_ucap", "tahun_jalur")
+    if rs.empty:
+        st.info("Tidak terdapat putusan pada rentang tahun tersebut.")
+        return
+
     # Proksi jalur pada daftar resmi: baris berjenis pajak Gugatan Pajak
     # adalah perkara gugatan, sisanya perkara banding.
     rr = rs.assign(jalur=rs["jenis_pajak"].map(
@@ -1482,10 +1573,9 @@ def hal_jalur() -> None:
     ra = (rs[rs["amar"] == "menambah"].groupby("tahun_ucap").size()
           .rename_axis("Tahun").reset_index(name="Putusan"))
     if not ra.empty:
-        fig = px.bar(ra, x="Tahun", y="Putusan", text="Putusan",
-                     title="Putusan menambah pajak per tahun")
-        fig.update_xaxes(showgrid=False, dtick=1, title="")
-        fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
+        fig = garis_waktu(ra, "Tahun", "Putusan",
+                          "Putusan menambah pajak menurut tahun",
+                          teks="Putusan")
         bagan(fig, 280, None,
               "Pengadilan berwenang menetapkan pajak lebih besar daripada "
               "ketetapan yang dilawan, dan penggunaan kewenangan tersebut "
@@ -1552,6 +1642,28 @@ def hal_konsistensi() -> None:
         st.info("Belum terdapat kelompok dengan sedikitnya lima belas putusan.")
         return
     t = pd.DataFrame(dom).sort_values("Keseragaman")
+
+    _rendah, _tinggi = t.iloc[0], t.iloc[-1]
+    st.markdown(
+        "Ukuran yang dipakai adalah **keseragaman**, yaitu pangsa amar yang "
+        "paling sering muncul di dalam satu kelompok perkara sejenis. "
+        "Keseragaman seratus persen berarti seluruh perkara pada kelompok "
+        "itu berakhir dengan amar yang sama, sedangkan angka mendekati "
+        "sepertiga berarti putusannya terbelah ke tiga arah yang berbeda.\n\n"
+        f"Sebagai contoh, kelompok {_tinggi['Kelompok']} mencapai "
+        f"{_tinggi['Keseragaman']:.0f} persen dari "
+        f"{int(_tinggi['Putusan']):,} putusan, dengan amar dominan "
+        f"{str(_tinggi['Amar dominan']).lower()}. Kelompok seperti ini "
+        "menandakan normanya sudah terbaca jelas, sehingga hasilnya dapat "
+        "diperkirakan sejak awal oleh kedua pihak. Sebaliknya kelompok "
+        f"{_rendah['Kelompok']} hanya {_rendah['Keseragaman']:.0f} persen "
+        f"dari {int(_rendah['Putusan']):,} putusan. Artinya perkara dengan "
+        "jenis pajak dan jenis koreksi yang sama persis dapat berakhir "
+        "dikabulkan, ditolak, atau tidak dapat diterima, bergantung pada "
+        "hal-hal di luar pokok sengketanya.\n\n"
+        "Kelompok berkeseragaman rendah itulah yang layak didahulukan dalam "
+        "pembenahan norma, karena di sanalah wajib pajak maupun fiskus "
+        "sama-sama tidak dapat memperkirakan hasil sebelum berperkara.")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -1812,14 +1924,33 @@ def hal_ketetapan() -> None:
     g["Dikabulkan"] = (100 * g["menang"] / g["Putusan"]).round(1)
     g["Ket"] = [f"{v:.0f}%  (n={n:,})" for v, n in
                 zip(g["Dikabulkan"], g["Putusan"])]
+    # Contoh dibaca dari data yang sedang tampil, sehingga penjelasannya
+    # selalu cocok dengan bagannya walau cakupan arsip bertambah.
+    puncak = g.sort_values("Dikabulkan").iloc[-1]
+    st.markdown(
+        "Bagan berikut menjawab satu pertanyaan: **dari setiap jenis "
+        "ketetapan yang dilawan ke pengadilan, berapa persen yang akhirnya "
+        "dikoreksi?** Panjang batang adalah tingkat pengabulan, dan angka "
+        "dalam kurung adalah jumlah putusan yang menjadi dasar hitungannya.\n\n"
+        f"Sebagai contoh, {puncak['Jenis ketetapan']} berada pada "
+        f"{puncak['Dikabulkan']:.0f} persen dari "
+        f"{int(puncak['Putusan']):,} putusan. Artinya, dari setiap sepuluh "
+        f"{puncak['Jenis ketetapan']} yang disengketakan sampai pengadilan, "
+        f"sekitar {puncak['Dikabulkan'] / 10:.0f} berujung dikoreksi, baik "
+        "seluruhnya maupun sebagian. Angka ini bukan tingkat kekalahan "
+        "seluruh ketetapan yang diterbitkan, melainkan khusus yang "
+        "disengketakan, karena hanya perkara itulah yang sampai ke "
+        "pengadilan.\n\n"
+        "Ambang lima puluh persen menjadi patokan baca. Di atasnya, "
+        "mayoritas ketetapan jenis tersebut yang dilawan berakhir dikoreksi, "
+        "yang menandakan persoalannya bukan pada wajib pajak yang gemar "
+        "berperkara, melainkan pada mutu ketetapannya sendiri.")
     fig = batang_peringkat(g, "Jenis ketetapan", "Dikabulkan",
                            "Tingkat dikabulkan menurut jenis ketetapan", "Ket")
     fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
     bagan(fig, max(240, 44 * len(g) + 110), None,
-          "SPTNP dan SPKTNP adalah penetapan kepabeanan, SKPKB dan STP "
-          "penetapan pajak. Tingkat dikabulkan di atas lima puluh persen "
-          "berarti mayoritas ketetapan jenis itu yang dilawan berujung "
-          "dikoreksi pengadilan.")
+          "SPTNP dan SPKTNP adalah penetapan kepabeanan, sedangkan SKPKB dan "
+          "STP adalah penetapan pajak.")
 
     st.html('<div class="tingkat">Koreksi yang Paling Layak Ditinjau</div>')
     kor = ledak_koreksi(beramar(d))
@@ -1834,13 +1965,31 @@ def hal_ketetapan() -> None:
     gk["Batas atas"] = [round(b[1], 1) for b in batas]
     gk["Bobot"] = (gk["Putusan"] * gk["Tingkat dikabulkan"] / 100).round(1)
     gk = gk.drop(columns=["menang"]).sort_values("Bobot", ascending=False)
+    teratas = gk.iloc[0]
+    st.markdown(
+        "Tabel ini menjawab pertanyaan yang berbeda: **koreksi jenis apa "
+        "yang paling banyak menimbulkan pembatalan?** Tingkat dikabulkan "
+        "saja tidak cukup untuk menetapkan prioritas, karena koreksi yang "
+        "hampir selalu batal tetapi hanya muncul lima kali setahun bukan "
+        "persoalan besar. Karena itu ditambahkan kolom **Bobot**, yaitu "
+        "jumlah putusan dikalikan tingkat dikabulkan, yang menaksir berapa "
+        "banyak ketetapan yang sesungguhnya batal pada jenis koreksi "
+        "tersebut.\n\n"
+        f"Sebagai contoh, koreksi {teratas['Jenis koreksi']} muncul pada "
+        f"{int(teratas['Putusan']):,} putusan dengan tingkat dikabulkan "
+        f"{teratas['Tingkat dikabulkan']:.1f} persen, sehingga bobotnya "
+        f"{teratas['Bobot']:,.0f}. Angka itu dibaca sebagai perkiraan "
+        f"{teratas['Bobot']:,.0f} ketetapan yang batal karena koreksi jenis "
+        "ini, dan itulah alasan koreksi tersebut berada di urutan "
+        "teratas.\n\n"
+        "Kolom **Batas bawah** dan **Batas atas** adalah rentang "
+        "ketidakpastian atas tingkat dikabulkannya. Apabila rentang dua "
+        "jenis koreksi saling tumpang tindih, perbedaan keduanya belum "
+        "cukup kuat untuk disimpulkan.")
     st.html(TV.tabel(gk, kolom_persen=("Tingkat dikabulkan", "Batas bawah",
                                        "Batas atas")))
-    st.caption(
-        "Bobot adalah jumlah putusan dikalikan tingkat dikabulkan, yaitu "
-        "perkiraan kasar atas jumlah ketetapan yang sebenarnya batal pada "
-        "jenis koreksi itu. Urutan tersebut menjadi prioritas peninjauan "
-                            "pedoman pemeriksaan.")
+    st.caption("Diurutkan menurut bobot, dari yang paling banyak "
+               "menimbulkan pembatalan.")
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
@@ -1902,9 +2051,23 @@ def hal_dasar() -> None:
           .groupby("Rujukan")["doc_id"].nunique())
     rt = (du[du["doc_id"].isin(tolak_id)]
           .groupby("Rujukan")["doc_id"].nunique())
+    # Pangsa kehadiran tidak bermakna pada populasi yang sangat kecil. Ketika
+    # penyaring menyempit sampai tersisa segelintir putusan dikabulkan, tiap
+    # pasal yang kebetulan dirujuk satu putusan akan tampil seratus persen,
+    # dan seluruh batang menjadi sama panjang tanpa memberi keterangan apa
+    # pun. Karena itu populasinya dijaga, dan pasal yang dirujuk kurang dari
+    # tiga putusan tidak ikut ditampilkan.
+    if len(menang_id) < 10:
+        st.info(
+            f"Hanya {len(menang_id)} putusan dikabulkan pada pilihan ini, "
+            "terlalu sedikit untuk membaca pasal mana yang menentukan. "
+            "Salah satu pilihan dapat diperlonggar.")
+        return
+    rk = rk[rk >= 3]
     if rk.empty:
-        st.info("Belum terdapat rujukan dasar hukum pada putusan dikabulkan di "
-                "pilihan ini. Salah satu pilihan dapat diperlonggar.")
+        st.info("Belum terdapat pasal yang dirujuk sedikitnya tiga putusan "
+                "dikabulkan pada pilihan ini. Salah satu pilihan dapat "
+                "diperlonggar.")
         return
 
     t = (pd.DataFrame({"Dikabulkan merujuk": rk, "Ditolak merujuk": rt})
@@ -1917,22 +2080,43 @@ def hal_dasar() -> None:
     t = t.sort_values("Dikabulkan merujuk", ascending=False)
 
     atas = t.head(10).reset_index()
-    # Keterangan dibuat ringkas. Kalimat penuh di ujung batang tersundul
-    # keluar kartu dan terpotong; maknanya dijelaskan pada catatan bagan.
+    # Keterangan menyebut kedua sisinya secara utuh. Sebelumnya ditulis
+    # "53% lawan 56%", dan kata lawan tidak menerangkan apa yang sedang
+    # dibandingkan, sehingga pembaca harus menebak.
     atas["Ket"] = [
-        f"{r['Pangsa saat dikabulkan']:.0f}% lawan "
-        f"{r['Pangsa saat ditolak']:.0f}%"
+        f"{r['Pangsa saat dikabulkan']:.0f}% dikabulkan, "
+        f"{r['Pangsa saat ditolak']:.0f}% ditolak"
         for _, r in atas.iterrows()]
+
+    unggul = t.assign(_s=t["Selisih poin"]).sort_values(
+        "_s", ascending=False).iloc[0]
+    st.markdown(
+        "Bagan ini membandingkan **seberapa sering suatu pasal muncul pada "
+        "putusan yang dikabulkan dibandingkan pada putusan yang ditolak.** "
+        "Panjang batang adalah jumlah putusan dikabulkan yang merujuk pasal "
+        "tersebut, sedangkan dua angka di ujungnya adalah pangsa "
+        "kehadirannya pada masing-masing kelompok.\n\n"
+        f"Sebagai contoh, {unggul.name} hadir pada "
+        f"{unggul['Pangsa saat dikabulkan']:.0f} persen putusan yang "
+        f"dikabulkan, tetapi hanya {unggul['Pangsa saat ditolak']:.0f} "
+        "persen putusan yang ditolak. Selisih "
+        f"{unggul['Selisih poin']:.0f} poin itulah yang menjadikannya "
+        "penanda arah: ketika pasal ini dibahas dalam pertimbangan, "
+        "perkaranya cenderung berakhir dikabulkan.\n\n"
+        "Pasal yang pangsanya hampir sama pada kedua kelompok, misalnya 50 "
+        "persen berbanding 49 persen, tidak membedakan apa pun. Pasal "
+        "seperti itu memang selalu dirujuk pada perkara jenis ini, sehingga "
+        "kehadirannya tidak memberi petunjuk tentang arah putusannya. Yang "
+        "layak ditelaah adalah pasal yang selisihnya besar.")
+
     bagan(batang_peringkat(atas, "Rujukan", "Dikabulkan merujuk",
                            "Pasal yang paling sering menyertai koreksi "
                            "pengadilan", "Ket"),
           max(300, 36 * len(atas) + 120), None,
-          "Batang dihitung dari jumlah putusan dikabulkan yang merujuk "
-          "pasal itu. Keterangan di ujung batang membandingkan kehadiran "
-          "pasal yang sama: angka pertama pada putusan yang dikabulkan, "
-          "angka kedua pada yang ditolak. Pasal yang kehadirannya paling "
-          "timpang merupakan penentu arah "
-            "putusan.")
+          "Hanya pasal yang dirujuk sedikitnya tiga putusan dikabulkan yang "
+          "ditampilkan, karena pangsa yang dihitung dari satu dua putusan "
+          "selalu tampak seratus persen tanpa berarti apa pun. Hubungan yang "
+          "tersaji berupa kemunculan bersama, bukan sebab akibat.")
 
     with st.expander("Dua puluh rujukan teratas sebagai tabel"):
         st.html(TV.tabel(
@@ -2090,7 +2274,7 @@ def hal_unit() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_hakim() -> None:
-    st.subheader("Rekapitulasi Hakim")
+    st.subheader("Profil Hakim")
     st.caption(
         "Rekapitulasi putusan yang telah diucapkan menurut hakim, dipilah "
         "per kategori amar. Susunan majelis hanya termuat pada risalah era "
@@ -2413,7 +2597,7 @@ def hal_metode() -> None:
     "Konsistensi Putusan Hakim": hal_konsistensi,
     "Sengketa Berulang": hal_berulang,
     "Mutu Ketetapan": hal_ketetapan,
-    "Rekapitulasi Hakim": hal_hakim,
+    "Profil Hakim": hal_hakim,
     "Durasi Penyelesaian Sengketa": hal_kinerja,
     "Metodologi": hal_metode,
 }[halaman]()
