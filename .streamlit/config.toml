@@ -24,3 +24,20 @@ headless = true
 
 [browser]
 gatherUsageStats = false
+
+# Bilah alat bawaan dijadikan seminimal mungkin.
+#
+# Pada aplikasi yang diterbitkan di Streamlit Cloud, bilah alat bawaan memuat
+# tombol Fork beserta pranala menuju repositori GitHub pemilik aplikasi.
+# Keduanya berbahaya untuk dashboard yang dibuka pemakai luar: tombol Fork
+# memungkinkan siapa pun menyalin seluruh aplikasi ke akunnya sendiri, dan
+# pranala di sebelahnya membawa pemakai langsung ke repositori pemiliknya.
+# Tidak satu pun dari keduanya berguna bagi pembaca dashboard ini.
+#
+# Setelan viewer menyembunyikan seluruh pilihan pengembang, dan hanya
+# menyisakan yang benar benar diperlukan pembaca biasa. Ini penanganan di
+# sumbernya. Penanganan lapis kedua dipasang pada gaya halaman, karena
+# setelan ini ditafsirkan peladen Streamlit Cloud dan tidak boleh menjadi
+# satu satunya pengaman.
+[client]
+toolbarMode = "viewer"

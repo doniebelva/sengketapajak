@@ -104,9 +104,25 @@ def palet(gelap: bool) -> dict:
 
 
 def lembut(hex_warna: str, alpha: float) -> str:
-    """Warna yang sama dengan sebagian tembus pandang, untuk isian batang."""
+    """
+    Warna yang sama dengan sebagian tembus pandang, untuk isian batang.
+
+    Warna yang bukan susunan enam angka heksadesimal dikembalikan apa adanya.
+    Fungsi ini kini menerima warna dari lebih banyak tempat, termasuk warna
+    yang sudah berbentuk rgba, dan memaksakan pembacaan heksadesimal atasnya
+    menghentikan seluruh halaman dengan pesan yang tidak menunjuk sebabnya.
+    """
+    if not isinstance(hex_warna, str) or not hex_warna.startswith("#"):
+        return hex_warna
     h = hex_warna.lstrip("#")
-    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    if len(h) not in (3, 6):
+        return hex_warna
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    try:
+        r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    except ValueError:
+        return hex_warna
     return f"rgba({r},{g},{b},{alpha})"
 
 
@@ -230,6 +246,15 @@ def rapikan(fig, tinggi: int | None = None, gelap: bool = False):
     # agar tidak menutupi garis lain.
     garis = [t for t in fig.data if getattr(t, "type", None) == "scatter"]
     for i, t in enumerate(garis):
+        # Deret yang lebar garisnya sengaja disetel nol dibiarkan apa adanya.
+        # Deret seperti itu bukan garis yang ingin dilihat pembaca, melainkan
+        # pembatas atas dan bawah sebuah pita, misalnya pita selang keyakinan,
+        # yang hanya dipakai sebagai penyangga bidang berwarna. Memaksakan
+        # lebar dan warna baku atasnya menggambar dua garis penuh yang tidak
+        # pernah dimaksudkan ada, dan pita yang seharusnya lembut justru
+        # menjadi bagian paling mencolok pada bagannya.
+        if getattr(t, "line", None) is not None and t.line.width == 0:
+            continue
         warna = None
         if getattr(t, "line", None) is not None:
             warna = getattr(t.line, "color", None)
@@ -356,50 +381,34 @@ def gaya(gelap: bool) -> str:
     background: {p["bidang"]} !important;
   }}
 
-  /* Tombol bawaan Streamlit Cloud, yaitu Fork dan lambang Streamlit,
-     dipindahkan ke bawah bilah judul di sisi kanan.
+  /* Tombol bawaan Streamlit Cloud, yaitu Fork beserta pranala menuju
+     repositori GitHub, dimatikan sama sekali.
 
-     Keduanya tidak dapat dimatikan pada aplikasi yang diterbitkan di
-     Streamlit Cloud. Karena tinggi bilah kepala kita jadikan nol, isinya
-     yang tersusun mendatar dan tengah menjadi terletak pada ordinat minus
-     empat belas, sehingga separuh tombolnya berada di atas tepi layar dan
-     separuh sisanya tertutup bilah judul. Yang terlihat pemakai hanya
-     potongan tulisan dan potongan lambang. Jadi keduanya dipindahkan, bukan
-     disembunyikan, dan dibingkai persis seperti tombol pembuka bilah samping
-     di sisi kiri supaya letaknya terbaca sebagai disengaja.
+     Alasannya keamanan, bukan tampilan. Tombol Fork memungkinkan siapa pun
+     yang membuka dashboard ini menyalin seluruh aplikasi ke akunnya sendiri,
+     dan pranala di sebelahnya membawa pemakai langsung ke repositori
+     pemiliknya. Dashboard ini dibuka pemakai luar untuk membaca angka, dan
+     tidak satu pun dari kedua tombol itu berguna bagi mereka.
 
-     Bingkainya sengaja dipasang pada tiap tombol, bukan pada wadahnya.
-     Ketika dashboard dijalankan setempat, tombol tersebut tidak ada sama
-     sekali, dan bingkai pada wadah akan menyisakan kotak kosong yang
-     menggantung tanpa isi. */
-  header[data-testid="stHeader"] [data-testid="stToolbarActions"] {{
-    pointer-events: auto !important;
-    position: fixed !important;
-    top: calc({TINGGI_KOP}px + 12px) !important; right: 12px !important;
-    display: inline-flex !important; align-items: center !important;
-    gap: 6px !important;
-    z-index: 1000002 !important;
+     Ini penanganan lapis kedua. Penanganan di sumbernya berupa toolbarMode
+     bernilai viewer pada berkas setelan, yang membuat peladen tidak
+     mengirimkan tombolnya sejak awal. Keduanya dipasang bersamaan karena
+     setelan itu ditafsirkan peladen Streamlit Cloud, sehingga perubahan di
+     pihak mereka tidak boleh membuat tombolnya muncul kembali diam diam.
+
+     Pemilihnya menyasar tombolnya, bukan seluruh bilah alat. Menyembunyikan
+     seluruh bilah alat pernah membuat bilah samping yang sudah ditutup tidak
+     dapat dibuka lagi, karena tombol pembukanya bersarang di dalamnya. */
+  [data-testid="stToolbarActions"],
+  [data-testid="stToolbarActionButton"],
+  [data-testid="stToolbarActionButtonLabel"],
+  [data-testid="stToolbarActionButtonIcon"] {{
+    display: none !important;
+    /* Penjaga terakhir. Seandainya suatu saat unsurnya tetap tergambar
+       karena perubahan di pihak Streamlit, ia tetap tidak dapat ditekan. */
+    pointer-events: none !important;
+    visibility: hidden !important;
   }}
-  header[data-testid="stHeader"] [data-testid="stToolbarActions"]
-      button[data-testid="stBaseButton-header"] {{
-    pointer-events: auto !important;
-    height: 34px !important; min-height: 34px !important;
-    padding: 0 10px !important;
-    display: inline-flex !important; align-items: center !important;
-    justify-content: center !important;
-    background: {p["permukaan"]} !important; color: {p["tinta"]} !important;
-    border: 1px solid {p["tepi"]} !important; border-radius: 9px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
-  }}
-  header[data-testid="stHeader"] [data-testid="stToolbarActions"]
-      button[data-testid="stBaseButton-header"]:hover {{
-    background: {p["bidang"]} !important; color: {p["tinta"]} !important;
-  }}
-  [data-testid="stToolbarActionButtonLabel"] {{
-    font-size: 12px !important; font-weight: 500 !important;
-    color: inherit !important; line-height: 1 !important;
-  }}
-  [data-testid="stToolbarActionButtonIcon"] {{ color: inherit !important; }}
 
   /* --- Tab penelaahan --------------------------------------------------- */
   /* Satu halaman kerap memuat beberapa sudut telaah atas pokok yang sama.

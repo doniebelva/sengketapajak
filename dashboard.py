@@ -85,6 +85,52 @@ def sambung() -> sqlite3.Connection:
 
 
 @st.cache_data(ttl=120)
+def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
+    """
+    Nomor putusan untuk ditampilkan, dirangkai kembali bila perlu.
+
+    Nomor yang ditampilkan selama ini diambil hanya dari nomor mentah, yaitu
+    nomor yang terbaca utuh di dalam teks dokumennya sendiri. Ketika
+    pembacaan itu gagal, kolomnya tertulis tidak dikenali, padahal pada
+    sebagian besar dokumen tersebut nomornya sebenarnya diketahui: peladen
+    Sekretariat menyertakan nomor sengketa, kode jenis pajak, dan tahun pada
+    nama berkasnya, dan ketiganya sudah tersimpan sebagai ruas tersendiri.
+    Yang hilang hanya perangkaiannya menjadi satu tulisan.
+
+    Dari 820 putusan yang nomor mentahnya kosong, 770 di antaranya nomor
+    sengketanya diketahui. Menuliskan tidak dikenali pada seluruhnya
+    membuang keterangan yang sudah ada di tangan.
+
+    Bagian yang tidak diketahui memang tidak dikarang. Nomor hasil
+    perangkaian dapat lebih pendek daripada nomor penuh, misalnya tanpa kode
+    majelis, dan itu memang sebagaimana adanya.
+
+    Dikerjakan per kolom, bukan per baris. Perangkaian baris demi baris atas
+    enam belas ribu putusan memakan waktu beberapa detik pada tiap penyegaran
+    singgahan, dan itu cukup untuk membuat uji halaman kehabisan waktu ketika
+    mesin sedang sibuk mengerjakan pengenalan karakter optis.
+    """
+    ns = r["nomor_sengketa"].fillna("").astype(str)
+    kj = r["kode_jenis_pajak"].fillna("").astype(str)
+    km = r["kode_majelis"].fillna("").astype(str)
+
+    s = "PUT-" + ns
+    s = s.where(kj == "", s + "." + kj)
+    s = s + r["tahun_sengketa_masuk"].map(
+        lambda v: f"/{int(v)}/PP" if pd.notna(v) else "")
+    s = s.where(km == "", s + "/" + km)
+    s = s + r["tahun_putusan"].map(
+        lambda v: f" Tahun {int(v)}" if pd.notna(v) else "")
+
+    # Tanpa nomor sengketa tidak ada yang dapat dirangkai sama sekali, dan
+    # pengenal dokumen dipakai supaya barisnya tetap dapat dirujuk.
+    s = s.mask(ns == "", "Dokumen " + r["doc_id"].astype(str))
+
+    raw = r["nomor_putusan_raw"]
+    utuh = raw.notna() & (raw.fillna("").astype(str).str.strip() != "")
+    return raw.where(utuh, s)
+
+
 def muat_putusan() -> pd.DataFrame:
     with sambung() as c:
         df = pd.read_sql_query("SELECT * FROM putusan", c)
@@ -93,6 +139,7 @@ def muat_putusan() -> pd.DataFrame:
                     ("jenis_perkara", LABEL_PERKARA)):
         if k in df:
             df[k + "_label"] = df[k].map(peta).fillna("Tidak dikenali")
+    df["nomor_tampil"] = kolom_nomor_tampil(df)
     return df
 
 
@@ -1382,7 +1429,7 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
     """Tingkat paling dalam: identitas perkara, majelis, isi putusan yang
     disusun seperti naskah aslinya, dan tombol unduh."""
     cuplikan = cuplikan or {}
-    judul = tampil(r["nomor_putusan_raw"], f"Dokumen {r['doc_id']}")
+    judul = tampil(r.get("nomor_tampil"), f"Dokumen {r['doc_id']}")
 
     kol = st.columns(3)
     kol[0].markdown(f"**Pemohon**  \n{tampil(r['nama_pemohon'])}\n\n"
@@ -1489,7 +1536,7 @@ def hal_telusur() -> None:
         r_buka = df[df["doc_id"] == buka]
         if not r_buka.empty:
             r = r_buka.iloc[0]
-            judul = tampil(r["nomor_putusan_raw"], f"Dokumen {r['doc_id']}")
+            judul = tampil(r.get("nomor_tampil"), f"Dokumen {r['doc_id']}")
             asal = st.session_state.get("asal_drill")
             asal = asal if asal in HALAMAN else "Risalah Putusan"
             st.subheader("Risalah Putusan")
@@ -1537,7 +1584,7 @@ def hal_telusur() -> None:
 
     h = d.copy()
     if q_nomor.strip():
-        h = h[h["nomor_putusan_raw"].fillna("").str.contains(
+        h = h[h["nomor_tampil"].fillna("").str.contains(
                   q_nomor.strip(), case=False, regex=False)
               | h["nomor_sengketa"].fillna("").str.contains(
                   q_nomor.strip(), case=False, regex=False)]
@@ -1651,7 +1698,7 @@ def hal_telusur() -> None:
     st.caption("Pilih salah satu baris untuk menampilkan isi putusannya.")
 
     ringkas = pd.DataFrame({
-        "Nomor putusan": hk["nomor_putusan_raw"].fillna("tidak dikenali"),
+        "Nomor putusan": hk["nomor_tampil"],
         "Tanggal putusan": [tampil_tanggal(u, tampil_tahun(t)) for u, t in
                             zip(hk["tanggal_ucap"], hk["tahun_putusan"])],
         "Pemohon": hk["nama_pemohon"].fillna("-"),
@@ -1673,7 +1720,7 @@ def hal_telusur() -> None:
         return
     r = hk.iloc[baris2[0]]
 
-    judul = tampil(r["nomor_putusan_raw"], f"Dokumen {r['doc_id']}")
+    judul = tampil(r.get("nomor_tampil"), f"Dokumen {r['doc_id']}")
     st.html(f'<div class="jejak">{dim_nama} <b>{nilai_kel}</b><i>›</i>'
             f'Putusan <b>{judul}</b></div>')
     st.html('<div class="tingkat">Tahap 3 · Isi Putusan</div>')
@@ -1783,7 +1830,7 @@ def hal_belajar() -> None:
     daftar = ss.sort_values("tahun_putusan", ascending=False).head(30)
     pilih_baca = st.dataframe(
         pd.DataFrame({
-            "Nomor putusan": daftar["nomor_putusan_raw"]
+            "Nomor putusan": daftar["nomor_tampil"]
             .fillna("tidak dikenali"),
             "Tanggal putusan": [
                 tampil_tanggal(u, tampil_tahun(t)) for u, t in
@@ -2204,7 +2251,7 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
                 f'<b>{len(t):,}</b> sengketa</div>')
         pilih_sen = st.dataframe(
             pd.DataFrame({
-                "Nomor putusan": t["nomor_putusan_raw"]
+                "Nomor putusan": t["nomor_tampil"]
                 .fillna("tidak dikenali"),
                 "Tanggal putusan": [
                     tampil_tanggal(u, tampil_tahun(th_)) for u, th_ in
@@ -2595,18 +2642,28 @@ def _mutu_arah() -> None:
         f"{int(akhir['Tahun'])} di {akhir['Dikabulkan']:.1f} persen. "
         f"Dibandingkan per tiga tahun, pergeserannya {selisih:+.1f} poin.")
 
+    # Warna tiap deret disebut tegas, tidak diserahkan pada putaran warna
+    # bawaan. Kalau diserahkan, kedua garis batas ikut memperoleh warna
+    # penuh dan pita ketidakpastiannya menjadi lebih mencolok daripada garis
+    # utamanya, sehingga yang pertama tertangkap mata justru bagian yang
+    # paling tidak penting.
+    warna = P["seri"][0]
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=t["Tahun"], y=t["Batas atas"], mode="lines", name="Batas atas",
-        line=dict(width=0), showlegend=False, hoverinfo="skip"))
+        x=t["Tahun"], y=t["Batas atas"], mode="lines",
+        line=dict(width=0, color="rgba(0,0,0,0)"),
+        showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(
         x=t["Tahun"], y=t["Batas bawah"], mode="lines",
-        name="Rentang ketidakpastian", line=dict(width=0), fill="tonexty",
-        fillcolor="rgba(47,108,192,.16)",
+        name="Rentang ketidakpastian",
+        line=dict(width=0, color="rgba(0,0,0,0)"), fill="tonexty",
+        fillcolor=TV.lembut(warna, 0.30 if GELAP else 0.18),
         hovertemplate="%{x}: batas bawah %{y:.1f} persen<extra></extra>"))
     fig.add_trace(go.Scatter(
         x=t["Tahun"], y=t["Dikabulkan"], mode="lines+markers",
         name="Tingkat dikabulkan",
+        line=dict(color=warna, width=2.4),
+        marker=dict(color=warna, size=7),
         hovertemplate="%{x}: %{y:.1f} persen dikabulkan<extra></extra>"))
     fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
     fig.update_layout(
@@ -2615,8 +2672,12 @@ def _mutu_arah() -> None:
                     xanchor="left", x=0),
         margin=dict(b=70))
     fig.update_xaxes(showgrid=False, dtick=1, title="")
+    # Judul sumbu tegak sengaja dikosongkan. Tulisan tegak di sisi kiri
+    # terpotong menjadi potongan kata yang tidak berarti ketika kartunya
+    # menyempit, sedangkan tanda persen pada tiap angka sudah menyatakan
+    # satuannya dan judul bagan sudah menyatakan pokoknya.
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
-                     ticksuffix="%", title="Tingkat dikabulkan")
+                     ticksuffix="%", title="")
     bagan(fig, 420, None,
           "Garis putus putus berada pada lima puluh persen. Di atas garis "
           "itu, lebih dari separuh ketetapan yang disengketakan gagal "
@@ -2709,9 +2770,6 @@ def _mutu_instansi() -> None:
     u = g.sort_values("Dikabulkan").reset_index(drop=True)
     fig = go.Figure(go.Bar(
         x=u["Dikabulkan"], y=u["Instansi"], orientation="h",
-        text=[f"{v:.1f}%  (n={int(n):,})"
-              for v, n in zip(u["Dikabulkan"], u["Putusan"])],
-        textposition="outside",
         marker_color=P["seri"][0],
         error_x=dict(type="data", symmetric=False,
                      array=(u["Batas atas"] - u["Dikabulkan"]).tolist(),
@@ -2719,9 +2777,24 @@ def _mutu_instansi() -> None:
                      color=P["tinta_2"], thickness=1.2, width=5),
         hovertemplate="<b>%{y}</b><br>%{x:.1f} persen dikabulkan"
                       "<extra></extra>"))
+    # Angka tiap batang ditulis sebagai keterangan pada satu garis tegak yang
+    # sama, bukan menempel di ujung batangnya.
+    #
+    # Batang di sini memanjang sampai ujung selang keyakinannya, dan tulisan
+    # yang menempel di ujung batang jatuh tepat di tengah garis selang itu,
+    # sehingga garisnya menembus angkanya dan keduanya menjadi sulit dibaca.
+    # Dengan disejajarkan pada satu garis tegak di kanan seluruh selang,
+    # tabrakan itu tidak mungkin terjadi lagi, dan angkanya sekaligus lebih
+    # mudah dibandingkan karena berbaris lurus.
+    tepi = float(u["Batas atas"].max())
+    for _, r in u.iterrows():
+        fig.add_annotation(
+            x=tepi + 3, y=r["Instansi"], xanchor="left", showarrow=False,
+            text=f"{r['Dikabulkan']:.1f}%  (n={int(r['Putusan']):,})",
+            font=dict(size=12, color=P["tinta"]))
     fig.update_layout(title="Tingkat dikabulkan menurut instansi")
     fig.update_xaxes(title="", showticklabels=False, showgrid=False,
-                     zeroline=False, range=[0, 125])
+                     zeroline=False, range=[0, tepi + 32])
     fig.update_yaxes(title="")
     bagan(fig, max(240, 60 * len(g) + 110), None,
           "Garis melintang pada ujung tiap batang adalah selang keyakinan. "
@@ -2749,7 +2822,7 @@ def _mutu_instansi() -> None:
             margin=dict(b=70))
         fig.update_xaxes(showgrid=False, dtick=1, title="")
         fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
-                         ticksuffix="%", title="Tingkat dikabulkan")
+                         ticksuffix="%", title="")
         bagan(fig, 400, None,
               "Dua garis yang bergerak berlawanan arah menandakan sebabnya "
               "bukan keadaan umum perekonomian maupun perubahan sikap "
