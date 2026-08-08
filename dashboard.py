@@ -328,6 +328,28 @@ def _gelar(kata: str) -> bool:
     return any(_selisih_satu(kata, g) for g in GELAR_PENDEK)
 
 
+# Nama samaran dan sisa penanda dokumen. Risalah era lama menyamarkan nama
+# dengan huruf berulang seperti XXX dan AAA, dan pemindaian sesekali
+# meninggalkan penanda seperti tanda kutip di tengah nama. Tak satu pun
+# merupakan nama orang, sehingga barisnya dikeluarkan seluruhnya.
+RE_NAMA_PALSU = re.compile(
+    r"\b(?:([a-z])\1{2,}|abcd?|xyz|pqr|def)\b"
+    r"|\bdst\b|\bdll\b|\bnama\b|\btidak\s+terbaca\b", re.IGNORECASE)
+
+
+def _nama_sah(nama: str) -> bool:
+    """Salah bila tangkapan jelas bukan nama orang."""
+    s = str(nama)
+    if RE_NAMA_PALSU.search(s):
+        return False
+    # Tanda kutip, tanda kurung, dan angka tidak pernah muncul di dalam nama
+    # orang, dan kehadirannya menandakan tangkapan yang rusak.
+    if re.search(r"[\"'()\[\]{}<>@#$%^*_=+/\\|~`0-9]", s):
+        return False
+    huruf = sum(c.isalpha() for c in s)
+    return huruf >= 4
+
+
 def kunci_hakim(nama: str) -> str:
     """Bentuk baku untuk pencocokan.
 
@@ -417,7 +439,7 @@ def bakukan_hakim(seri: pd.Series) -> tuple[pd.Series, pd.Series]:
         # Kunci kosong berarti hanya gelar. Kunci tiga huruf atau kurang,
         # seperti jja, adalah potongan yang tidak sahih hasil salah baca, bukan
         # nama orang, dan ikut dikeluarkan dari daftar maupun hitungan.
-        if not k or len(k.replace(" ", "")) <= 3:
+        if not k or len(k.replace(" ", "")) <= 3 or not _nama_sah(k):
             peta[k] = ""
             continue
         tujuan = k
@@ -564,6 +586,53 @@ def titik_terpilih(ev) -> str | None:
         return None
     t = titik[0]
     return t.get("y") if t.get("y") is not None else t.get("x")
+
+
+def tabel_bernavigasi(df_: pd.DataFrame, kunci: str, per: int = 10,
+                      kolom_persen: tuple = (), kelas: str = "") -> None:
+    """
+    Tabel yang ditampilkan sepuluh baris sekaligus, dengan tombol maju mundur.
+
+    Tabel panjang yang ditampilkan sekaligus memaksa pembaca menggulir, dan
+    begitu ia menggulir, kepala kolomnya hilang dari pandangan sehingga
+    angka pada kolom kelima tidak lagi diketahui artinya. Dengan sepuluh
+    baris, seluruh tabel beserta kepala kolomnya selalu muat dalam satu
+    layar.
+    """
+    n = len(df_)
+    if n == 0:
+        return
+    total = (n + per - 1) // per
+    simpan = f"hal_{kunci}"
+    hal = max(0, min(int(st.session_state.get(simpan, 0)), total - 1))
+
+    potong = df_.iloc[hal * per:(hal + 1) * per]
+    st.html('<div class="gulung">'
+            + TV.tabel(potong, kolom_persen=kolom_persen, kelas=kelas)
+            + "</div>")
+    if total <= 1:
+        return
+
+    # Tombol yang tidak dapat dipakai tidak digambar, bukan digambar dalam
+    # keadaan mati. Tombol mati bawaan Streamlit memakai tulisan yang sangat
+    # pudar, rasio kontrasnya 2,65 sehingga di bawah ambang keterbacaan, dan
+    # kehadirannya pun tidak menambah keterangan apa pun bagi pembaca.
+    kiri, tengah, kanan = st.columns([1, 3, 1])
+    with kiri:
+        if hal > 0 and st.button("Sebelumnya", key=f"mundur_{kunci}",
+                                 width="stretch"):
+            st.session_state[simpan] = hal - 1
+            st.rerun()
+    with tengah:
+        st.html(
+            f'<div class="nav-tabel">Baris {hal * per + 1} sampai '
+            f'{min(n, (hal + 1) * per)} dari {n:,} · halaman {hal + 1} '
+            f'dari {total}</div>')
+    with kanan:
+        if hal < total - 1 and st.button("Berikutnya", key=f"maju_{kunci}",
+                                         width="stretch"):
+            st.session_state[simpan] = hal + 1
+            st.rerun()
 
 
 def saring_tahun(df_: pd.DataFrame, kolom: str, kunci: str,
@@ -1118,8 +1187,9 @@ def hal_nilai() -> None:
           .rename(columns={"nama_pemohon": "Pemohon"}))
     gp["Nilai sengketa, Rp triliun"] = (gp["awal"] / 1e12).round(2)
     gp["Dikoreksi, Rp triliun"] = (gp["kor"] / 1e12).round(2)
-    st.html(TV.tabel(gp[["Pemohon", "Putusan", "Nilai sengketa, Rp triliun",
-                         "Dikoreksi, Rp triliun"]]))
+    tabel_bernavigasi(
+        gp[["Pemohon", "Putusan", "Nilai sengketa, Rp triliun",
+            "Dikoreksi, Rp triliun"]], "pemohon_nilai")
     va = rs[rs["mata_uang"].notna() & (rs["mata_uang"] != "Rupiah")]
     st.caption(
         f"Di luar seluruh angka halaman ini ada {len(va):,} sengketa "
@@ -1707,7 +1777,8 @@ def hal_jalur() -> None:
                 "Median hari": int(j.median()),
                 "Sepersepuluh terlama mulai": int(j.quantile(0.9))})
     if baris:
-        st.html(TV.tabel(pd.DataFrame(baris)))
+        tabel_bernavigasi(pd.DataFrame(baris), "wp_berulang",
+                      kolom_persen=("Dikabulkan",))
         st.caption(
             "Jeda dari putusan diambil di musyawarah sampai diucapkan di "
             "sidang terbuka, dihitung dari arsip risalah yang tanggalnya "
@@ -1794,8 +1865,8 @@ def hal_konsistensi() -> None:
         bagan(fig, max(260, 44 * len(seragam) + 110))
 
     with st.expander("Seluruh kelompok sebagai tabel"):
-        st.html(TV.tabel(t.sort_values("Keseragaman"),
-                         kolom_persen=("Keseragaman",)))
+        tabel_bernavigasi(t.sort_values("Keseragaman"), "kelompok_norma",
+                          kolom_persen=("Keseragaman",))
 
     st.html('<div class="tingkat">Konsistensi Putusan Antar Hakim Ketua</div>')
     dd = beramar(d)
@@ -1866,8 +1937,10 @@ def hal_konsistensi() -> None:
                 "Tabel diurutkan dari hakim yang polanya paling sejalan "
                 "dengan rerata sampai yang paling menyimpang.")
 
-            st.html(TV.tabel(h, kolom_persen=("Dikabulkan", "Harapan",
-                                              "Selisih", "Simpangan")))
+            tabel_bernavigasi(
+                h, "simpangan_hakim",
+                kolom_persen=("Dikabulkan", "Harapan", "Selisih",
+                              "Simpangan"))
             st.caption(
                 "Penyesuaian baru memperhitungkan campuran jenis pajak, "
                 "belum tahun perkara dan jenis perkara, sehingga simpangan "
@@ -2086,8 +2159,9 @@ def hal_ketetapan() -> None:
         "Kolom **Batas bawah** dan **Batas atas** menunjukkan rentang "
         "ketidakpastian angkanya. Kalau rentang dua jenis koreksi saling "
         "bersinggungan, perbedaan keduanya belum bisa disimpulkan.")
-    st.html(TV.tabel(gk, kolom_persen=("Tingkat dikabulkan", "Batas bawah",
-                                       "Batas atas")))
+    tabel_bernavigasi(gk, "koreksi_bobot",
+                      kolom_persen=("Tingkat dikabulkan", "Batas bawah",
+                                    "Batas atas"))
     st.caption("Diurutkan menurut bobot, dari yang paling banyak "
                "menimbulkan pembatalan.")
 
@@ -2382,10 +2456,10 @@ def hal_unit() -> None:
           "pada jumlah perkara yang besar.")
 
     st.html('<div class="tingkat">Rekapitulasi Seluruh Unit</div>')
-    st.html('<div class="gulung">' + TV.tabel(
+    tabel_bernavigasi(
         g.sort_values(["Dikabulkan", "Putusan"], ascending=False),
+        "unit_penerbit",
         kolom_persen=("Dikabulkan", "Batas bawah", "Batas atas"))
-        + "</div>")
     st.caption(
         "Diurutkan dari tingkat koreksi tertinggi. Bila rentang batas bawah "
         "dan atas dua unit saling tumpang tindih, perbedaan keduanya belum "
@@ -2538,9 +2612,8 @@ def hal_hakim() -> None:
            for h, (a, b) in rentang.iterrows()}
     tab.insert(1, "Periode putusan", tab["Hakim"].map(per).fillna("-"))
 
-    st.html('<div class="gulung">'
-            + TV.tabel(tab, kolom_persen=("Dikabulkan",), kelas="rata")
-            + "</div>")
+    tabel_bernavigasi(tab, "profil_hakim",
+                      kolom_persen=("Dikabulkan",), kelas="rata")
     st.caption(
         "Diurutkan dari hakim yang paling sering mengabulkan permohonan, "
         "yaitu yang paling sering memenangkan wajib pajak. Nama kolom "
@@ -2716,12 +2789,12 @@ def hal_metode() -> None:
 
     st.html('<div class="tingkat">Peta Kode Jenis Pajak</div>')
     if kode_peta:
-        st.html(TV.tabel(pd.DataFrame([
+        tabel_bernavigasi(pd.DataFrame([
             {"Kode": k, "Jenis pajak menurut data": v["label"],
              "Putusan": v["n"], "Keyakinan": v["pangsa"],
              "Perlu diperiksa": "ya" if v["pangsa"] < 80 else ""}
             for k, v in sorted(kode_peta.items())]),
-            kolom_persen=("Keyakinan",)))
+            "peta_kode", kolom_persen=("Keyakinan",))
         st.caption("Nama disusun dari data yang terbaca, bukan dari tabel kode resmi. "
                    "Keyakinan di bawah delapan puluh persen ditandai tanda "
                    "tanya di seluruh halaman.")

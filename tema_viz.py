@@ -627,6 +627,11 @@ def gaya(gelap: bool) -> str:
     max-height: 560px; overflow-y: auto;
     border-radius: 12px; border: 1px solid {p["tepi"]};
   }}
+  /* Keterangan halaman pada tabel bernavigasi. */
+  .nav-tabel {{
+    text-align: center; font-size: 12px; color: {p["tinta_2"]};
+    padding-top: 9px;
+  }}
   div.gulung table.tabel {{ border: none; border-radius: 0; }}
   table.tabel.rata {{ table-layout: fixed; font-size: 11.5px; }}
   table.tabel.rata th {{
