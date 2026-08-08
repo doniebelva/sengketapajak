@@ -356,6 +356,51 @@ def gaya(gelap: bool) -> str:
     background: {p["bidang"]} !important;
   }}
 
+  /* Tombol bawaan Streamlit Cloud, yaitu Fork dan lambang Streamlit,
+     dipindahkan ke bawah bilah judul di sisi kanan.
+
+     Keduanya tidak dapat dimatikan pada aplikasi yang diterbitkan di
+     Streamlit Cloud. Karena tinggi bilah kepala kita jadikan nol, isinya
+     yang tersusun mendatar dan tengah menjadi terletak pada ordinat minus
+     empat belas, sehingga separuh tombolnya berada di atas tepi layar dan
+     separuh sisanya tertutup bilah judul. Yang terlihat pemakai hanya
+     potongan tulisan dan potongan lambang. Jadi keduanya dipindahkan, bukan
+     disembunyikan, dan dibingkai persis seperti tombol pembuka bilah samping
+     di sisi kiri supaya letaknya terbaca sebagai disengaja.
+
+     Bingkainya sengaja dipasang pada tiap tombol, bukan pada wadahnya.
+     Ketika dashboard dijalankan setempat, tombol tersebut tidak ada sama
+     sekali, dan bingkai pada wadah akan menyisakan kotak kosong yang
+     menggantung tanpa isi. */
+  header[data-testid="stHeader"] [data-testid="stToolbarActions"] {{
+    pointer-events: auto !important;
+    position: fixed !important;
+    top: calc({TINGGI_KOP}px + 12px) !important; right: 12px !important;
+    display: inline-flex !important; align-items: center !important;
+    gap: 6px !important;
+    z-index: 1000002 !important;
+  }}
+  header[data-testid="stHeader"] [data-testid="stToolbarActions"]
+      button[data-testid="stBaseButton-header"] {{
+    pointer-events: auto !important;
+    height: 34px !important; min-height: 34px !important;
+    padding: 0 10px !important;
+    display: inline-flex !important; align-items: center !important;
+    justify-content: center !important;
+    background: {p["permukaan"]} !important; color: {p["tinta"]} !important;
+    border: 1px solid {p["tepi"]} !important; border-radius: 9px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+  }}
+  header[data-testid="stHeader"] [data-testid="stToolbarActions"]
+      button[data-testid="stBaseButton-header"]:hover {{
+    background: {p["bidang"]} !important; color: {p["tinta"]} !important;
+  }}
+  [data-testid="stToolbarActionButtonLabel"] {{
+    font-size: 12px !important; font-weight: 500 !important;
+    color: inherit !important; line-height: 1 !important;
+  }}
+  [data-testid="stToolbarActionButtonIcon"] {{ color: inherit !important; }}
+
   /* --- Kaki, dipaku di dasar jendela, satu baris ------------------------ */
   .kaki {{
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000001;
