@@ -587,7 +587,7 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Mutu Ketetapan",
            "Pasal Penentu", "Unit Penerbit",
-           "Rekapitulasi Hakim", "Lama Penyelesaian", "Metodologi"]
+           "Rekapitulasi Hakim", "Durasi Penyelesaian Sengketa", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
            "Pilihan Upaya Hukum": "Preskriptif",
@@ -597,7 +597,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pasal Penentu": "Diagnostik",
            "Unit Penerbit": "Diagnostik",
            "Rekapitulasi Hakim": "Deskriptif",
-           "Lama Penyelesaian": "Prediktif"}
+           "Durasi Penyelesaian Sengketa": "Prediktif"}
 
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
 # yang pertama tujuan setiap drill, yang kedua kejujuran metodologis yang
@@ -606,7 +606,7 @@ MODUL = {
     "Semua": HALAMAN,
     "Pimpinan": ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan",
                  "Konsistensi Putusan Hakim", "Sengketa Berulang", "Rekapitulasi Hakim",
-                 "Lama Penyelesaian", "Metodologi"],
+                 "Durasi Penyelesaian Sengketa", "Metodologi"],
     "Fiskus": ["Ringkasan Eksekutif", "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
@@ -2216,7 +2216,7 @@ def hal_hakim() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_kinerja() -> None:
-    st.subheader("Lama Penyelesaian")
+    st.subheader("Durasi Penyelesaian Sengketa")
     st.caption(
         "Lama penyelesaian perkara dan titik proses yang paling lama "
         "tertahan. Temuan utamanya terletak pada jeda yang jarang dilaporkan, "
@@ -2414,7 +2414,7 @@ def hal_metode() -> None:
     "Sengketa Berulang": hal_berulang,
     "Mutu Ketetapan": hal_ketetapan,
     "Rekapitulasi Hakim": hal_hakim,
-    "Lama Penyelesaian": hal_kinerja,
+    "Durasi Penyelesaian Sengketa": hal_kinerja,
     "Metodologi": hal_metode,
 }[halaman]()
 
