@@ -633,6 +633,25 @@ def tabel_bernavigasi(df_: pd.DataFrame, kunci: str, per: int = 10,
                                          width="stretch"):
             st.session_state[simpan] = hal + 1
             st.rerun()
+    unduh_tabel(df_, kunci)
+
+
+def unduh_tabel(df_: pd.DataFrame, kunci: str) -> None:
+    """
+    Tombol unduh seluruh isi tabel, bukan hanya halaman yang tampak.
+
+    Tanpa ini, angka pada dashboard hanya dapat dibaca, tidak dapat dibawa
+    ke dalam nota dinas maupun bahan paparan tanpa disalin ulang satu per
+    satu. Pemisah titik koma dipakai supaya berkasnya langsung terbuka rapi
+    pada Excel berlokal Indonesia.
+    """
+    if df_.empty:
+        return
+    isi = df_.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig")
+    st.download_button(
+        f"Unduh seluruh {len(df_):,} baris sebagai CSV", isi,
+        file_name=f"{kunci}.csv", mime="text/csv",
+        key=f"unduh_{kunci}", icon=":material/table_view:")
 
 
 def saring_tahun(df_: pd.DataFrame, kolom: str, kunci: str,
@@ -847,6 +866,20 @@ MODUL = {
                     "Metodologi"],
 }
 
+# Modul dan halaman dititipkan pada alamat halaman, sehingga tampilan yang
+# sedang dilihat dapat dikirim ke rekan dan dibuka kembali persis sama.
+# Tanpa ini, seluruh pilihan hilang begitu halaman dimuat ulang, dan tidak
+# ada cara menunjukkan tampilan tertentu dalam rapat selain menyuruh orang
+# lain menyusuri menunya sendiri. Alamat hanya dibaca sekali pada kunjungan
+# pertama, supaya perpindahan halaman sesudahnya tidak saling menimpa.
+if not st.session_state.get("alamat_terbaca"):
+    st.session_state["alamat_terbaca"] = True
+    _q = st.query_params
+    if _q.get("modul") in MODUL:
+        st.session_state["modul"] = _q["modul"]
+    if _q.get("halaman") in HALAMAN:
+        st.session_state["nav"] = _q["halaman"]
+
 cari_cepat = st.sidebar.text_input(
     "Cari cepat", key="cari_cepat", placeholder="Cari isi putusan...",
     label_visibility="collapsed")
@@ -889,6 +922,11 @@ st.sidebar.html('<div class="sb-judul">Halaman</div>')
 # berpindah halaman, bukan mencentang sesuatu. Kuncinya juga menjadi sasaran
 # gaya, sehingga ikon dan penanda terpilih tidak bergantung urutan unsur.
 halaman = st.session_state["nav"]
+# Alamat halaman disamakan dengan tampilan yang sedang aktif, sehingga
+# tautannya dapat langsung disalin dari bilah alamat peramban.
+if (st.query_params.get("halaman") != halaman
+        or st.query_params.get("modul") != modul):
+    st.query_params.update({"modul": modul, "halaman": halaman})
 st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # Seluruh tombol menu dikumpulkan dalam satu wadah bernama, supaya jarak
 # antar barisnya dapat dirapatkan sekaligus tanpa mengganggu jarak antar
