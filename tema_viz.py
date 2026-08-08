@@ -401,6 +401,59 @@ def gaya(gelap: bool) -> str:
   }}
   [data-testid="stToolbarActionButtonIcon"] {{ color: inherit !important; }}
 
+  /* --- Tab penelaahan --------------------------------------------------- */
+  /* Satu halaman kerap memuat beberapa sudut telaah atas pokok yang sama.
+     Menaruh semuanya berderet ke bawah membuat halaman sangat panjang dan
+     memaksa pembaca menggulir melewati bagian yang tidak dicarinya, padahal
+     tiap sudut berdiri sendiri. Tab memisahkannya tanpa menambah menu, dan
+     tanpa memecah pokok yang sebenarnya satu.
+
+     Bentuknya sengaja bilah bergaris bawah, bukan kotak bersusun. Tab
+     berbentuk kotak mudah tertukar dengan tombol, sedangkan garis bawah
+     pada tab terpilih adalah tanda baku yang langsung terbaca sebagai
+     penunjuk bagian yang sedang dibuka. */
+  div[data-testid="stTabs"] {{ margin-top: 2px; }}
+  div[data-testid="stTabs"] div[role="tablist"] {{
+    gap: 2px !important;
+    border-bottom: 1px solid {p["tepi"]} !important;
+    margin-bottom: 18px !important;
+    /* Pada layar sempit tab yang tidak muat digeser mendatar, bukan
+       dilipat ke baris berikutnya, supaya tingginya tetap terduga. */
+    overflow-x: auto !important; overflow-y: hidden !important;
+    scrollbar-width: none !important;
+  }}
+  div[data-testid="stTabs"] div[role="tablist"]::-webkit-scrollbar {{
+    display: none;
+  }}
+  div[data-testid="stTabs"] button[role="tab"] {{
+    padding: 9px 16px !important; margin: 0 !important;
+    border-radius: 8px 8px 0 0 !important;
+    color: {p["tinta_2"]} !important;
+    white-space: nowrap !important;
+  }}
+  div[data-testid="stTabs"] button[role="tab"] p {{
+    font-size: 13.5px !important; font-weight: 550 !important;
+    letter-spacing: .005em !important;
+  }}
+  div[data-testid="stTabs"] button[role="tab"]:hover {{
+    background: {p["bidang"]} !important; color: {p["tinta"]} !important;
+  }}
+  div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{
+    color: {p["tinta"]} !important; background: transparent !important;
+  }}
+  div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] p {{
+    font-weight: 680 !important;
+  }}
+  /* Penanda tab terpilih digambar sendiri. Penanda bawaan Streamlit
+     mewarisi warna utama yang berbeda antar tema, dan pernah tampil nyaris
+     tidak terlihat pada tema gelap. */
+  div[data-testid="stTabs"] div[data-baseweb="tab-highlight"] {{
+    background: {p["seri"][0]} !important; height: 2.5px !important;
+  }}
+  div[data-testid="stTabs"] div[data-baseweb="tab-border"] {{
+    display: none !important;
+  }}
+
   /* --- Kaki, dipaku di dasar jendela, satu baris ------------------------ */
   .kaki {{
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000001;
