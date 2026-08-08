@@ -838,6 +838,14 @@ def kartu(label: str, nilai: str, ket: str = "") -> str:
 NAMA_PERSEN = ("persen", "%", "tingkat", "bagian", "keyakinan", "pangsa",
                "cakupan", "batas bawah", "batas atas")
 
+# Pencocokan nama kolom persentase harus utuh sebagai kata. Pencocokan
+# sebagai potongan huruf membuat kolom "Dikabulkan sebagian", yang isinya
+# jumlah putusan, terbaca sebagai persentase hanya karena memuat rangkaian
+# huruf "bagian", sehingga 122 putusan tercetak sebagai 51,00 persen.
+RE_PERSEN = re.compile(
+    r"%|\b(?:persen|tingkat|bagian|keyakinan|pangsa|cakupan|"
+    r"batas\s+bawah|batas\s+atas|simpangan|selisih)\b", re.IGNORECASE)
+
 # Nama kolom yang isinya bilangan identitas, bukan besaran: tahun, pengenal
 # berkas, dan kode. Angka semacam ini tidak boleh diberi pemisah ribuan,
 # karena 2,025 bukan tahun dan 140,672 bukan jumlah, melainkan nomor.
@@ -887,7 +895,7 @@ def tabel(df, kolom_kiri: tuple = (), kolom_persen: tuple = (),
         if k in kolom_kiri:
             jenis[k] = "teks"
         elif k in kolom_persen or (semua_angka
-                                   and any(x in nama for x in NAMA_PERSEN)):
+                                   and RE_PERSEN.search(nama)):
             jenis[k] = "persen"
         elif semua_angka and any(x in nama for x in NAMA_IDENTITAS):
             # Bilangan identitas: dirata tengah, tanpa pemisah ribuan.
