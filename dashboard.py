@@ -889,7 +889,7 @@ if df.empty:
 
 HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Putusan Sejenis",
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
-           "Sengketa Berulang", "Mutu Ketetapan",
+           "Sengketa Berulang", "Tema Sengketa", "Mutu Ketetapan",
            "Pasal Penentu", "Unit Penerbit Ketetapan",
            "Profil Hakim", "Durasi Penyelesaian Sengketa", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
@@ -897,6 +897,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pilihan Upaya Hukum": "Preskriptif",
            "Konsistensi Putusan Hakim": "Diagnostik",
            "Sengketa Berulang": "Diagnostik",
+           "Tema Sengketa": "Diagnostik",
            "Mutu Ketetapan": "Diagnostik",
            "Pasal Penentu": "Diagnostik",
            "Unit Penerbit Ketetapan": "Diagnostik",
@@ -915,9 +916,10 @@ MODUL = {
     "Semua": HALAMAN,
     "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
                  "Risalah Putusan", "Konsistensi Putusan Hakim",
-                 "Sengketa Berulang", "Profil Hakim",
+                 "Sengketa Berulang", "Tema Sengketa", "Profil Hakim",
                  "Durasi Penyelesaian Sengketa", "Metodologi"],
-    "Fiskus": ["Beranda", "Ringkasan Eksekutif", "Mutu Ketetapan",
+    "Fiskus": ["Beranda", "Ringkasan Eksekutif", "Tema Sengketa",
+               "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit Ketetapan",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
     "Wajib pajak": ["Beranda", "Ringkasan Eksekutif", "Pola Putusan Sejenis",
@@ -1910,7 +1912,7 @@ def hal_jalur() -> None:
                        f"{100 * int(g['menang'].sum()) / max(1, len(g)):.1f}"
                        " %", f"dari {len(g):,} putusan gugatan resmi"))
     n_add = int((rs["amar"] == "menambah").sum())
-    k[2].html(TV.kartu("Pajak justru bertambah", f"{n_add:,}",
+    k[2].html(TV.kartu("Penambahan Nilai Putusan", f"{n_add:,}",
                        "putusan menambah pajak yang harus dibayar, 2021 "
                        "sampai 2025"))
 
@@ -1928,7 +1930,7 @@ def hal_jalur() -> None:
     tj = pd.DataFrame(baris)
     tj["Ket"] = tj["Pangsa"].map(lambda v: f"{v:.1f}%")
     fig = px.bar(tj, x="Jalur", y="Pangsa", color="Amar", barmode="group",
-                 text="Ket", title="Nasib perkara menurut jalur, data resmi")
+                 text="Ket", title="Hasil Putusan menurut jalur, data resmi")
     fig.update_xaxes(showgrid=False, title="")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      ticksuffix="%", range=[0, 100], title="")
@@ -2404,7 +2406,7 @@ def hal_ketetapan() -> None:
         "yang menunjukkan arah perbaikannya.")
 
     t1, t2, t3, t4, t5 = st.tabs([
-        "Jenis ketetapan", "Jenis koreksi", "Tren mutu",
+        "Jenis ketetapan", "Jenis koreksi", "Tren hasil putusan",
         "DJP dan DJBC", "Kegagalan formal"])
     with t1:
         _mutu_jenis_ketetapan()
@@ -2682,7 +2684,7 @@ def _mutu_arah() -> None:
         hovertemplate="%{x}: %{y:.1f} persen dikabulkan<extra></extra>"))
     fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
     fig.update_layout(
-        title="Tren mutu ketetapan menurut tahun putusan",
+        title="Tren hasil putusan menurut tahun putusan",
         legend=dict(orientation="h", yanchor="top", y=-0.14,
                     xanchor="left", x=0),
         margin=dict(b=70))
@@ -2816,7 +2818,7 @@ def _mutu_instansi() -> None:
           "Batang yang selangnya saling bersinggungan belum dapat dinyatakan "
           "berbeda satu sama lain.")
 
-    st.html('<div class="tingkat">Tren Mutu Tiap Instansi</div>')
+    st.html('<div class="tingkat">Tren Hasil Putusan Tiap Instansi</div>')
     fig = go.Figure()
     ada_deret = False
     for kode in g["instansi_terbanding"]:
@@ -3647,6 +3649,236 @@ def hal_metode() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Tema sengketa, dari ruas pokok sengketa yang selama ini belum dipakai
+# ---------------------------------------------------------------------------
+
+# Tema dikenali lewat kata kunci pada teks pokok sengketa. Daftarnya lahir
+# dari penghitungan pasangan kata tersering pada 7.374 pokok sengketa nyata,
+# bukan dikarang dari dugaan, dan diurutkan dari yang paling khusus supaya
+# tema umum tidak menelan tema khusus. Satu putusan boleh menyandang lebih
+# dari satu tema, karena satu perkara memang kerap memuat beberapa pokok.
+TEMA_SENGKETA = [
+    ("PPN wajib dipungut sendiri", r"dipungut\s+sendiri"),
+    ("DPP penyerahan PPN",
+     r"dpp\s+(?:penyerahan|ppn)|penyerahan\s+ppn|pengenaan\s+penyerahan|"
+     r"dasar\s+pengenaan\s+pajak\s+pertambahan"),
+    ("Pajak masukan",
+     r"pajak\s+masukan|masukan\s+(?:diperhitungkan|dikreditkan)"),
+    ("Penetapan nilai pabean", r"nilai\s+pabean"),
+    ("Klasifikasi dan tarif barang",
+     r"klasifikasi|pos\s+tarif|pembebanan\s+tarif"),
+    ("Bea masuk dan pungutan impor", r"bea\s+masuk|pungutan\s+impor|\bpib\b"),
+    ("Penyesuaian fiskal", r"penyesuaian\s+fiskal|fiskal\s+(?:positif|negatif)"),
+    ("Peredaran usaha", r"peredaran\s+usaha|omzet|penjualan\s+bruto"),
+    ("Objek dan DPP PPh",
+     r"dpp\s+pph|objek\s+pph|pengenaan\s+pph|pph\s+(?:final|terutang)|"
+     r"pengenaan\s+penghasilan"),
+    ("Biaya dan pengurang penghasilan",
+     r"koreksi\s+biaya|biaya\s+(?:usaha|jabatan|promosi|bunga|royalti)|"
+     r"pengurang\s+penghasilan"),
+    ("Kompensasi kerugian", r"kompensasi\s+kerugian"),
+    ("Hubungan istimewa", r"hubungan\s+istimewa|transfer\s+pricing"),
+    ("Kredit pajak", r"kredit\s+pajak"),
+    ("Sanksi administrasi", r"sanksi\s+administrasi|denda\s+administrasi"),
+    ("Pajak bumi dan bangunan", r"pajak\s+bumi|\bpbb\b|\bnjop\b"),
+    ("Syarat formal pengajuan",
+     r"formal|daluwarsa|kedaluwarsa|jangka\s+waktu\s+pengajuan"),
+]
+
+
+# Tema juga dipetakan dari ruas jenis koreksi, yang diurai dari teks penuh
+# dan terisi 76 persen. Uraian pokok sengketa lebih kaya, tetapi tangkapan
+# arsip saat ini banyak yang terpotong pendek sehingga hanya sebagian kecil
+# yang temanya terkenali dari sana. Kedua sumber digabung: koreksi memberi
+# cakupan, pokok memberi tema yang lebih halus seperti PPN wajib dipungut
+# sendiri, yang tidak dibedakan pada taksonomi koreksi.
+PETA_KOREKSI_TEMA = {
+    "pajak_masukan": "Pajak masukan",
+    "dpp_ppn": "DPP penyerahan PPN",
+    "nilai_pabean": "Penetapan nilai pabean",
+    "klasifikasi_tarif": "Klasifikasi dan tarif barang",
+    "peredaran_usaha": "Peredaran usaha",
+    "hpp": "Harga pokok penjualan",
+    "biaya": "Biaya dan pengurang penghasilan",
+    "penyusutan": "Penyusutan dan amortisasi",
+    "hubungan_istimewa": "Hubungan istimewa",
+    "kredit_pajak": "Kredit pajak",
+    "kompensasi_rugi": "Kompensasi kerugian",
+    "pph_potput": "PPh potong pungut",
+    "fasilitas": "Fasilitas dan pembebasan",
+    "sanksi": "Sanksi administrasi",
+    "formal": "Syarat formal pengajuan",
+}
+
+
+@st.cache_data(ttl=300, show_spinner="Mengelompokkan tema sengketa...")
+def petakan_tema(pokok: pd.Series, koreksi: pd.Series) -> pd.DataFrame:
+    """Satu baris per pasangan putusan dan tema yang dikenali padanya."""
+    baris = []
+    teks = pokok.fillna("").astype(str).str.lower()
+    for label, pola in TEMA_SENGKETA:
+        for doc_id in teks[teks.str.contains(pola, regex=True)].index:
+            baris.append({"doc_id": doc_id, "Tema": label})
+    pecah = koreksi.dropna().astype(str).str.split("|").explode()
+    for doc_id, kode in pecah.items():
+        label = PETA_KOREKSI_TEMA.get(kode)
+        if label:
+            baris.append({"doc_id": doc_id, "Tema": label})
+    if not baris:
+        return pd.DataFrame(columns=["doc_id", "Tema"])
+    return pd.DataFrame(baris).drop_duplicates()
+
+
+def hal_tema() -> None:
+    st.subheader("Tema Sengketa")
+    st.caption(
+        "Apa yang sebenarnya dipersengketakan, dibaca langsung dari uraian "
+        "pokok sengketa pada tiap putusan. Halaman ini menjawab pertanyaan "
+        "yang selama ini dijawab manual dalam paparan: tema apa yang "
+        "berulang, dan tema mana yang paling sering dimenangkan wajib "
+        "pajak.")
+
+    punya = d[(d["pokok_sengketa"].notna()
+               & (d["pokok_sengketa"].str.len() > 15))
+              | d["jenis_koreksi"].notna()].copy()
+    if punya.empty:
+        st.info("Belum terdapat putusan yang tema sengketanya terbaca pada "
+                "lingkup ini.")
+        return
+    st.markdown(
+        f"Tema terbaca pada **{len(punya):,}** dari {len(d):,} putusan "
+        "dalam lingkup, dari dua sumber sekaligus: uraian pokok sengketa "
+        "dan jenis koreksi yang dikenali di dalam teks putusan. Angkanya "
+        "paling tepat dibaca sebagai perbandingan antar tema, bukan sebagai "
+        "jumlah mutlak seluruh arsip.")
+
+    indeks = punya.set_index("doc_id")
+    peta = petakan_tema(indeks["pokok_sengketa"], indeks["jenis_koreksi"])
+    if peta.empty:
+        st.info("Tidak ada tema yang dikenali pada lingkup ini.")
+        return
+    gabung = peta.merge(
+        punya[["doc_id", "amar", "amar_label", "tahun_putusan",
+               "nomor_tampil", "tanggal_ucap", "kode_jenis_pajak"]],
+        on="doc_id", how="left")
+    beramar_t = gabung[gabung["amar"].notna()
+                       & (gabung["amar"] != "pembetulan")].copy()
+    beramar_t["menang"] = beramar_t["amar"].isin(AMAR_MENANG)
+
+    t1, t2, t3 = st.tabs(["Peta tema", "Tren tema", "Telusuri per tema"])
+
+    with t1:
+        g = (beramar_t.groupby("Tema")
+             .agg(Putusan=("doc_id", "nunique"), menang=("menang", "sum"))
+             .reset_index())
+        g = g[g["Putusan"] >= 10].copy()
+        g["Dikabulkan"] = (100 * g["menang"] / g["Putusan"]).round(1)
+        batas = [selang_wilson(int(m), int(n))
+                 for m, n in zip(g["menang"], g["Putusan"])]
+        g["Batas bawah"] = [round(b[0], 1) for b in batas]
+        g["Batas atas"] = [round(b[1], 1) for b in batas]
+        g = g.drop(columns=["menang"]).sort_values("Putusan", ascending=False)
+
+        sering = g.iloc[0]
+        rawan = g.loc[g["Dikabulkan"].idxmax()]
+        st.markdown(
+            "Tabel ini memperlihatkan dua hal sekaligus: **seberapa sering "
+            "sebuah tema muncul**, dan **seberapa sering wajib pajak "
+            "menang** pada tema itu.\n\n"
+            f"Contoh membacanya: tema {sering['Tema']} adalah yang paling "
+            f"sering muncul, {int(sering['Putusan']):,} putusan, dan "
+            f"{sering['Dikabulkan']:.0f} persen di antaranya dimenangkan "
+            f"wajib pajak. Sedangkan tema dengan tingkat kemenangan "
+            f"tertinggi adalah {rawan['Tema']}, "
+            f"{rawan['Dikabulkan']:.0f} persen dari "
+            f"{int(rawan['Putusan']):,} putusan. Bagi fiskus, tema seperti "
+            "itu adalah tempat pedoman paling perlu dibenahi; bagi wajib "
+            "pajak, itu tema yang secara historis paling sering berhasil "
+            "dilawan.")
+        tabel_bernavigasi(g, "tema_peta",
+                          kolom_persen=("Dikabulkan", "Batas bawah",
+                                        "Batas atas"))
+        st.caption("Diurutkan dari tema yang paling sering muncul. Satu "
+                   "putusan dapat menyandang lebih dari satu tema.")
+
+        atas = g.head(10).sort_values("Putusan")
+        fig = px.bar(atas, x="Putusan", y="Tema", orientation="h",
+                     text=[f"{int(n):,}  ({v:.0f}% dikabulkan)"
+                           for n, v in zip(atas["Putusan"],
+                                           atas["Dikabulkan"])],
+                     title="Sepuluh tema tersering")
+        fig.update_xaxes(title="", showticklabels=False, showgrid=False,
+                         zeroline=False)
+        fig.update_yaxes(title="")
+        bagan(fig, max(300, 38 * len(atas) + 110), None,
+              "Panjang batang adalah banyaknya putusan bertema itu, dan "
+              "angka dalam kurung adalah bagian yang dimenangkan wajib "
+              "pajak.")
+
+    with t2:
+        st.markdown(
+            "Bagan ini mengikuti tiga tema tersering dari tahun ke tahun. "
+            "Tema yang naik berarti persoalannya makin sering sampai ke "
+            "pengadilan, dan itu isyarat paling dini bahwa ada aturan atau "
+            "praktik yang menimbulkan tafsir berbeda secara meluas.")
+        tiga_besar = (beramar_t.groupby("Tema")["doc_id"].nunique()
+                      .sort_values(ascending=False).head(3).index.tolist())
+        tt = (beramar_t[beramar_t["Tema"].isin(tiga_besar)]
+              .dropna(subset=["tahun_putusan"]))
+        tt = (tt.groupby(["Tema", "tahun_putusan"])["doc_id"].nunique()
+              .reset_index(name="Putusan"))
+        tt["Tahun"] = tt["tahun_putusan"].astype(int)
+        cukup = tt.groupby("Tahun")["Putusan"].sum()
+        tt = tt[tt["Tahun"].isin(cukup[cukup >= 20].index)]
+        if tt.empty or tt["Tahun"].nunique() < 3:
+            st.info("Belum terdapat cukup tahun untuk menggambarkan tren "
+                    "tema pada lingkup ini.")
+        else:
+            fig = px.line(tt, x="Tahun", y="Putusan", color="Tema",
+                          markers=True,
+                          title="Tiga tema tersering menurut tahun putusan")
+            fig.update_layout(
+                legend=dict(orientation="h", yanchor="top", y=-0.14,
+                            xanchor="left", x=0),
+                margin=dict(b=76))
+            fig.update_xaxes(showgrid=False, dtick=1, title="")
+            fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
+                             title="Jumlah putusan")
+            bagan(fig, 400, None,
+                  "Jumlah per tahun mengikuti cakupan arsip yang sedang "
+                  "tersedia, jadi yang layak dibandingkan adalah bentuk "
+                  "pergerakan antar tema, bukan tinggi mutlaknya.")
+
+    with t3:
+        pilih_tema = st.selectbox(
+            "Pilih tema yang ingin ditelusuri",
+            sorted(gabung["Tema"].unique()), key="tema_pilih")
+        isi = (gabung[gabung["Tema"] == pilih_tema]
+               .drop_duplicates("doc_id")
+               .sort_values("tahun_putusan", ascending=False))
+        st.markdown(f"**{len(isi):,} putusan** bertema {pilih_tema}. Pilih "
+                    "salah satu baris untuk membaca isi putusannya.")
+        pilih_baris = st.dataframe(
+            pd.DataFrame({
+                "Nomor putusan": isi["nomor_tampil"],
+                "Tanggal putusan": [
+                    tampil_tanggal(u, tampil_tahun(th_)) for u, th_ in
+                    zip(isi["tanggal_ucap"], isi["tahun_putusan"])],
+                "Jenis pajak": isi["kode_jenis_pajak"].map(
+                    lambda k: label_kode(k, kode_peta)),
+                "Amar": isi["amar_label"]}),
+            width="stretch", hide_index=True, on_select="rerun",
+            selection_mode="single-row", key=f"tema_{pilih_tema}",
+            column_config={
+                "Tanggal putusan": st.column_config.TextColumn(
+                    alignment="center")})
+        b = (pilih_baris.selection.rows
+             if pilih_baris and pilih_baris.selection else [])
+        if b:
+            buka_putusan(isi.iloc[b[0]]["doc_id"], f"tema_{pilih_tema}")
+
+
+# ---------------------------------------------------------------------------
 # Beranda tiap modul peran
 # ---------------------------------------------------------------------------
 
@@ -3795,6 +4027,7 @@ def hal_beranda() -> None:
     "Unit Penerbit Ketetapan": hal_unit,
     "Konsistensi Putusan Hakim": hal_konsistensi,
     "Sengketa Berulang": hal_berulang,
+    "Tema Sengketa": hal_tema,
     "Mutu Ketetapan": hal_ketetapan,
     "Profil Hakim": hal_hakim,
     "Durasi Penyelesaian Sengketa": hal_kinerja,
@@ -3825,6 +4058,9 @@ RUAS_ANDAL = {
     "Konsistensi Putusan Hakim": [("Amar", "amar"),
                                   ("Kode majelis", "kode_majelis"),
                                   ("Hakim ketua", "hakim_ketua")],
+    "Tema Sengketa": [("Jenis koreksi", "jenis_koreksi"),
+                      ("Pokok sengketa", "pokok_sengketa"),
+                      ("Amar", "amar")],
     "Sengketa Berulang": [("Nama pemohon", "nama_pemohon_norm"),
                           ("Amar", "amar"),
                           ("Jenis koreksi", "jenis_koreksi")],

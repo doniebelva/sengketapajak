@@ -1118,11 +1118,18 @@ def pita_andal(item: list, n: int) -> str:
                  else "andal-awas" if persen >= 55 else "andal-genting")
         biji.append(f'<span class="andal {kelas}"><i></i>'
                     f'{label} {persen:.0f}%</span>')
+    # Susunan kalimatnya sengaja awam. Sebutan teknis seperti ruas penopang
+    # sempat dipakai dan pembaca tidak paham maksudnya; yang ingin
+    # disampaikan sederhana saja: dari semua putusan yang sedang tampil,
+    # berapa persen yang bagian datanya berhasil terbaca.
     return ('<div class="andal-pita"><span class="andal-judul">'
-            f'Kelengkapan ruas penopang halaman ini, dari {n:,} putusan '
-            'dalam lingkup:</span>' + "".join(biji)
-            + '<span class="andal-ket">Angka yang bertumpu pada ruas kuning '
-              'atau merah sebaiknya dibaca sebagai taksiran.</span></div>')
+            f'Seberapa lengkap data di balik halaman ini? Dari {n:,} putusan '
+            'yang sedang tampil, bagian yang berhasil terbaca:</span>'
+            + "".join(biji)
+            + '<span class="andal-ket">Makin tinggi persennya, makin dapat '
+              'dipercaya angkanya. Angka yang bersandar pada bagian kuning '
+              'atau merah sebaiknya dibaca sebagai perkiraan, bukan angka '
+              'pasti.</span></div>')
 
 
 # ---------------------------------------------------------------------------
@@ -1142,6 +1149,7 @@ _IKON_NAV = {
     "Pola Putusan Sejenis": "%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E",
     "Konsistensi Putusan Hakim": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v-5M12 8h.01'/%3E",
     "Sengketa Berulang": "%3Cpath d='M3 17l5-6 4 3 5-7'/%3E%3Cpath d='M17 7h4v4'/%3E",
+    "Tema Sengketa": "%3Cpath d='M20.59 13.41l-8.17 8.17a2 2 0 0 1-2.83 0L2 14V4h10l8.59 8.59a2 2 0 0 1 0 2.82z'/%3E%3Ccircle cx='7' cy='9' r='1.3'/%3E",
     "Mutu Ketetapan": "%3Cpath d='M9 11l2 2 4-5'/%3E%3Cpath d='M20 12v7H4V5h9'/%3E",
     "Pilihan Upaya Hukum": "%3Cpath d='M12 21V3'/%3E%3Cpath d='M12 5h6l2 2-2 2h-6'/%3E%3Cpath d='M12 12H6l-2 2 2 2h6'/%3E",
     "Pasal Penentu": "%3Cpath d='M12 3v18M4 21h16'/%3E%3Cpath d='M5 7l-2.5 5a3 3 0 0 0 5 0zM19 7l-2.5 5a3 3 0 0 0 5 0z'/%3E%3Cpath d='M6 7h12'/%3E",
