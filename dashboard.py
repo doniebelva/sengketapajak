@@ -2604,6 +2604,22 @@ def hal_hakim() -> None:
     tab = (tab.sort_values("Dikabulkan", ascending=False)
            .rename_axis("Hakim").reset_index())
 
+    # Ambang jumlah putusan diambil dari rata-rata putusan per hakim, bukan
+    # dari angka yang ditetapkan sendiri, sehingga ikut menyesuaikan ketika
+    # arsip bertambah. Tanpa ambang, urutan teratas dipenuhi hakim dengan
+    # satu dua putusan yang otomatis tercatat seratus persen, benar secara
+    # hitungan tetapi menyesatkan sebagai bacaan.
+    ambang = max(2, int(round(tab["Putusan diucapkan"].mean())))
+    n_semua = len(tab)
+    semua = st.checkbox(
+        f"Tampilkan seluruh hakim, termasuk yang putusannya kurang dari "
+        f"{ambang}", value=False, key="hakim_semua")
+    if not semua:
+        tab = tab[tab["Putusan diucapkan"] >= ambang]
+    if tab.empty:
+        st.info("Belum terdapat hakim yang memenuhi ambang tersebut.")
+        return
+
     # Rentang tahun bertugas menurut arsip: tahun putusan tertua sampai
     # termuda yang memuat nama hakim itu.
     rentang = (s.dropna(subset=["tahun_putusan"])
@@ -2615,6 +2631,14 @@ def hal_hakim() -> None:
     tabel_bernavigasi(tab, "profil_hakim",
                       kolom_persen=("Dikabulkan",), kelas="rata")
     st.caption(
+        f"Menampilkan {len(tab):,} dari {n_semua:,} hakim, yaitu yang "
+        f"putusannya sedikitnya {ambang}. Ambang itu adalah rata-rata jumlah "
+        "putusan per hakim pada lingkup ini, sehingga ikut menyesuaikan saat "
+        "arsip bertambah. Hakim dengan putusan sangat sedikit dikeluarkan "
+        "dari pemeringkatan karena persentasenya otomatis menjadi nol atau "
+        "seratus persen, dan angka seperti itu belum menggambarkan pola. "
+        "Seluruh hakim tetap dapat ditampilkan melalui kotak centang di "
+        "atas.\n\n"
         "Diurutkan dari hakim yang paling sering mengabulkan permohonan, "
         "yaitu yang paling sering memenangkan wajib pajak. Nama kolom "
         "dipendekkan agar seluruh kategori muat dalam satu layar, dan "
