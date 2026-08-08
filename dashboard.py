@@ -303,14 +303,51 @@ GELAR_HAKIM = {
 
 RE_BUKAN_HURUF = re.compile(r"[^a-z]+")
 
+# Kata sambung dan sebutan jabatan yang ikut terbawa ketika susunan majelis
+# dibaca dari kalimat, misalnya "Usman Pasaribu sebagai Hakim Ketua" atau
+# "Uming dan Sulaiman masing-masing sebagai Hakim Anggota".
+KATA_IKUT = {
+    "sebagai", "selaku", "masing", "dan", "serta", "yang", "adalah",
+    "dengan", "para", "sdr", "bapak", "ibu", "hakim", "ketua", "anggota",
+    "majelis", "panitera", "pengganti", "sidang", "pengadilan", "pajak"}
+
+# Gelar pendek yang kerap salah terbaca, misalnya M.Si menjadi M.Sin atau
+# M.Sj. Kesalahan seperti itu tidak ada di dalam daftar gelar, sehingga
+# dikenali lewat kemiripan satu huruf terhadap gelar yang sah.
+GELAR_PENDEK = tuple(g for g in
+                     ("se", "sh", "st", "si", "ak", "ca", "mm", "msi", "mh",
+                      "ma", "mt", "mba", "msc", "ir", "dr", "sos", "mkn")
+                     )
+
+
+def _gelar(kata: str) -> bool:
+    if kata in GELAR_HAKIM:
+        return True
+    if len(kata) > 4:
+        return False
+    return any(_selisih_satu(kata, g) for g in GELAR_PENDEK)
+
 
 def kunci_hakim(nama: str) -> str:
-    """Bentuk baku untuk pencocokan: huruf kecil tanpa tanda baca, tanpa
-    gelar, tanpa singkatan satu huruf. Nama yang setelah dibersihkan tidak
-    menyisakan apa apa, misalnya potongan yang hanya berisi gelar, menjadi
-    kunci kosong dan dikeluarkan pemanggilnya."""
-    kata = RE_BUKAN_HURUF.sub(" ", str(nama).lower()).split()
-    return " ".join(k for k in kata if len(k) > 1 and k not in GELAR_HAKIM)
+    """Bentuk baku untuk pencocokan.
+
+    Yang dibuang: tanda baca, gelar termasuk gelar yang salah terbaca, kata
+    sambung dan sebutan jabatan, serta pengulangan kata yang berdampingan
+    seperti "Ruwaidah Ruwaidah Afiyati". Nama yang tidak menyisakan apa pun
+    menjadi kunci kosong dan dikeluarkan pemanggilnya.
+    """
+    # Huruf yang kerap salah terbaca mesin pemindai dipulihkan lebih dulu,
+    # supaya Ra§ono dan Rasono tidak terhitung sebagai dua hakim.
+    bersih = (str(nama).lower().replace("§", "s").replace("ß", "s")
+              .replace("¢", "c").replace("|", "l").replace("0", "o"))
+    kata = RE_BUKAN_HURUF.sub(" ", bersih).split()
+    inti = [k for k in kata
+            if len(k) > 1 and k not in KATA_IKUT and not _gelar(k)]
+    hasil: list[str] = []
+    for k in inti:
+        if not hasil or hasil[-1] != k:
+            hasil.append(k)
+    return " ".join(hasil)
 
 
 def nama_tanpa_gelar(nama: str) -> str:
@@ -322,7 +359,8 @@ def nama_tanpa_gelar(nama: str) -> str:
     koma, karena sebelum koma dia bagian nama, sesudah koma dia gelar."""
     token = str(nama).split()
     huruf = [RE_BUKAN_HURUF.sub(" ", t.lower()).split() for t in token]
-    inti = [any(len(s) > 1 and s not in GELAR_HAKIM for s in h)
+    inti = [any(len(s) > 1 and s not in KATA_IKUT and not _gelar(s)
+                for s in h)
             for h in huruf]
     hasil = []
     lewat_koma = False
@@ -384,7 +422,7 @@ def bakukan_hakim(seri: pd.Series) -> tuple[pd.Series, pd.Series]:
             continue
         tujuan = k
         for u in utama:
-            if len(k) >= 8 and len(u) >= 8 and _selisih_satu(k, u):
+            if _serupa(k, u):
                 tujuan = u
                 break
         if tujuan == k:
@@ -393,9 +431,78 @@ def bakukan_hakim(seri: pd.Series) -> tuple[pd.Series, pd.Series]:
     kunci_final = kunci.map(peta)
     isi = pd.DataFrame({"k": kunci_final, "n": seri})
     tampilan = (isi[isi["k"] != ""].groupby("k")["n"]
-                .agg(lambda x: nama_tanpa_gelar(x.value_counts().index[0])
-                     or str(x.value_counts().index[0])))
+                .agg(lambda x: _rapi_kapital(
+                    nama_tanpa_gelar(x.value_counts().index[0])
+                    or str(x.value_counts().index[0]))))
     return kunci_final, tampilan
+
+
+def _rapi_kapital(nama: str) -> str:
+    """Awal kata dibesarkan, supaya penulisan yang berbeda hurufnya tampil
+    seragam. Nama yang seluruhnya kapital dibiarkan menjadi kapital awal
+    juga, karena risalah menulis nama yang sama dengan dua gaya berbeda."""
+    kata = []
+    for w in str(nama).split():
+        if "." in w and len(w) <= 6:      # inisial seperti J.B. atau L.Y.
+            kata.append(w.upper())
+        else:
+            kata.append(w[:1].upper() + w[1:].lower())
+    return " ".join(kata)
+
+
+def _serupa(a: str, b: str) -> bool:
+    """Dua kunci dianggap satu orang bila hampir sama.
+
+    Ambangnya bergantung panjang nama. Nama pendek diperlakukan ketat karena
+    dua nama berbeda bisa saja hanya selisih satu huruf, sedangkan nama
+    panjang diberi kelonggaran dua huruf, karena pemindaian pada nama panjang
+    kerap salah lebih dari satu huruf sekaligus, seperti Ruwaidah Afiyati
+    yang terbaca Rirvaidah Afiyati.
+    """
+    if len(a) < 8 or len(b) < 8:
+        return False
+    if _selisih_satu(a, b):
+        return True
+
+    ka, kb = a.split(), b.split()
+    pendek, panjang = (ka, kb) if len(ka) <= len(kb) else (kb, ka)
+
+    # Satu penulisan membawa kata tambahan di belakang, misalnya sisa
+    # jabatan atau nama yang tertulis lebih lengkap, sementara seluruh kata
+    # awalnya sama persis. Contoh nyata: "yohanes silverius winoto" dan
+    # "yohanes silverius winoto ali".
+    if (len(pendek) >= 2 and len(panjang) - len(pendek) <= 2
+            and panjang[:len(pendek)] == pendek):
+        return True
+
+    # Jumlah katanya sama dan hanya satu kata yang berbeda, sedangkan kata
+    # itu masih berdekatan ejaannya. Ini pola salah baca pada satu kata,
+    # misalnya "ruwaidah afiyati" terbaca "rirvaidah afiyati", sementara
+    # nama keluarganya tetap sama persis.
+    if len(ka) == len(kb) and len(ka) >= 2:
+        beda = [(x, y) for x, y in zip(ka, kb) if x != y]
+        if len(beda) == 1:
+            x, y = beda[0]
+            if min(len(x), len(y)) >= 6 and _jarak_maks(x, y, 3):
+                return True
+
+    if min(len(a), len(b)) >= 13 and abs(len(a) - len(b)) <= 2:
+        return _jarak_maks(a, b, 2)
+    return False
+
+
+def _jarak_maks(a: str, b: str, batas: int) -> bool:
+    """Benar bila jarak sunting kedua untai tidak melebihi batas."""
+    sebelum = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        kini = [i]
+        for j, cb in enumerate(b, 1):
+            kini.append(min(sebelum[j] + 1, kini[j - 1] + 1,
+                            sebelum[j - 1] + (ca != cb)))
+        if min(kini) > batas:
+            return False
+        sebelum = kini
+    return sebelum[-1] <= batas
 
 
 def selang_wilson(k: int, n: int) -> tuple[float, float]:
@@ -2311,13 +2418,31 @@ def hal_hakim() -> None:
                   "beban kerja, bukan pemeringkatan hakim perorangan, dan "
                   "sebaiknya beredar terbatas.")
 
-    peran = st.radio("Peran dalam majelis", ["Hakim ketua", "Hakim anggota"],
-                     horizontal=True)
+    pr, ph = st.columns([2, 3])
+    with pr:
+        peran = st.radio("Peran dalam majelis",
+                         ["Hakim ketua", "Hakim anggota"], horizontal=True)
+    with ph:
+        # Penyaring tahun tersendiri, supaya susunan majelis dapat dilihat
+        # per periode tanpa mengubah lingkup halaman lain.
+        th_ada = sorted(int(x) for x in d["tahun_putusan"].dropna().unique())
+        rentang_th = None
+        if len(th_ada) > 1:
+            rentang_th = st.slider("Tahun putusan", min(th_ada), max(th_ada),
+                                   (min(th_ada), max(th_ada)),
+                                   key="tahun_hakim")
+    dh = d
+    if rentang_th:
+        dh = d[d["tahun_putusan"].between(rentang_th[0], rentang_th[1])]
+        if dh.empty:
+            st.info("Tidak terdapat putusan pada rentang tahun tersebut.")
+            return
+
     if peran == "Hakim ketua":
-        s = d[d["hakim_ketua"].notna()].copy()
+        s = dh[dh["hakim_ketua"].notna()].copy()
         s["hakim"] = s["hakim_ketua"]
     else:
-        s = d[d["hakim_anggota"].notna()].copy()
+        s = dh[dh["hakim_anggota"].notna()].copy()
         s = s.assign(hakim=s["hakim_anggota"].str.split("|")).explode("hakim")
         s["hakim"] = s["hakim"].str.strip()
         # Pemecahan anggota menggandakan label indeks, satu per anggota,
@@ -2347,7 +2472,7 @@ def hal_hakim() -> None:
     k[0].html(TV.kartu("Hakim terhitung", f"{per_hakim.size:,}",
                        f"pada peran {peran.lower()}"))
     k[1].html(TV.kartu("Putusan bermajelis", f"{s['doc_id'].nunique():,}",
-                       f"dari {len(d):,} putusan dalam lingkup"))
+                       f"dari {len(dh):,} putusan dalam lingkup"))
     k[2].html(TV.kartu("Median putusan per hakim",
                        f"{per_hakim.median():.0f}", "putusan diucapkan"))
 

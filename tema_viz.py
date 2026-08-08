@@ -647,6 +647,13 @@ def gaya(gelap: bool) -> str:
     width: 24%; text-align: left; white-space: nowrap;
     overflow: hidden; text-overflow: ellipsis;
   }}
+  /* Kolom kedua memuat rentang tahun seperti 2013-2025, yang harus utuh
+     dalam satu baris. Tanpa jatah lebar tersendiri, kolom itu ikut dibagi
+     rata dan rentangnya terpotong menjadi dua baris. */
+  table.tabel.rata th:nth-child(2),
+  table.tabel.rata td:nth-child(2) {{
+    width: 11%; white-space: nowrap;
+  }}
 
   /* --- Panel lipat ------------------------------------------------------ */
   div[data-testid="stExpander"] {{
