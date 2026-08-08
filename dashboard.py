@@ -906,18 +906,27 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
 # yang pertama tujuan setiap drill, yang kedua kejujuran metodologis yang
 # tidak boleh disembunyikan dari siapa pun.
+# Tiap modul peran dibuka dengan Beranda, halaman pembuka yang menyajikan
+# tiga angka terpenting bagi peran itu beserta pertanyaan yang dapat dijawab
+# halaman lain. Tanpa ini, semua peran mendarat di Ringkasan Eksekutif yang
+# sama, dan menit pertama pemakaian habis untuk menebak nebak menu. Modul
+# Semua sengaja tanpa Beranda, karena isinya memang untuk penjelajahan bebas.
 MODUL = {
     "Semua": HALAMAN,
-    "Pimpinan": ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan",
-                 "Konsistensi Putusan Hakim", "Sengketa Berulang", "Profil Hakim",
+    "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
+                 "Risalah Putusan", "Konsistensi Putusan Hakim",
+                 "Sengketa Berulang", "Profil Hakim",
                  "Durasi Penyelesaian Sengketa", "Metodologi"],
-    "Fiskus": ["Ringkasan Eksekutif", "Mutu Ketetapan",
+    "Fiskus": ["Beranda", "Ringkasan Eksekutif", "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit Ketetapan",
                "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
-    "Wajib pajak": ["Ringkasan Eksekutif", "Pola Putusan Sejenis",
+    "Wajib pajak": ["Beranda", "Ringkasan Eksekutif", "Pola Putusan Sejenis",
                     "Pilihan Upaya Hukum", "Risalah Putusan",
                     "Metodologi"],
 }
+# Nama halaman yang sah untuk tautan dan perpindahan, termasuk Beranda yang
+# tidak berada pada daftar induk karena isinya bergantung modul.
+HALAMAN_SAH = set(HALAMAN) | {"Beranda"}
 
 # Modul dan halaman dititipkan pada alamat halaman, sehingga tampilan yang
 # sedang dilihat dapat dikirim ke rekan dan dibuka kembali persis sama.
@@ -930,7 +939,7 @@ if not st.session_state.get("alamat_terbaca"):
     _q = st.query_params
     if _q.get("modul") in MODUL:
         st.session_state["modul"] = _q["modul"]
-    if _q.get("halaman") in HALAMAN:
+    if _q.get("halaman") in HALAMAN_SAH:
         st.session_state["nav"] = _q["halaman"]
 
 cari_cepat = st.sidebar.text_input(
@@ -960,7 +969,7 @@ daftar_hal = MODUL[modul]
 # di halaman lain, dititipkan pada nav_tujuan lalu diterapkan di sini,
 # sebelum pemilih halamannya digambar. Menulis langsung ke keadaan pemilih
 # setelah pemilihnya tergambar dilarang Streamlit.
-if st.session_state.get("nav_tujuan") in HALAMAN:
+if st.session_state.get("nav_tujuan") in HALAMAN_SAH:
     st.session_state["nav"] = st.session_state.pop("nav_tujuan")
 # Pilihan baris pada daftar asal drill dibersihkan di sini, sebelum daftarnya
 # digambar ulang, supaya drill tidak terpicu lagi saat pengguna kembali.
@@ -3638,10 +3647,145 @@ def hal_metode() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Beranda tiap modul peran
+# ---------------------------------------------------------------------------
+
+def _beranda_tanya(daftar: list) -> None:
+    """
+    Daftar pertanyaan yang tiap barisnya membawa ke halaman jawabannya.
+
+    Tombolnya memakai jalur nav_tujuan yang sama dengan drill antar halaman,
+    sehingga tujuan yang tidak tersedia pada modul terpilih otomatis
+    memulangkan modul ke Semua lebih dulu.
+    """
+    st.html('<div class="tingkat">Pertanyaan yang Dapat Dijawab</div>')
+    for tanya, tujuan in daftar:
+        if st.button(tanya, key=f"beranda-{TV.kunci_nav(tujuan)}-{hash(tanya) & 0xffff}",
+                     width="stretch"):
+            st.session_state["nav_tujuan"] = tujuan
+            st.rerun()
+
+
+def hal_beranda() -> None:
+    """
+    Halaman pembuka per peran: tiga angka terpenting beserta peta jalannya.
+
+    Tanpa halaman ini semua peran mendarat di Ringkasan Eksekutif yang sama,
+    dan menit pertama pemakaian habis untuk menebak nebak menu. Tiga angka
+    di atas dipilih menurut pertanyaan yang paling sering diajukan peran
+    itu, bukan menurut apa yang paling mudah dihitung.
+    """
+    dd = beramar(d)
+    n_menang = int(dd["amar"].isin(AMAR_MENANG).sum())
+    tingkat = 100 * n_menang / max(len(dd), 1)
+    gugur = d[d["amar"] == "tidak_dapat_diterima"]
+    p_gugur = 100 * len(gugur) / max(int(d["amar"].notna().sum()), 1)
+
+    if modul == "Pimpinan":
+        st.subheader("Beranda Pimpinan")
+        st.caption("Keadaan sengketa dalam satu pandangan, untuk pengambilan "
+                   "kebijakan.")
+        rs = muat_resmi()
+        ada = (rs[rs["mata_uang"] == "Rupiah"]
+               .dropna(subset=["nilai_awal", "nilai_akhir"])
+               if not rs.empty else pd.DataFrame())
+        k = st.columns(3)
+        if not ada.empty:
+            k[0].html(TV.kartu(
+                "Dikoreksi pengadilan",
+                f"Rp {(ada['nilai_awal'] - ada['nilai_akhir']).sum() / 1e12:,.1f} T",
+                "nilai resmi 2021 sampai 2025"))
+        k[1].html(TV.kartu("Ketetapan yang disengketakan berujung dikoreksi",
+                           f"{tingkat:.1f} %",
+                           f"dari {len(dd):,} putusan beramar dalam lingkup"))
+        t = _deret_tahunan(dd)
+        if len(t) >= 6:
+            r_awal = 100 * t.head(3)["menang"].sum() / t.head(3)["Putusan"].sum()
+            r_akhir = 100 * t.tail(3)["menang"].sum() / t.tail(3)["Putusan"].sum()
+            k[2].html(TV.kartu("Perubahan tiga tahun terakhir",
+                               f"{r_akhir - r_awal:+.1f} poin",
+                               "dibanding tiga tahun pertama arsip; naik "
+                               "berarti makin sering dikoreksi"))
+        _beranda_tanya([
+            ("Berapa nilai yang dikoreksi pengadilan, dan berapa yang dapat "
+             "diselamatkan bila mutu diperbaiki?", "Nilai Sengketa"),
+            ("Apakah mutu ketetapan membaik atau memburuk dari tahun ke "
+             "tahun?", "Mutu Ketetapan"),
+            ("Siapa wajib pajak yang terus menerus bersengketa dengan hasil "
+             "yang selalu sama?", "Sengketa Berulang"),
+            ("Berapa lama sengketa diselesaikan, dan di mana lambatnya?",
+             "Durasi Penyelesaian Sengketa"),
+        ])
+
+    elif modul == "Fiskus":
+        st.subheader("Beranda Fiskus")
+        st.caption("Titik masuk pembenahan mutu ketetapan, dari koreksi yang "
+                   "paling sering gugur sampai pasal yang menentukannya.")
+        k = st.columns(3)
+        k[0].html(TV.kartu("Ketetapan yang disengketakan berujung dikoreksi",
+                           f"{tingkat:.1f} %",
+                           f"dari {len(dd):,} putusan beramar dalam lingkup"))
+        kor = ledak_koreksi(dd)
+        if not kor.empty:
+            gk = (kor.groupby("Jenis koreksi")
+                  .agg(n=("doc_id", "nunique"), m=("menang", "sum")))
+            gk = gk[gk["n"] >= 5]
+            if not gk.empty:
+                gk["bobot"] = gk["m"]
+                teratas = gk["bobot"].idxmax()
+                k[1].html(TV.kartu("Koreksi paling banyak menimbulkan "
+                                   "pembatalan", str(teratas),
+                                   f"sekitar {int(gk.loc[teratas, 'bobot']):,} "
+                                   "ketetapan batal karena koreksi ini"))
+        k[2].html(TV.kartu("Gugur sebelum pokok sengketa",
+                           f"{p_gugur:.1f} %",
+                           "seluruhnya dapat dicegah sejak pendaftaran"))
+        _beranda_tanya([
+            ("Jenis ketetapan dan koreksi mana yang paling sering gugur di "
+             "pengadilan?", "Mutu Ketetapan"),
+            ("Pasal apa yang paling sering menjadi dasar pembatalan?",
+             "Pasal Penentu"),
+            ("Unit mana yang ketetapannya paling sering dikoreksi?",
+             "Unit Penerbit Ketetapan"),
+            ("Apakah perkara sejenis diputus konsisten?",
+             "Konsistensi Putusan Hakim"),
+        ])
+
+    else:
+        st.subheader("Beranda Wajib Pajak")
+        st.caption("Bekal sebelum memutuskan mengajukan upaya hukum: peluang "
+                   "historisnya, lamanya, dan jebakan yang paling merugikan.")
+        k = st.columns(3)
+        k[0].html(TV.kartu("Perkara serupa yang dikabulkan secara historis",
+                           f"{tingkat:.1f} %",
+                           f"dari {len(dd):,} putusan beramar; bukan ramalan "
+                           "atas perkara mana pun"))
+        jeda = jeda_hari(d)
+        if len(jeda):
+            k[1].html(TV.kartu("Median lama menunggu pengucapan",
+                               f"{jeda.median():,.0f} hari",
+                               "dari musyawarah sampai putusan diucapkan"))
+        k[2].html(TV.kartu("Gugur tanpa pernah diperiksa",
+                           f"{p_gugur:.1f} %",
+                           "umumnya karena lewat tenggat atau salah jalur"))
+        _beranda_tanya([
+            ("Bagaimana nasib perkara yang mirip perkara saya?",
+             "Pola Putusan Sejenis"),
+            ("Jalur mana yang sebaiknya ditempuh, banding atau gugatan?",
+             "Pilihan Upaya Hukum"),
+            ("Bagaimana mencari putusan tentang persoalan saya?",
+             "Risalah Putusan"),
+            ("Apa yang membuat perkara gugur tanpa pernah diperiksa?",
+             "Mutu Ketetapan"),
+        ])
+
+
+# ---------------------------------------------------------------------------
 # Penyalur dan kaki
 # ---------------------------------------------------------------------------
 
 {
+    "Beranda": hal_beranda,
     "Ringkasan Eksekutif": hal_ikhtisar,
     "Nilai Sengketa": hal_nilai,
     "Risalah Putusan": hal_telusur,
