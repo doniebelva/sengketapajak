@@ -410,6 +410,27 @@ def gaya(gelap: bool) -> str:
     visibility: hidden !important;
   }}
 
+  /* --- Pita keandalan data ---------------------------------------------- */
+  .andal-pita {{
+    display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+    margin: 26px 0 4px; padding: 11px 14px;
+    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
+    border-radius: 10px; font-size: 12px; color: {p["tinta_2"]};
+  }}
+  .andal-judul {{ margin-right: 3px; }}
+  .andal {{
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
+    color: {p["tinta"]}; font-weight: 550; white-space: nowrap;
+  }}
+  .andal i {{ width: 7px; height: 7px; border-radius: 50%; }}
+  .andal-baik i {{ background: {p["baik"]}; }}
+  .andal-awas i {{ background: {p["awas"]}; }}
+  .andal-genting i {{ background: {p["genting"]}; }}
+  .andal-ket {{ flex-basis: 100%; font-size: 11px;
+                color: {p["tinta_2"]}; }}
+
   /* --- Penanda pemuatan ------------------------------------------------- */
   /* Data tumbuh mengikuti arsip, dan jeda pemuatan ikut memanjang. Penanda
      pemuatan diseragamkan dengan tema supaya jeda itu terasa sebagai bagian
@@ -1075,6 +1096,33 @@ def tabel(df, kolom_kiri: tuple = (), kolom_persen: tuple = (),
 
 def catatan_siap(judul: str, isi: str) -> str:
     return f'<div class="siap"><b>{judul}</b><br>{isi}</div>'
+
+
+def pita_andal(item: list, n: int) -> str:
+    """
+    Pita penanda keandalan di kaki tiap halaman.
+
+    Angka pada halaman berdiri di atas ruas yang kelengkapannya berbeda
+    jauh, dari 48 sampai 99 persen, dan pembaca tidak punya cara membedakan
+    mana angka yang kokoh dan mana yang taksiran dari sebagian data. Pita
+    ini menyatakan berapa persen putusan dalam lingkup yang ruas penopangnya
+    terbaca, dengan warna sebagai isyarat cepat: hijau di atas 85, kuning di
+    atas 55, merah di bawahnya.
+
+    Dashboard analitik yang tidak menyatakan batas datanya akan kehilangan
+    kepercayaan justru pada saat pertama kali angkanya dibantah orang.
+    """
+    biji = []
+    for label, persen in item:
+        kelas = ("andal-baik" if persen >= 85
+                 else "andal-awas" if persen >= 55 else "andal-genting")
+        biji.append(f'<span class="andal {kelas}"><i></i>'
+                    f'{label} {persen:.0f}%</span>')
+    return ('<div class="andal-pita"><span class="andal-judul">'
+            f'Kelengkapan ruas penopang halaman ini, dari {n:,} putusan '
+            'dalam lingkup:</span>' + "".join(biji)
+            + '<span class="andal-ket">Angka yang bertumpu pada ruas kuning '
+              'atau merah sebaiknya dibaca sebagai taksiran.</span></div>')
 
 
 # ---------------------------------------------------------------------------

@@ -2338,7 +2338,7 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
     n_hemat = int((pasti["Sengketa beramar"] - 1).sum()) if len(pasti) else 0
 
     k = st.columns(3)
-    k[0].html(TV.kartu("Wajib pajak berhasil selalu sama", f"{len(pasti):,}",
+    k[0].html(TV.kartu("WP dengan hasil selalu sama", f"{len(pasti):,}",
                        "tiga sengketa atau lebih, amarnya tidak pernah "
                        "berbeda"))
     k[1].html(TV.kartu("Putusan yang sebenarnya dapat dicegah",
@@ -2395,7 +2395,7 @@ def hal_ketetapan() -> None:
         "yang menunjukkan arah perbaikannya.")
 
     t1, t2, t3, t4, t5 = st.tabs([
-        "Jenis ketetapan", "Jenis koreksi", "Arah mutu",
+        "Jenis ketetapan", "Jenis koreksi", "Tren mutu",
         "DJP dan DJBC", "Kegagalan formal"])
     with t1:
         _mutu_jenis_ketetapan()
@@ -2627,7 +2627,7 @@ def _mutu_arah() -> None:
         f"{int(n_akhir['Tahun'].max())}", f"{r_akhir:.1f} %",
         f"dari {int(n_akhir['Putusan'].sum()):,} putusan beramar"))
     k[2].html(TV.kartu(
-        "Pergeserannya",
+        "Perubahan",
         f"{selisih:+.1f} poin",
         "naik berarti ketetapan makin sering batal"
         if selisih > 0 else "turun berarti ketetapan makin tahan uji"))
@@ -2646,7 +2646,7 @@ def _mutu_arah() -> None:
         f"Pada arsip yang sedang tampil, tahun {int(awal['Tahun'])} berada "
         f"di {awal['Dikabulkan']:.1f} persen dan tahun "
         f"{int(akhir['Tahun'])} di {akhir['Dikabulkan']:.1f} persen. "
-        f"Dibandingkan per tiga tahun, pergeserannya {selisih:+.1f} poin.")
+        f"Dibandingkan per tiga tahun, perubahannya {selisih:+.1f} poin.")
 
     # Warna tiap deret disebut tegas, tidak diserahkan pada putaran warna
     # bawaan. Kalau diserahkan, kedua garis batas ikut memperoleh warna
@@ -2673,7 +2673,7 @@ def _mutu_arah() -> None:
         hovertemplate="%{x}: %{y:.1f} persen dikabulkan<extra></extra>"))
     fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
     fig.update_layout(
-        title="Arah mutu ketetapan menurut tahun putusan",
+        title="Tren mutu ketetapan menurut tahun putusan",
         legend=dict(orientation="h", yanchor="top", y=-0.14,
                     xanchor="left", x=0),
         margin=dict(b=70))
@@ -2807,7 +2807,7 @@ def _mutu_instansi() -> None:
           "Batang yang selangnya saling bersinggungan belum dapat dinyatakan "
           "berbeda satu sama lain.")
 
-    st.html('<div class="tingkat">Arah Mutu Masing Masing Instansi</div>')
+    st.html('<div class="tingkat">Tren Mutu Tiap Instansi</div>')
     fig = go.Figure()
     ada_deret = False
     for kode in g["instansi_terbanding"]:
@@ -2866,7 +2866,7 @@ def _mutu_formal() -> None:
     k = st.columns(3)
     k[0].html(TV.kartu("Gugur sebelum pokok sengketa", f"{ng:,}",
                        f"dari {n:,} putusan beramar"))
-    k[1].html(TV.kartu("Bagiannya", f"{100 * ng / n:.1f} %",
+    k[1].html(TV.kartu("Persentasenya", f"{100 * ng / n:.1f} %",
                        "seluruhnya dapat dicegah sejak awal"))
     jeda = jeda_hari(gagal)
     k[2].html(TV.kartu(
@@ -2893,7 +2893,7 @@ def _mutu_formal() -> None:
         "perubahan aturan, cukup pemberitahuan yang jelas kepada wajib pajak "
         "beserta penelitian kelengkapan berkas di tahap pendaftaran.")
 
-    st.html('<div class="tingkat">Pergerakan dari Tahun ke Tahun</div>')
+    st.html('<div class="tingkat">Tren dari Tahun ke Tahun</div>')
     t = (dd.dropna(subset=["tahun_putusan"])
          .assign(gagal=lambda x: x["amar"] == "tidak_dapat_diterima")
          .groupby("tahun_putusan")
@@ -3431,7 +3431,7 @@ def hal_kinerja() -> None:
     k = st.columns(3)
     k[0].html(TV.kartu("Median jeda musyawarah ke pengucapan", f"{j.median():.0f} hari",
                        f"dari {len(j):,} putusan bertanggal lengkap"))
-    k[1].html(TV.kartu("Sepersepuluh terlama", f"{j.quantile(0.9):.0f} hari",
+    k[1].html(TV.kartu("Sepuluh persen terlama", f"{j.quantile(0.9):.0f} hari",
                        "atau lebih lama lagi"))
     k[2].html(TV.kartu("Lebih dari setahun",
                        f"{100 * (j > 365).mean():.0f} %",
@@ -3656,6 +3656,63 @@ def hal_metode() -> None:
     "Durasi Penyelesaian Sengketa": hal_kinerja,
     "Metodologi": hal_metode,
 }[halaman]()
+
+# ---------------------------------------------------------------------------
+# Pita keandalan, digambar di kaki tiap halaman analisis.
+#
+# Tiap halaman bertumpu pada ruas yang berbeda, dan kelengkapannya berbeda
+# jauh. Daftar di bawah menyebut ruas penopang tiap halaman, dan pitanya
+# menghitung kelengkapan pada lingkup yang sedang tampil, bukan pada seluruh
+# arsip, supaya angkanya ikut berubah ketika penyaring tahun digeser.
+# Metodologi tidak diberi pita karena sudah memuat tabel kelengkapan lengkap.
+# ---------------------------------------------------------------------------
+
+RUAS_ANDAL = {
+    "Ringkasan Eksekutif": [("Amar", "amar"), ("Tanggal ucap", "tanggal_ucap"),
+                            ("Jenis ketetapan", "jenis_ketetapan")],
+    "Risalah Putusan": [("Nomor putusan", "nomor_putusan_raw"),
+                        ("Amar", "amar"), ("Nama pemohon", "nama_pemohon")],
+    "Pola Putusan Sejenis": [("Amar", "amar"),
+                             ("Jenis pajak", "kode_jenis_pajak"),
+                             ("Jenis koreksi", "jenis_koreksi")],
+    "Pilihan Upaya Hukum": [("Jenis perkara", "jenis_perkara"),
+                            ("Amar", "amar"),
+                            ("Tanggal ucap", "tanggal_ucap")],
+    "Konsistensi Putusan Hakim": [("Amar", "amar"),
+                                  ("Kode majelis", "kode_majelis"),
+                                  ("Hakim ketua", "hakim_ketua")],
+    "Sengketa Berulang": [("Nama pemohon", "nama_pemohon_norm"),
+                          ("Amar", "amar"),
+                          ("Jenis koreksi", "jenis_koreksi")],
+    "Mutu Ketetapan": [("Jenis ketetapan", "jenis_ketetapan"),
+                       ("Jenis koreksi", "jenis_koreksi"), ("Amar", "amar"),
+                       ("Instansi", "instansi_terbanding")],
+    "Pasal Penentu": [("Amar", "amar"),
+                      ("Jenis ketetapan", "jenis_ketetapan")],
+    "Unit Penerbit Ketetapan": [("Unit penerbit", "unit_penerbit"),
+                                ("Amar", "amar")],
+    "Profil Hakim": [("Hakim ketua", "hakim_ketua"),
+                     ("Hakim anggota", "hakim_anggota"),
+                     ("Tanggal ucap", "tanggal_ucap")],
+    "Durasi Penyelesaian Sengketa": [("Tanggal ucap", "tanggal_ucap"),
+                                     ("Tanggal musyawarah",
+                                      "tanggal_musyawarah")],
+}
+
+if halaman in RUAS_ANDAL and not d.empty:
+    isi_pita = [(lab, 100 * d[kol].notna().mean())
+                for lab, kol in RUAS_ANDAL[halaman] if kol in d]
+    if isi_pita:
+        st.html(TV.pita_andal(isi_pita, len(d)))
+elif halaman == "Nilai Sengketa":
+    # Halaman ini bersumber daftar resmi, bukan arsip risalah, sehingga
+    # ruas yang dinilai berbeda: nilai awal dan akhir per putusan.
+    _rs = muat_resmi()
+    if not _rs.empty:
+        st.html(TV.pita_andal(
+            [("Nilai awal", 100 * _rs["nilai_awal"].notna().mean()),
+             ("Nilai akhir", 100 * _rs["nilai_akhir"].notna().mean()),
+             ("Amar", 100 * _rs["amar"].notna().mean())], len(_rs)))
 
 _t = keadaan_tarikan()
 if _t["menit"] is None:
