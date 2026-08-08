@@ -1002,7 +1002,8 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Tema Sengketa", "Mutu Ketetapan",
            "Pasal Penentu", "Unit Penerbit Ketetapan",
-           "Profil Hakim", "Durasi Penyelesaian Sengketa", "Metodologi"]
+           "Profil Hakim", "Durasi Penyelesaian Sengketa",
+           "Panduan Analisis", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
            "Pilihan Upaya Hukum": "Preskriptif",
@@ -1028,14 +1029,16 @@ MODUL = {
     "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
                  "Risalah Putusan", "Konsistensi Putusan Hakim",
                  "Sengketa Berulang", "Tema Sengketa", "Profil Hakim",
-                 "Durasi Penyelesaian Sengketa", "Metodologi"],
+                 "Durasi Penyelesaian Sengketa", "Panduan Analisis",
+                 "Metodologi"],
     "Fiskus": ["Beranda", "Ringkasan Eksekutif", "Tema Sengketa",
                "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit Ketetapan",
-               "Konsistensi Putusan Hakim", "Risalah Putusan", "Metodologi"],
+               "Konsistensi Putusan Hakim", "Risalah Putusan",
+               "Panduan Analisis", "Metodologi"],
     "Wajib pajak": ["Beranda", "Ringkasan Eksekutif", "Pola Putusan Sejenis",
                     "Pilihan Upaya Hukum", "Risalah Putusan",
-                    "Metodologi"],
+                    "Panduan Analisis", "Metodologi"],
 }
 # Nama halaman yang sah untuk tautan dan perpindahan, termasuk Beranda yang
 # tidak berada pada daftar induk karena isinya bergantung modul.
@@ -1638,6 +1641,8 @@ def _nilai_simulasi(ada: pd.DataFrame) -> None:
                      title="Penurunan tingkat dikabulkan, poin persen")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      title="Rp triliun")
+    # Ruang bawah ditambah; tanpa ini judul sumbunya terpotong tepi kartu.
+    fig.update_layout(margin=dict(b=74))
     # Pilihan yang sedang aktif ditandai supaya tuas di atas dan bagan di
     # bawah terbaca sebagai satu kesatuan, bukan dua sajian terpisah.
     fig.add_vline(x=turun, line_dash="dot", line_color=P["tinta_2"])
@@ -2033,14 +2038,11 @@ def hal_telusur() -> None:
 def hal_belajar() -> None:
     st.subheader("Pola Putusan Sejenis")
     st.caption(
-        "Setelah ciri perkara dipilih, halaman ini menyajikan rekam jejak "
-        "historisnya: "
-        "bagaimana perkara serupa diputus, argumen hukum apa yang menyertai "
-        "yang dikabulkan, serta aspek formal apa yang menggugurkan perkara. "
-        "Seluruh "
-        "angka adalah frekuensi historis atas putusan yang telah dijatuhkan, "
-        "bukan "
-        "ramalan atas perkara Anda.")
+        "Pilih ciri perkara, dan halaman menunjukkan rekam jejaknya: "
+        "bagaimana perkara serupa diputus, argumen apa yang menyertai "
+        "yang menang, dan kesalahan formal apa yang membuat perkara "
+        "gugur. Semua angka adalah catatan masa lalu, bukan ramalan atas "
+        "perkara Anda.")
 
     kode_ada = sorted(d["kode_jenis_pajak"].dropna().astype(str).unique())
     kor_ada = sorted({LABEL_KOREKSI.get(x, x)
@@ -2160,12 +2162,10 @@ def hal_belajar() -> None:
 def hal_jalur() -> None:
     st.subheader("Pilihan Upaya Hukum")
     st.caption(
-        "Halaman ini membantu wajib pajak menentukan jalur pengajuan "
-        "sengketa sebelum perkara didaftarkan. Disajikan peluang "
-        "keberhasilan tiap jalur menurut putusan yang telah dijatuhkan, "
-        "tenggat waktu yang mengikat, serta risiko yang jarang disadari. "
-        "Seluruh angka merupakan frekuensi historis, bukan nasihat hukum "
-        "atas perkara tertentu.")
+        "Bekal menentukan jalur sebelum perkara didaftarkan: peluang "
+        "tiap jalur menurut putusan yang sudah ada, tenggat yang "
+        "mengikat, dan risiko yang jarang disadari. Semua angka adalah "
+        "catatan masa lalu, bukan nasihat hukum atas perkara tertentu.")
 
     rs = muat_resmi()
     if rs.empty:
@@ -2791,10 +2791,10 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
 def hal_ketetapan() -> None:
     st.subheader("Mutu Ketetapan")
     st.caption(
-        "Menelaah sengketa dari sisi penerbitan, yaitu ketetapan yang "
-        "diterbitkan unit beserta koreksi yang mendasarinya. Lima sudut "
-        "telaah disusun sebagai tab, dari yang menggambarkan keadaan sampai "
-        "yang menunjukkan arah perbaikannya.")
+        "Melihat sengketa dari sisi penerbit ketetapan: jenis ketetapan "
+        "dan koreksi apa yang paling sering gugur di pengadilan. Lima "
+        "tab tersusun dari memotret keadaan sampai menunjukkan arah "
+        "perbaikannya.")
 
     t1, t2, t3, t4, t5 = st.tabs([
         "Jenis ketetapan", "Jenis koreksi", "Tren hasil putusan",
@@ -3377,12 +3377,10 @@ def _mutu_formal() -> None:
 def hal_dasar() -> None:
     st.subheader("Pasal Penentu")
     st.caption(
-        "Rekapitulasi pasal yang paling sering dirujuk ketika ketetapan "
-        "dikoreksi "
-        "pengadilan, dari arsip risalah yang sudah terurai. Bagi penelaah "
-        "keberatan dan penyusun pedoman, pasal-pasal inilah "
-            "yang paling menentukan arah pembuktian. Hubungan yang tersaji "
-            "berupa kemunculan bersama, bukan sebab akibat.")
+        "Pasal yang paling sering dirujuk ketika ketetapan dikoreksi "
+        "pengadilan. Bagi penelaah keberatan, pasal pasal inilah yang "
+        "paling menentukan arah pembuktian. Yang tersaji adalah "
+        "kemunculan bersama, bukan sebab akibat.")
 
     dh = muat_dasar_hukum()
     dd = beramar(d)
@@ -3922,6 +3920,8 @@ def _durasi_perkiraan() -> None:
     fig.update_xaxes(showgrid=False, title="Hari")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      title="Jumlah putusan")
+    # Ruang bawah ditambah; tanpa ini judul sumbunya terpotong tepi kartu.
+    fig.update_layout(margin=dict(b=64))
     bagan(fig, 340, None,
           "Perkiraan ini menyangkut jeda musyawarah sampai pengucapan, "
           "bagian proses yang tanggalnya terbaca paling lengkap di arsip. "
@@ -4231,11 +4231,10 @@ def petakan_tema(pokok: pd.Series, koreksi: pd.Series) -> pd.DataFrame:
 def hal_tema() -> None:
     st.subheader("Tema Sengketa")
     st.caption(
-        "Apa yang sebenarnya dipersengketakan, dibaca langsung dari uraian "
-        "pokok sengketa pada tiap putusan. Halaman ini menjawab pertanyaan "
-        "yang selama ini dijawab manual dalam paparan: tema apa yang "
-        "berulang, dan tema mana yang paling sering dimenangkan wajib "
-        "pajak.")
+        "Apa yang sebenarnya dipersengketakan, dibaca dari uraian pokok "
+        "sengketa dan jenis koreksi pada tiap putusan. Dua pertanyaannya "
+        "sederhana: tema apa yang terus berulang, dan tema mana yang "
+        "paling sering dimenangkan wajib pajak.")
 
     punya = d[(d["pokok_sengketa"].notna()
                & (d["pokok_sengketa"].str.len() > 15))
@@ -4387,6 +4386,118 @@ def hal_tema() -> None:
              if pilih_baris and pilih_baris.selection else [])
         if b:
             buka_putusan(isi.iloc[b[0]]["doc_id"], f"tema_{pilih_tema}")
+
+
+# ---------------------------------------------------------------------------
+# Panduan analisis: menjelaskan empat dimensi dengan bahasa sehari hari
+# ---------------------------------------------------------------------------
+
+def hal_panduan() -> None:
+    """
+    Halaman penjelasan dimensi analisis, ditulis untuk orang awam.
+
+    Tiap halaman dashboard membawa penanda dimensi seperti diagnostik atau
+    prediktif, dan istilah itu tidak pernah dijelaskan di mana pun. Pembaca
+    yang tidak berlatar analitik hanya bisa menebak. Halaman ini menjelaskan
+    keempatnya dengan satu perumpamaan yang sudah dikenal semua orang, yaitu
+    urutan berpikir seorang dokter, lalu menunjukkan halaman mana menjawab
+    pertanyaan apa.
+    """
+    st.subheader("Panduan Analisis")
+    st.caption(
+        "Arti penanda dimensi yang tampil di tiap halaman, dijelaskan "
+        "dengan bahasa sehari hari, beserta peta halaman mana menjawab "
+        "pertanyaan apa.")
+
+    st.markdown(
+        "Dashboard ini menyusun analisisnya dalam empat tingkatan, dan "
+        "cara paling mudah memahaminya adalah urutan berpikir seorang "
+        "dokter.\n\n"
+        "Dokter mulai dengan **memeriksa keadaan**: berapa tekanan darah, "
+        "berapa suhu badan. Lalu **mencari sebab**: kenapa demamnya tidak "
+        "turun. Lalu **memperkirakan ke depan**: berapa lama pemulihannya. "
+        "Terakhir **menentukan tindakan**: obat apa yang diminum. Empat "
+        "langkah itu persis empat dimensi di dashboard ini.")
+
+    def bagian(judul, tanya, isi, daftar):
+        st.html(f'<div class="tingkat">{judul}</div>')
+        st.markdown(f"**Pertanyaannya: {tanya}**\n\n{isi}")
+        for tanya_hal, tujuan in daftar:
+            if st.button(tanya_hal, key=f"pandu-{TV.kunci_nav(tujuan)}-"
+                         f"{hash(tanya_hal) & 0xffff}", width="stretch"):
+                st.session_state["nav_tujuan"] = tujuan
+                st.rerun()
+
+    bagian(
+        "Deskriptif · Memeriksa Keadaan",
+        "apa yang sedang terjadi?",
+        "Menghitung dan menyajikan keadaan apa adanya, tanpa menafsirkan. "
+        "Seperti dokter membaca hasil laboratorium: angkanya dulu, "
+        "kesimpulannya belakangan. Contohnya berapa banyak sengketa per "
+        "tahun, berapa nilai yang diperebutkan, dan siapa saja hakimnya.",
+        [("Berapa nilai sengketa dan berapa yang dikoreksi pengadilan?",
+          "Nilai Sengketa"),
+         ("Bagaimana keadaan sengketa secara keseluruhan?",
+          "Ringkasan Eksekutif"),
+         ("Siapa hakimnya dan bagaimana rekam jejaknya?", "Profil Hakim")])
+
+    bagian(
+        "Diagnostik · Mencari Sebab",
+        "mengapa itu terjadi?",
+        "Membedah keadaan untuk menemukan sumber persoalannya. Kalau enam "
+        "dari sepuluh ketetapan yang disengketakan berujung dikoreksi, "
+        "dimensi ini mencari di mana persisnya: jenis koreksi apa yang "
+        "paling sering gugur, unit mana yang paling sering kalah, tema apa "
+        "yang terus berulang. Ini bahan utama pembenahan.",
+        [("Ketetapan jenis apa yang paling sering dikoreksi, dan kenapa?",
+          "Mutu Ketetapan"),
+         ("Apa yang sebenarnya paling sering dipersengketakan?",
+          "Tema Sengketa"),
+         ("Siapa yang bersengketa berulang kali dengan hasil sama?",
+          "Sengketa Berulang"),
+         ("Apakah perkara sejenis diputus serupa?",
+          "Konsistensi Putusan Hakim"),
+         ("Pasal apa yang paling menentukan kalah menang?", "Pasal Penentu"),
+         ("Unit mana yang ketetapannya paling sering gugur?",
+          "Unit Penerbit Ketetapan")])
+
+    bagian(
+        "Prediktif · Memperkirakan ke Depan",
+        "apa yang kira kira akan terjadi?",
+        "Memperkirakan yang belum terjadi dari pola yang sudah terjadi, "
+        "selalu dengan rentang, bukan angka tunggal. Ada satu batas yang "
+        "dijaga ketat di seluruh dashboard ini: **hasil perkara "
+        "perseorangan tidak pernah diramalkan**, karena tiap perkara punya "
+        "bukti dan keadaannya sendiri. Yang diperkirakan hanya hal yang "
+        "sah diperkirakan: lamanya proses, banyaknya perkara, dan pola "
+        "kelompok perkara sejenis.",
+        [("Perkara seperti punya saya biasanya berakhir bagaimana?",
+          "Pola Putusan Sejenis"),
+         ("Berapa lama perkara saya kira kira berproses?",
+          "Durasi Penyelesaian Sengketa"),
+         ("Berapa banyak perkara yang akan masuk tahun depan?",
+          "Ringkasan Eksekutif")])
+
+    bagian(
+        "Preskriptif · Menentukan Tindakan",
+        "lalu sebaiknya berbuat apa?",
+        "Mengubah temuan menjadi saran tindakan beserta taksiran "
+        "dampaknya. Di dashboard ini bentuknya tiga: saran jalur upaya "
+        "hukum bagi wajib pajak, catatan tindakan bertanda biru di kaki "
+        "halaman analisis, dan simulasi yang menghitung berapa rupiah "
+        "nilai yang terselamatkan bila mutu ketetapan diperbaiki.",
+        [("Jalur mana yang sebaiknya saya tempuh?", "Pilihan Upaya Hukum"),
+         ("Kalau mutu diperbaiki, berapa nilai dampaknya?",
+          "Nilai Sengketa")])
+
+    st.html(TV.catatan_siap(
+        "Satu hal yang berlaku di seluruh dashboard.",
+        "Setiap angka berdiri di atas data yang kelengkapannya berbeda, dan "
+        "pita di kaki tiap halaman menyatakan seberapa lengkap data di "
+        "balik halaman itu. Angka pada bagian hijau boleh dipegang, angka "
+        "pada bagian kuning atau merah sebaiknya dibaca sebagai perkiraan. "
+        "Membaca dashboard dengan sehat berarti membaca angkanya bersama "
+        "batas datanya."))
 
 
 # ---------------------------------------------------------------------------
@@ -4542,6 +4653,7 @@ def hal_beranda() -> None:
     "Mutu Ketetapan": hal_ketetapan,
     "Profil Hakim": hal_hakim,
     "Durasi Penyelesaian Sengketa": hal_kinerja,
+    "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
 }[halaman]()
 

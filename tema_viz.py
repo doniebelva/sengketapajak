@@ -703,13 +703,25 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stColumn"] div[data-testid="stElementContainer"] {{
     height: 100%;
   }}
+  /* Kartu angka. Garis aksen tipis di tepi atas memberi identitas tanpa
+     membebani, dan bayangan yang sedikit dalam membuat kartunya terangkat
+     dari latar. Perubahan halus ini yang membedakan tampilan rapi dari
+     tampilan datar. */
   .kpi {{
+    position: relative; overflow: hidden;
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
-    border-radius: 12px; padding: 14px 16px;
+    border-radius: 12px; padding: 15px 17px 14px;
     height: 100%; min-height: 116px;
     display: flex; flex-direction: column; justify-content: flex-start;
-    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    transition: box-shadow .18s ease;
   }}
+  .kpi::before {{
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, {p["seri"][0]},
+                                {lembut(p["seri"][0], .25)});
+  }}
+  .kpi:hover {{ box-shadow: 0 4px 14px rgba(0,0,0,.10); }}
   .kpi-ket {{ margin-top: auto; }}
   .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
                 text-transform: uppercase; color: {p["tinta_2"]}; }}
@@ -727,7 +739,22 @@ def gaya(gelap: bool) -> str:
   /* --- Bagan dan tabel -------------------------------------------------- */
   div[data-testid="stPlotlyChart"] {{
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
-    border-radius: 12px; padding: 8px 12px 12px 12px;
+    border-radius: 12px; padding: 10px 14px 14px 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }}
+
+  /* Lebar isi dibatasi pada layar sangat lebar. Baris tulisan yang
+     membentang penuh pada monitor lebar menjadi terlalu panjang untuk
+     diikuti mata, dan halaman terasa kosong di tengah. */
+  div[data-testid="stMainBlockContainer"] {{
+    max-width: 1560px; margin: 0 auto;
+  }}
+  /* Tulisan naratif utama dibuat sedikit lebih besar dan lapang. Ukuran
+     bawaan terasa padat untuk paragraf penjelasan yang panjang, padahal
+     paragraf itulah yang membedakan dashboard ini dari sekadar bagan. */
+  div[data-testid="stMainBlockContainer"]
+      div[data-testid="stMarkdownContainer"] p {{
+    font-size: 14px; line-height: 1.68;
   }}
   div[data-testid="stDataFrame"] {{
     border-radius: 12px; overflow: hidden; border: 1px solid {p["tepi"]};
@@ -748,25 +775,31 @@ def gaya(gelap: bool) -> str:
      dapat diatur. Tabel bawaan Streamlit digambar di atas kanvas, sehingga
      perataan tidak dapat disentuh dari gaya halaman. */
   table.tabel {{
-    width: 100%; border-collapse: collapse; font-size: 12.5px;
+    width: 100%; border-collapse: collapse; font-size: 13px;
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
     border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
   }}
   table.tabel th {{
-    text-align: center; font-weight: 600; font-size: 11px;
-    letter-spacing: .04em; text-transform: uppercase;
+    text-align: center; font-weight: 650; font-size: 11px;
+    letter-spacing: .05em; text-transform: uppercase;
     color: {p["tinta_2"]}; background: {p["bidang"]};
-    padding: 9px 12px; border-bottom: 1px solid {p["tepi"]};
+    padding: 10px 14px; border-bottom: 1px solid {p["tepi"]};
   }}
   table.tabel th.kiri, table.tabel td.kiri {{ text-align: left; }}
   table.tabel th.kanan, table.tabel td.kanan {{ text-align: right; }}
   table.tabel td {{
-    text-align: center; padding: 8px 12px; color: {p["tinta"]};
+    text-align: center; padding: 9px 14px; color: {p["tinta"]};
     border-bottom: 1px solid {p["tepi"]};
     font-variant-numeric: tabular-nums;
   }}
+  /* Baris belang tipis memudahkan mata menyusuri baris panjang, dan warna
+     sorot saat ditunjuk membuat baris yang sedang dibaca tidak hilang. */
+  table.tabel tbody tr:nth-child(even) td {{
+    background: {lembut(p["seri"][0], .035)};
+  }}
   table.tabel tr:last-child td {{ border-bottom: none; }}
-  table.tabel tr:hover td {{ background: {lembut(p["seri"][0], .06)}; }}
+  table.tabel tr:hover td {{ background: {lembut(p["seri"][0], .09)}; }}
 
   /* Ragam tabel berkolom sama lebar, untuk tabel berkolom banyak yang harus
      tampil penuh selebar halaman tanpa geser mendatar. Lebarnya dibagi rata,
@@ -824,10 +857,17 @@ def gaya(gelap: bool) -> str:
     color: {p["tinta_2"]} !important; font-size: 12px !important;
     line-height: 1.55 !important;
   }}
+  /* Judul bagian diberi penggal aksen pendek di kirinya, supaya struktur
+     halaman terbaca sekali pandang tanpa perlu membaca tulisannya. */
   .tingkat {{
+    display: flex; align-items: center; gap: 8px;
     font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
     text-transform: uppercase; color: {p["tinta_2"]};
-    margin: 20px 0 4px 0;
+    margin: 22px 0 6px 0;
+  }}
+  .tingkat::before {{
+    content: ""; width: 16px; height: 3px; border-radius: 2px;
+    background: {p["seri"][0]}; flex: none;
   }}
   .jejak {{
     font-size: 13px; color: {p["tinta_2"]}; margin: 0 0 12px 0;
@@ -1156,6 +1196,7 @@ _IKON_NAV = {
     "Unit Penerbit Ketetapan": "%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V4l8-2v19'/%3E%3Cpath d='M13 21h6V9l-6-2'/%3E%3Cpath d='M8 8h.01M8 12h.01M8 16h.01'/%3E",
     "Profil Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
     "Durasi Penyelesaian Sengketa": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
+    "Panduan Analisis": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v.01'/%3E%3Cpath d='M12 13a2.5 2.5 0 0 0 1.5-4.5 2.5 2.5 0 0 0-3.9 2'/%3E",
     "Metodologi": "%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E",
 }
 
