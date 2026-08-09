@@ -811,8 +811,11 @@ def gaya(gelap: bool) -> str:
   div.gulung table.tabel {{ border: none; border-radius: 0; }}
   table.tabel.rata {{ table-layout: fixed; font-size: 11.5px; }}
   table.tabel.rata th {{
-    white-space: normal; overflow-wrap: anywhere; vertical-align: bottom;
-    font-size: 10px; padding: 8px 5px;
+    /* Kepala kolom boleh melipat pada spasi, tetapi tidak di tengah kata.
+       Lipatan bebas pernah memenggal DIUCAPKAN menjadi DIUCAPKA dan N,
+       yang terbaca seperti salah cetak. */
+    white-space: normal; overflow-wrap: break-word; vertical-align: bottom;
+    font-size: 9.5px; padding: 8px 4px;
     position: sticky; top: 0; z-index: 2;
   }}
   table.tabel.rata td {{ overflow-wrap: anywhere; padding: 7px 5px; }}
