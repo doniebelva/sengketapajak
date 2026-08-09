@@ -703,23 +703,16 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stColumn"] div[data-testid="stElementContainer"] {{
     height: 100%;
   }}
-  /* Kartu angka. Garis aksen tipis di tepi atas memberi identitas tanpa
-     membebani, dan bayangan yang sedikit dalam membuat kartunya terangkat
-     dari latar. Perubahan halus ini yang membedakan tampilan rapi dari
-     tampilan datar. */
+  /* Kartu angka. Garis aksen di tepi atas pernah dipasang dan dicabut atas
+     permintaan pemilik; identitas kartu cukup dari bayangan yang sedikit
+     terangkat, tanpa hiasan berwarna. */
   .kpi {{
-    position: relative; overflow: hidden;
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
     border-radius: 12px; padding: 15px 17px 14px;
     height: 100%; min-height: 116px;
     display: flex; flex-direction: column; justify-content: flex-start;
     box-shadow: 0 1px 3px rgba(0,0,0,.06);
     transition: box-shadow .18s ease;
-  }}
-  .kpi::before {{
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, {p["seri"][0]},
-                                {lembut(p["seri"][0], .25)});
   }}
   .kpi:hover {{ box-shadow: 0 4px 14px rgba(0,0,0,.10); }}
   .kpi-ket {{ margin-top: auto; }}
@@ -857,17 +850,12 @@ def gaya(gelap: bool) -> str:
     color: {p["tinta_2"]} !important; font-size: 12px !important;
     line-height: 1.55 !important;
   }}
-  /* Judul bagian diberi penggal aksen pendek di kirinya, supaya struktur
-     halaman terbaca sekali pandang tanpa perlu membaca tulisannya. */
+  /* Judul bagian polos tanpa penggal aksen; hiasan berwarna pada judul
+     dicabut atas permintaan pemilik. */
   .tingkat {{
-    display: flex; align-items: center; gap: 8px;
     font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
     text-transform: uppercase; color: {p["tinta_2"]};
     margin: 22px 0 6px 0;
-  }}
-  .tingkat::before {{
-    content: ""; width: 16px; height: 3px; border-radius: 2px;
-    background: {p["seri"][0]}; flex: none;
   }}
   .jejak {{
     font-size: 13px; color: {p["tinta_2"]}; margin: 0 0 12px 0;
