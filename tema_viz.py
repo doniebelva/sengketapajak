@@ -52,8 +52,11 @@ ASET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aset")
 
 TERANG = {
     "seri": ["#2f6cc0", "#b8890a", "#1f7a4d"],
+    # Ujung terang gradasi kop, biru royal khas Kemenkeu. Tulisan putih di
+    # atasnya berkontras sekitar sembilan banding satu, jauh di atas ambang.
+    "navy_terang": "#0f4c8f",
     "navy": "#1e3a6e",
-    "navy_2": "#162d57",
+    "navy_2": "#142a52",
     "permukaan": "#ffffff",
     "bidang": "#eef1f5",
     "tinta": "#0b0b0b",
@@ -69,8 +72,9 @@ TERANG = {
 
 GELAP = {
     "seri": ["#4a8ae0", "#ad8110", "#2f9c68"],
+    "navy_terang": "#0d3a6e",
     "navy": "#16243f",
-    "navy_2": "#0f1a2e",
+    "navy_2": "#0c1a30",
     "permukaan": "#1c1f26",
     "bidang": "#12141a",
     "tinta": "#ffffff",
@@ -326,7 +330,13 @@ def gaya(gelap: bool) -> str:
     position: fixed; top: 0; left: 0; right: 0; z-index: 1000000;
     display: flex; align-items: center; gap: 16px;
     height: {TINGGI_KOP}px; padding: 0 {SISI};
-    background: linear-gradient(100deg, {p["navy"]}, {p["navy_2"]});
+    /* Gradasi biru Kemenkeu: biru royal di sisi logo turun ke navy dalam di
+       sisi kanan. Gradasi lama memakai dua navy yang nyaris sama sehingga
+       tampak polos; tiga perhentian ini memberi kedalaman tanpa mengurangi
+       kontras tulisan putih, yang pada titik paling terang pun masih jauh
+       di atas ambang keterbacaan. */
+    background: linear-gradient(115deg, {p["navy_terang"]} 0%,
+                                {p["navy"]} 48%, {p["navy_2"]} 100%);
     box-shadow: 0 1px 6px rgba(0,0,0,.22);
   }}
   .kop img {{ height: 40px; width: auto; }}
