@@ -725,6 +725,23 @@ def gaya(gelap: bool) -> str:
     transition: box-shadow .18s ease;
   }}
   .kpi:hover {{ box-shadow: 0 4px 14px rgba(0,0,0,.10); }}
+  /* Bingkai warna tipis pada kartu angka, berputar tiga warna deret bagan:
+     biru, emas, hijau. Warnanya dilembutkan supaya terasa sebagai aksen,
+     bukan hiasan ramai, dan bagan maupun tabel sengaja tetap berbingkai
+     netral supaya kartunya yang menonjol. Putarannya per kolom dalam satu
+     baris kartu, sehingga kartu bersebelahan tidak pernah sewarna. */
+  div[data-testid="stHorizontalBlock"]
+    > div[data-testid="stColumn"]:nth-of-type(3n+1) .kpi {{
+    border-color: {lembut(p["seri"][0], .55)};
+  }}
+  div[data-testid="stHorizontalBlock"]
+    > div[data-testid="stColumn"]:nth-of-type(3n+2) .kpi {{
+    border-color: {lembut(p["seri"][1], .55)};
+  }}
+  div[data-testid="stHorizontalBlock"]
+    > div[data-testid="stColumn"]:nth-of-type(3n) .kpi {{
+    border-color: {lembut(p["seri"][2], .55)};
+  }}
   .kpi-ket {{ margin-top: auto; }}
   .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
                 text-transform: uppercase; color: {p["tinta_2"]}; }}
