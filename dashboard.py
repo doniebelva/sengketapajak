@@ -155,7 +155,7 @@ def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
 # setiap gerakan pengguna dan seluruh dashboard terasa berat. Pesan
 # pemuatannya ditulis sendiri, karena pesan bawaan menampilkan nama fungsi
 # dalam bahasa Inggris yang tidak berarti bagi pemakai.
-@st.cache_data(show_spinner="Memuat data putusan...")
+@st.cache_resource(show_spinner="Memuat data putusan...")
 def _muat_putusan(usia: float) -> pd.DataFrame:
     with sambung() as c:
         df = pd.read_sql_query("SELECT * FROM putusan", c)
@@ -193,7 +193,7 @@ def _muat_corong(usia: float) -> dict:
         }
 
 
-@st.cache_data(show_spinner="Memuat daftar resmi Sekretariat...")
+@st.cache_resource(show_spinner="Memuat daftar resmi Sekretariat...")
 def _muat_resmi(usia: float) -> pd.DataFrame:
     """Daftar resmi putusan 2021 sampai 2025, dimuat setpp_resmi.py impor.
     Kosong bila tabelnya belum ada, dan halaman pemakainya wajib bersikap
@@ -359,12 +359,27 @@ def keadaan_tarikan() -> dict:
     return {"aktif": menit < 5, "menit": menit}
 
 
-@st.cache_data(show_spinner="Memuat rujukan dasar hukum...")
+@st.cache_resource(show_spinner="Memuat rujukan dasar hukum...")
 def _muat_dasar_hukum(usia: float) -> pd.DataFrame:
+    """
+    Rujukan dasar hukum dalam bentuk sehemat mungkin.
+
+    Tabel ini 871 ribu baris, dan memuatnya utuh tujuh kolom pernah
+    menghabiskan ratusan megabita sampai aplikasi di peladen jatuh
+    kehabisan memori. Kedua halaman pemakainya hanya membutuhkan dua hal:
+    pengenal dokumen dan tulisan rujukannya. Rujukan dirangkai di SQL, dan
+    karena isinya sangat berulang, disimpan sebagai kategori: dari ratusan
+    megabita menjadi belasan.
+    """
     with sambung() as c:
-        return pd.read_sql_query(
-            "SELECT doc_id, pasal, ayat, uu_nomor, uu_tahun, uu_nama, "
-            "asal_konteks FROM dasar_hukum", c)
+        df_ = pd.read_sql_query(
+            "SELECT doc_id, 'Pasal ' || pasal || ' ' || "
+            "COALESCE(uu_nama, 'UU ' || uu_nomor) AS rujukan "
+            "FROM dasar_hukum "
+            "WHERE uu_nomor IS NOT NULL AND pasal IS NOT NULL", c)
+    df_["doc_id"] = df_["doc_id"].astype("int32")
+    df_["rujukan"] = df_["rujukan"].astype("category")
+    return df_
 
 
 def cari_teks(kueri: str, batas: int) -> pd.DataFrame:
@@ -2193,13 +2208,11 @@ def hal_belajar() -> None:
     st.html('<div class="tingkat">Argumen Hukum pada Putusan yang Dikabulkan</div>')
     dh = muat_dasar_hukum()
     menang_id = set(ss[ss["amar"].isin(AMAR_MENANG)]["doc_id"])
-    dh = dh[dh["doc_id"].isin(menang_id) & dh["uu_nomor"].notna()]
+    dh = dh[dh["doc_id"].isin(menang_id)]
     if dh.empty:
         st.info("Belum terdapat rujukan dasar hukum pada kelompok ini.")
     else:
-        dh = dh.assign(rujukan="Pasal " + dh["pasal"].astype(str) + " "
-                       + dh["uu_nama"].fillna("UU " + dh["uu_nomor"].astype(str)))
-        r = (dh.groupby("rujukan")["doc_id"].nunique()
+        r = (dh.groupby("rujukan", observed=True)["doc_id"].nunique()
              .sort_values(ascending=False).head(8)
              .rename_axis("Rujukan").reset_index(name="Putusan"))
         bagan(batang_peringkat(r, "Rujukan", "Putusan",
@@ -3510,14 +3523,11 @@ def hal_dasar() -> None:
 
     menang_id = set(s[s["amar"].isin(AMAR_MENANG)]["doc_id"])
     tolak_id = set(s[s["amar"] == "tolak"]["doc_id"])
-    du = dh[dh["uu_nomor"].notna()].copy()
-    du["Rujukan"] = ("Pasal " + du["pasal"].astype(str) + " "
-                     + du["uu_nama"].fillna("UU "
-                                            + du["uu_nomor"].astype(str)))
+    du = dh.rename(columns={"rujukan": "Rujukan"})
     rk = (du[du["doc_id"].isin(menang_id)]
-          .groupby("Rujukan")["doc_id"].nunique())
+          .groupby("Rujukan", observed=True)["doc_id"].nunique())
     rt = (du[du["doc_id"].isin(tolak_id)]
-          .groupby("Rujukan")["doc_id"].nunique())
+          .groupby("Rujukan", observed=True)["doc_id"].nunique())
     # Pangsa kehadiran tidak bermakna pada populasi yang sangat kecil. Ketika
     # penyaring menyempit sampai tersisa segelintir putusan dikabulkan, tiap
     # pasal yang kebetulan dirujuk satu putusan akan tampil seratus persen,

@@ -549,21 +549,43 @@ def gaya(gelap: bool) -> str:
   /* --- Bilah samping ---------------------------------------------------- */
   section[data-testid="stSidebar"] {{
     background: {p["permukaan"]}; border-right: 1px solid {p["tepi"]};
+    position: relative;
   }}
+  /* Ruang atas diberi jatah lebih untuk baris tombol pelipat, supaya kotak
+     pencarian di bawahnya tidak tertindih. */
   section[data-testid="stSidebar"] > div {{
-    padding-top: calc({TINGGI_KOP}px + 6px);
+    padding-top: calc({TINGGI_KOP}px + 48px);
     padding-bottom: calc({TINGGI_KAKI}px + 20px);
   }}
   section[data-testid="stSidebar"] div[data-testid="stSidebarHeader"] {{
     padding: 0 !important; height: 0 !important; min-height: 0 !important;
   }}
-  /* Tombol buka tutup pada kedua keadaannya. Ketika bilah samping tertutup,
-     Streamlit memunculkan tombol tersendiri yang menempel di titik nol,
-     sehingga tertimbun bilah judul dan menutupi lambangnya. */
+  /* Tombol pelipat bilah samping. Dulu dipatok pada titik empat piksel dari
+     atas, yang berada di belakang bilah judul, sehingga menu samping tidak
+     pernah bisa ditutup sama sekali. Kini digantung tepat di bawah bilah
+     judul di pojok kanan bilah samping, dibingkai serupa tombol pembukanya
+     di sisi kiri supaya keduanya terbaca sepasang. */
   div[data-testid="stSidebarCollapseButton"],
   button[data-testid="stSidebarCollapseButton"] {{
-    position: absolute !important; top: 4px !important; right: 8px !important;
-    z-index: 6;
+    position: absolute !important;
+    top: calc({TINGGI_KOP}px + 9px) !important; right: 10px !important;
+    width: 32px !important; height: 32px !important;
+    display: inline-flex !important; align-items: center !important;
+    justify-content: center !important;
+    background: {p["permukaan"]} !important; color: {p["tinta"]} !important;
+    border: 1px solid {p["tepi"]} !important; border-radius: 9px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.12) !important;
+    z-index: 6 !important; pointer-events: auto !important;
+  }}
+  div[data-testid="stSidebarCollapseButton"]:hover {{
+    background: {p["bidang"]} !important;
+  }}
+  /* Tombol di dalam pembungkusnya dibuat polos; pembungkusnya yang menjadi
+     pil, supaya tidak ada bingkai ganda. */
+  div[data-testid="stSidebarCollapseButton"] button {{
+    border: none !important; background: transparent !important;
+    color: inherit !important; width: 100% !important;
+    height: 100% !important; padding: 0 !important;
   }}
   div[data-testid="stSidebarCollapsedControl"],
   div[data-testid="collapsedControl"] {{
@@ -761,6 +783,18 @@ def gaya(gelap: bool) -> str:
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
     border-radius: 12px; padding: 10px 14px 14px 14px;
     box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }}
+
+  /* Tata huruf: judul halaman dan judul bagian ditegaskan mengikuti
+     patokan dashboard admin modern, isi menu sedikit dibesarkan supaya
+     nyaman ditunjuk, dan hierarkinya terbaca dari beratnya, bukan dari
+     hiasan. */
+  div[data-testid="stMainBlockContainer"] h3 {{
+    font-size: 21px !important; font-weight: 700 !important;
+    letter-spacing: -.012em !important; padding-bottom: 2px !important;
+  }}
+  section[data-testid="stSidebar"] div[class*="st-key-nav-"] button p {{
+    font-size: 14px !important; font-weight: 550 !important;
   }}
 
   /* Lebar isi dibatasi pada layar sangat lebar. Baris tulisan yang
@@ -1251,15 +1285,19 @@ def ikon_nav(daftar: list, terpilih: str = "", gelap: bool = False) -> str:
             f'-webkit-mask: url("{u}") no-repeat center/contain;'
             f'mask: url("{u}") no-repeat center/contain;}}')
     if terpilih:
+        # Halaman terpilih ditandai pil bernuansa biru lembut, mengikuti
+        # bahasa dashboard admin modern: warnanya cukup jelas untuk terlihat
+        # sekali pandang, tulisannya tetap tinta penuh supaya kontrasnya
+        # tidak turun.
         k = kunci_nav(terpilih)
         aturan.append(
             f'section[data-testid="stSidebar"] .st-key-{k} button {{'
-            f'background: {p["permukaan"]} !important;'
-            f'box-shadow: 0 1px 3px rgba(0,0,0,.10) !important;'
-            f'border-color: {p["tepi"]} !important;}}')
+            f'background: {lembut(p["seri"][0], .14)} !important;'
+            f'border-color: {lembut(p["seri"][0], .35)} !important;'
+            f'box-shadow: none !important;}}')
         aturan.append(
             f'section[data-testid="stSidebar"] .st-key-{k} button p {{'
-            f'color: {p["tinta"]} !important; font-weight: 620 !important;}}')
+            f'color: {p["tinta"]} !important; font-weight: 650 !important;}}')
     return "<style>" + "\n".join(aturan) + "</style>"
 
 
