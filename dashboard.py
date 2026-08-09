@@ -1426,9 +1426,11 @@ def _ikhtisar_ringkas() -> None:
         ulang = 100 * int(vc[vc >= 2].sum()) / len(norm)
     st.markdown(
         f"**{kj_menang:.0f} persen ketetapan yang disengketakan berujung "
-        f"dikabulkan** seluruhnya atau sebagian, dihitung dari {len(kj):,} "
-        "putusan yang jenis ketetapannya teridentifikasi. Rinciannya pada "
-        "halaman Mutu Ketetapan.\n\n"
+        f"dikabulkan** seluruhnya atau sebagian. Angka ini dihitung dari "
+        f"{len(kj):,} putusan yang jenis ketetapannya terbaca, bagian dari "
+        f"{len(d):,} putusan dalam lingkup; pada sisanya jenis ketetapan "
+        "tidak tertulis terbaca di dokumennya. Rinciannya pada halaman "
+        "Mutu Ketetapan.\n\n"
         f"**{ulang:.0f} persen sengketa datang dari wajib pajak yang "
         "bersengketa lebih dari sekali.** Rinciannya pada halaman Sengketa "
         "Berulang.\n\n"
