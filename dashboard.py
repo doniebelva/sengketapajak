@@ -1806,6 +1806,23 @@ def ikon_berkas(nama: str) -> str:
                            ":material/draft:")
 
 
+def tombol_kembali(kunci_daftar: str, label: str) -> None:
+    """
+    Tombol pulang untuk drill di dalam halaman.
+
+    Drill yang berpindah halaman sudah punya tombol kembali di tampilan isi
+    putusan, tetapi drill bertingkat di dalam satu halaman, dari daftar ke
+    rincian, selama ini hanya bisa ditutup dengan menghapus centang pada
+    barisnya, dan tidak ada yang menebak itu. Tombol ini menghapus pilihan
+    barisnya lalu menggambar ulang, sehingga rinciannya menutup dan
+    daftarnya kembali seperti semula.
+    """
+    if st.button(label, icon=":material/arrow_back:",
+                 key=f"balik_{kunci_daftar}"):
+        st.session_state.pop(kunci_daftar, None)
+        st.rerun()
+
+
 def buka_putusan(doc_id, kunci_daftar: str | None = None) -> None:
     """Drill dari daftar nomor putusan di halaman mana pun: catat dokumen
     yang dituju lalu pindah ke halaman telusur, tempat isinya digambar.
@@ -2157,6 +2174,7 @@ def hal_telusur() -> None:
     judul = tampil(r.get("nomor_tampil"), f"Dokumen {r['doc_id']}")
     st.html(f'<div class="jejak">{dim_nama} <b>{nilai_kel}</b><i>›</i>'
             f'Putusan <b>{judul}</b></div>')
+    tombol_kembali(f"list_{dim}_{nilai_kel}", "Kembali ke daftar putusan")
     st.html('<div class="tingkat">Tahap 3 · Isi Putusan</div>')
     tampil_detail(r, cuplikan, q_isi)
 
@@ -2791,6 +2809,7 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
         st.html(f'<div class="jejak">Wajib pajak '
                 f'<b>{str(target["nama_pemohon"].iloc[0])[:40]}</b><i>›</i>'
                 f'<b>{len(t):,}</b> sengketa</div>')
+        tombol_kembali("wp_teratas", "Kembali ke daftar wajib pajak")
         t, nav_sen = potong_halaman(
             t, f"wpsen_{abs(hash(nama)) & 0xffffff}")
         pilih_sen = st.dataframe(
