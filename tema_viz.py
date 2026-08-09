@@ -1111,9 +1111,14 @@ def tabel(df, kolom_kiri: tuple = (), kolom_persen: tuple = (),
             return f'<td class="kanan">{teks}</td>'
         return f'<td class="kiri">{v}</td>'
 
-    kelas = {"persen": "", "identitas": "", "angka": " class=\"kanan\"",
-             "teks": " class=\"kiri\""}
-    kepala = "".join(f"<th{kelas[jenis[k]]}>{k}</th>" for k in df.columns)
+    # Nama kamus ini pernah "kelas" dan menimpa parameter kelas di atasnya,
+    # sehingga permintaan ragam tabel seperti rata tidak pernah sampai ke
+    # HTML-nya: seluruh aturan lebar kolom dan larangan melipat baris mati
+    # diam diam, dan tabel hakim menggelembung dua tiga baris per nama.
+    kelas_kepala = {"persen": "", "identitas": "",
+                    "angka": " class=\"kanan\"", "teks": " class=\"kiri\""}
+    kepala = "".join(f"<th{kelas_kepala[jenis[k]]}>{k}</th>"
+                     for k in df.columns)
     badan = "".join(
         "<tr>" + "".join(sel(k, r[k]) for k in df.columns) + "</tr>"
         for _, r in df.iterrows())

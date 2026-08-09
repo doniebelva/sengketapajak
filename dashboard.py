@@ -682,7 +682,13 @@ def bagan(fig, tinggi: int | None = None, tabel: pd.DataFrame | None = None,
         st.caption(catatan)
     if tabel is not None and not tabel.empty:
         with st.expander("Lihat angka lengkapnya sebagai tabel"):
-            st.html(TV.tabel(tabel))
+            judul_fig = ""
+            try:
+                judul_fig = fig.layout.title.text or ""
+            except Exception:
+                pass
+            tabel_bernavigasi(
+                tabel, "bg_" + re.sub(r"\W+", "-", judul_fig.lower())[:36])
     return ev
 
 
@@ -743,6 +749,48 @@ def tabel_bernavigasi(df_: pd.DataFrame, kunci: str, per: int = 10,
             st.session_state[simpan] = hal + 1
             st.rerun()
     unduh_tabel(df_, kunci)
+
+
+def potong_halaman(df_: pd.DataFrame, kunci: str,
+                   per: int = 10) -> tuple[pd.DataFrame, dict]:
+    """
+    Memotong bingkai sumber menjadi sepuluh baris yang sedang tampil.
+
+    Pasangan gambar_nav() di bawah. Dipisah dua supaya daftar yang barisnya
+    dapat diklik ikut aturan sepuluh baris yang sama dengan tabel biasa:
+    pemanggil memotong sumbernya dulu, menggambar daftarnya sendiri dari
+    potongan itu, lalu menggambar tombol maju mundurnya. Nomor baris pilihan
+    dengan sendirinya mengacu pada potongan, bukan bingkai penuh.
+    """
+    n = len(df_)
+    total = max(1, (n + per - 1) // per)
+    simpan = f"hal_{kunci}"
+    hal = max(0, min(int(st.session_state.get(simpan, 0)), total - 1))
+    return (df_.iloc[hal * per:(hal + 1) * per],
+            {"kunci": kunci, "hal": hal, "total": total, "n": n, "per": per})
+
+
+def gambar_nav(nav: dict) -> None:
+    """Tombol maju mundur untuk potongan dari potong_halaman()."""
+    if nav["total"] <= 1:
+        return
+    hal, per, n, kunci = nav["hal"], nav["per"], nav["n"], nav["kunci"]
+    kiri, tengah, kanan = st.columns([1, 3, 1])
+    with kiri:
+        if hal > 0 and st.button("Sebelumnya", key=f"mundur_{kunci}",
+                                 width="stretch"):
+            st.session_state[f"hal_{kunci}"] = hal - 1
+            st.rerun()
+    with tengah:
+        st.html(
+            f'<div class="nav-tabel">Baris {hal * per + 1} sampai '
+            f'{min(n, (hal + 1) * per)} dari {n:,} · halaman {hal + 1} '
+            f'dari {nav["total"]}</div>')
+    with kanan:
+        if hal < nav["total"] - 1 and st.button(
+                "Berikutnya", key=f"maju_{kunci}", width="stretch"):
+            st.session_state[f"hal_{kunci}"] = hal + 1
+            st.rerun()
 
 
 def unduh_laporan(judul: str, ringkas: list, tabel_df: pd.DataFrame | None,
@@ -2001,6 +2049,10 @@ def hal_telusur() -> None:
     st.html('<div class="tingkat">Tahap 2 · Daftar Putusan</div>')
     st.caption("Pilih salah satu baris untuk menampilkan isi putusannya.")
 
+    # Sumbernya dipotong dulu, sepuluh baris per halaman, supaya nomor baris
+    # pilihan langsung mengacu pada potongan yang sedang tampil.
+    hk, nav2 = potong_halaman(
+        hk, f"l2_{abs(hash((dim, nilai_kel))) & 0xffffff}")
     ringkas = pd.DataFrame({
         "Nomor putusan": hk["nomor_tampil"],
         "Tanggal putusan": [tampil_tanggal(u, tampil_tahun(t)) for u, t in
@@ -2018,6 +2070,7 @@ def hal_telusur() -> None:
             "Pemohon": st.column_config.TextColumn(width="medium"),
             "Amar": st.column_config.TextColumn(width="small"),
             "Hakim ketua": st.column_config.TextColumn(width="medium")})
+    gambar_nav(nav2)
 
     baris2 = pilih2.selection.rows if pilih2 and pilih2.selection else []
     if not baris2:
@@ -2129,6 +2182,7 @@ def hal_belajar() -> None:
 
     st.html('<div class="tingkat">Daftar Putusan Terkait</div>')
     daftar = ss.sort_values("tahun_putusan", ascending=False).head(30)
+    daftar, nav_baca = potong_halaman(daftar, "belajar_terkait")
     pilih_baca = st.dataframe(
         pd.DataFrame({
             "Nomor putusan": daftar["nomor_tampil"]
@@ -2145,6 +2199,7 @@ def hal_belajar() -> None:
                 alignment="center"),
             "Pengenal berkas": st.column_config.TextColumn(
                 alignment="center")})
+    gambar_nav(nav_baca)
     st.caption("Tiga puluh terbaru. Pilih salah satu baris untuk menampilkan "
                                     "isi putusannya pada halaman Risalah "
                                     "Putusan. Pengenal berkas "
@@ -2642,21 +2697,27 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
     st.html('<div class="tingkat">Lima Belas Wajib Pajak Teratas</div>')
     st.caption("Pilih salah satu baris untuk menampilkan daftar sengketa "
                 "wajib pajak tersebut.")
+    tampil15, nav15 = potong_halaman(pd.DataFrame(baris), "wp_teratas_nav")
     pilih15 = st.dataframe(
-        pd.DataFrame(baris), width="stretch", hide_index=True,
+        tampil15, width="stretch", hide_index=True,
         on_select="rerun", selection_mode="single-row", key="wp_teratas",
         column_config={
             "Dikabulkan": st.column_config.NumberColumn(
                 format="%.2f %%", alignment="center")})
+    gambar_nav(nav15)
 
     b15 = pilih15.selection.rows if pilih15 and pilih15.selection else []
     if b15:
-        nama = urutan[b15[0]]
+        # Daftar urutan sejajar dengan bingkai penuh; nomor baris pilihan
+        # mengacu pada potongan, jadi digeser sebesar awal halamannya.
+        nama = urutan[nav15["hal"] * nav15["per"] + b15[0]]
         target = dn[dn["nama_pemohon_norm"] == nama]
         t = target.sort_values("tahun_putusan", na_position="last")
         st.html(f'<div class="jejak">Wajib pajak '
                 f'<b>{str(target["nama_pemohon"].iloc[0])[:40]}</b><i>›</i>'
                 f'<b>{len(t):,}</b> sengketa</div>')
+        t, nav_sen = potong_halaman(
+            t, f"wpsen_{abs(hash(nama)) & 0xffffff}")
         pilih_sen = st.dataframe(
             pd.DataFrame({
                 "Nomor putusan": t["nomor_tampil"]
@@ -2672,6 +2733,7 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
             column_config={
                 "Tanggal putusan": st.column_config.TextColumn(
                     alignment="center")})
+        gambar_nav(nav_sen)
         st.caption("Pilih salah satu baris untuk menampilkan isi putusannya. Perlu diperhatikan apakah pokok sengketa dan hasilnya sama dari "
             "tahun ke tahun. "
                    "Sengketa yang sama diputus sama berulang kali adalah "
@@ -3484,12 +3546,13 @@ def hal_dasar() -> None:
           "tersaji berupa kemunculan bersama, bukan sebab akibat.")
 
     with st.expander("Dua puluh rujukan teratas sebagai tabel"):
-        st.html(TV.tabel(
+        tabel_bernavigasi(
             t.head(20).reset_index()
             .round({"Pangsa saat dikabulkan": 2, "Pangsa saat ditolak": 2,
                     "Selisih poin": 2}),
+            "pasal_atas",
             kolom_persen=("Pangsa saat dikabulkan", "Pangsa saat ditolak",
-                          "Selisih poin")))
+                          "Selisih poin"))
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
@@ -4042,7 +4105,7 @@ def hal_metode() -> None:
     t["Terhadap tahap sebelumnya"] = [""] + [
         f"{100 * baris[i][1] / max(1, baris[i - 1][1]):.1f} persen"
         for i in range(1, len(baris))]
-    st.html(TV.tabel(t))
+    tabel_bernavigasi(t, "tahap_olah")
 
     st.html('<div class="tingkat">Kelengkapan Ruas Data</div>')
     n = len(df)
@@ -4063,7 +4126,7 @@ def hal_metode() -> None:
          "Terisi": int(df[k].notna().sum()),
          "Persen": round(100 * df[k].notna().sum() / n, 1)}
         for k, label in ruas if k in df])
-    st.html(TV.tabel(t, kolom_persen=("Persen",)))
+    tabel_bernavigasi(t, "lengkap_ruas", kolom_persen=("Persen",))
 
     st.html('<div class="tingkat">Peta Kode Jenis Pajak</div>')
     if kode_peta:
@@ -4368,6 +4431,8 @@ def hal_tema() -> None:
                .sort_values("tahun_putusan", ascending=False))
         st.markdown(f"**{len(isi):,} putusan** bertema {pilih_tema}. Pilih "
                     "salah satu baris untuk membaca isi putusannya.")
+        isi, nav_tema = potong_halaman(
+            isi, f"temal_{abs(hash(pilih_tema)) & 0xffffff}")
         pilih_baris = st.dataframe(
             pd.DataFrame({
                 "Nomor putusan": isi["nomor_tampil"],
@@ -4382,6 +4447,7 @@ def hal_tema() -> None:
             column_config={
                 "Tanggal putusan": st.column_config.TextColumn(
                     alignment="center")})
+        gambar_nav(nav_tema)
         b = (pilih_baris.selection.rows
              if pilih_baris and pilih_baris.selection else [])
         if b:
