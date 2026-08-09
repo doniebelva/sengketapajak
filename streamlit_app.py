@@ -47,6 +47,22 @@ def penanda_aset(url: str) -> str:
 
 
 def siapkan_data() -> None:
+    # Pemeriksaan pembaruan tidak boleh berjalan pada setiap gerakan
+    # pengguna. Skrip ini dijalankan ulang oleh Streamlit pada setiap klik,
+    # dan permintaan kepala ke GitHub memakan sekitar satu detik, sehingga
+    # setiap perpindahan menu tertahan selama itu sebelum halaman mulai
+    # digambar. Aplikasi terasa lambat bukan karena datanya, melainkan
+    # karena menunggu jaringan pada setiap klik. Kini pemeriksaan hanya
+    # berjalan saat sesi dimulai dan paling cepat tiap lima belas menit
+    # sesudahnya; data baru tetap terpasang, hanya saja paling lambat lima
+    # belas menit setelah terbit.
+    import time
+    kini = time.time()
+    if (os.path.exists("setpp.db")
+            and kini - st.session_state.get("cek_data", 0.0) < 900):
+        return
+    st.session_state["cek_data"] = kini
+
     url = alamat_data()
     if not url:
         st.error("Alamat data belum diatur. Isi SETPP_DATA_URL pada "

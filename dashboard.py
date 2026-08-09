@@ -85,6 +85,24 @@ def sambung() -> sqlite3.Connection:
     return sqlite3.connect(uri, uri=True, timeout=30, check_same_thread=False)
 
 
+def usia_db() -> float:
+    """
+    Cap waktu berkas basis data, dipakai sebagai kunci singgahan.
+
+    Singgahan pemuat data pernah diberi masa hidup dua menit, dan itu
+    keliru arah: berkas datanya statis sepanjang hidup wadah, hanya
+    berganti ketika paket rilis baru terpasang. Akibat masa hidup pendek,
+    tiap dua menit ada satu klik yang membayar muat ulang penuh sekitar
+    satu detik, dan aplikasi terasa tersendat berkala tanpa sebab yang
+    terlihat. Dengan cap waktu berkas sebagai kunci, singgahan hidup
+    selamanya dan baru dibuang tepat ketika berkasnya benar benar berganti.
+    """
+    try:
+        return os.path.getmtime(DB_PATH)
+    except OSError:
+        return 0.0
+
+
 def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
     """
     Nomor putusan untuk ditampilkan, dirangkai kembali bila perlu.
@@ -137,8 +155,8 @@ def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
 # setiap gerakan pengguna dan seluruh dashboard terasa berat. Pesan
 # pemuatannya ditulis sendiri, karena pesan bawaan menampilkan nama fungsi
 # dalam bahasa Inggris yang tidak berarti bagi pemakai.
-@st.cache_data(ttl=120, show_spinner="Memuat data putusan...")
-def muat_putusan() -> pd.DataFrame:
+@st.cache_data(show_spinner="Memuat data putusan...")
+def _muat_putusan(usia: float) -> pd.DataFrame:
     with sambung() as c:
         df = pd.read_sql_query("SELECT * FROM putusan", c)
     for k, peta in (("amar", LABEL_AMAR),
@@ -157,8 +175,8 @@ def muat_putusan() -> pd.DataFrame:
     return df
 
 
-@st.cache_data(ttl=120, show_spinner="Menghitung cakupan arsip...")
-def muat_corong() -> dict:
+@st.cache_data(show_spinner="Menghitung cakupan arsip...")
+def _muat_corong(usia: float) -> dict:
     def satu(c, sql):
         try:
             v = c.execute(sql).fetchone()[0]
@@ -175,8 +193,8 @@ def muat_corong() -> dict:
         }
 
 
-@st.cache_data(ttl=600, show_spinner="Memuat daftar resmi Sekretariat...")
-def muat_resmi() -> pd.DataFrame:
+@st.cache_data(show_spinner="Memuat daftar resmi Sekretariat...")
+def _muat_resmi(usia: float) -> pd.DataFrame:
     """Daftar resmi putusan 2021 sampai 2025, dimuat setpp_resmi.py impor.
     Kosong bila tabelnya belum ada, dan halaman pemakainya wajib bersikap
     baik pada keadaan itu."""
@@ -190,8 +208,8 @@ def muat_resmi() -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=300, show_spinner="Memuat peta kode jenis pajak...")
-def peta_kode() -> dict:
+@st.cache_data(show_spinner="Memuat peta kode jenis pajak...")
+def _peta_kode(usia: float) -> dict:
     """
     Nama jenis pajak dibangun dari data itu sendiri, dengan menyilangkan kode
     dua digit pada nomor putusan terhadap ruas jenis pajak di dalam dokumen.
@@ -299,6 +317,28 @@ def label_kode(kode, peta: dict) -> str:
             + (" (?)" if info["pangsa"] < 80 else ""))
 
 
+
+
+def muat_putusan() -> pd.DataFrame:
+    return _muat_putusan(usia_db())
+
+
+def muat_corong() -> dict:
+    return _muat_corong(usia_db())
+
+
+def muat_resmi() -> pd.DataFrame:
+    return _muat_resmi(usia_db())
+
+
+def peta_kode() -> dict:
+    return _peta_kode(usia_db())
+
+
+def muat_dasar_hukum() -> pd.DataFrame:
+    return _muat_dasar_hukum(usia_db())
+
+
 @st.cache_data(ttl=30, show_spinner=False)
 def keadaan_tarikan() -> dict:
     import datetime as _dt
@@ -319,8 +359,8 @@ def keadaan_tarikan() -> dict:
     return {"aktif": menit < 5, "menit": menit}
 
 
-@st.cache_data(ttl=120, show_spinner="Memuat rujukan dasar hukum...")
-def muat_dasar_hukum() -> pd.DataFrame:
+@st.cache_data(show_spinner="Memuat rujukan dasar hukum...")
+def _muat_dasar_hukum(usia: float) -> pd.DataFrame:
     with sambung() as c:
         return pd.read_sql_query(
             "SELECT doc_id, pasal, ayat, uu_nomor, uu_tahun, uu_nama, "
