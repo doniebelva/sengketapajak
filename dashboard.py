@@ -164,6 +164,26 @@ def _muat_putusan(usia: float) -> pd.DataFrame:
                     ("jenis_perkara", LABEL_PERKARA)):
         if k in df:
             df[k + "_label"] = df[k].map(peta).fillna("Tidak dikenali")
+    # Pagar kewajaran tahun. Pengadilan Pajak berdiri tahun 2002, sehingga
+    # tahun putusan di luar 2002 sampai tahun berjalan pasti salah baca,
+    # hampir selalu dari dokumen pindai yang angkanya terbaca meleset. Satu
+    # putusan bertahun 2055 pernah lolos dan sendirian merentangkan sumbu
+    # seluruh bagan tahunan sampai tiga dasawarsa ke depan, sekaligus
+    # melebarkan penggeser tahun di bilah samping. Nilai mustahil dibuang
+    # menjadi kosong, bukan dibetulkan, karena tebakannya tidak dapat
+    # dipertanggungjawabkan.
+    import datetime as _dt
+    kini = _dt.date.today().year
+    for k in ("tahun_putusan", "tahun_sengketa_masuk"):
+        if k in df:
+            salah = df[k].notna() & ~df[k].between(2002, kini)
+            df.loc[salah, k] = float("nan")
+    for k in ("tanggal_ucap", "tanggal_musyawarah"):
+        if k in df:
+            th = pd.to_numeric(df[k].str[:4], errors="coerce")
+            salah = th.notna() & ~th.between(2002, kini)
+            df.loc[salah, k] = None
+
     df["nomor_tampil"] = kolom_nomor_tampil(df)
     # Ruas nama yang tampil di layar dirapikan kapitalnya di satu tempat,
     # supaya seluruh halaman menerima bentuk yang sama. Nomor putusan tidak
