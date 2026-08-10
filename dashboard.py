@@ -1390,31 +1390,25 @@ def resmi_lingkup() -> pd.DataFrame:
 bagian_lingkup.caption(
     f"{len(d):,} dari {len(df):,} putusan dalam lingkup.")
 
-# Lingkup instansi yang aktif ditandai mencolok di kepala tiap halaman.
-# Tanpa penanda ini, pembaca yang lupa saklarnya sedang menyala akan
-# mengutip angka DJP saja seolah angka seluruh pengadilan.
-if kode_instansi and halaman == "Metodologi":
-    # Metodologi memotret pipa data dan mutu arsip secara keseluruhan, dan
-    # sengaja tidak mengikuti unit analisis. Tanpa keterangan ini, penanda
-    # lingkup di atas angka seluruh arsip akan terbaca seolah angka itu
-    # angka unit terpilih, dan itu menyesatkan.
-    st.html('<div class="saring"><span class="chip"><b>Catatan</b> '
-            f'halaman ini memotret seluruh arsip, tidak mengikuti unit '
-            f'analisis {pilih_instansi}</span></div>')
-elif kode_instansi:
-    NAMA_LINGKUP = {
-        "Kemenkeu": "Kementerian Keuangan, gabungan DJP dan DJBC",
-        "DJP": "Direktorat Jenderal Pajak",
-        "DJBC": "Direktorat Jenderal Bea dan Cukai",
-        "Pemda": "Pemerintah daerah",
-        "Belum terbaca": "perkara yang unit terbandingnya gagal terbaca "
-                         "dari dokumennya"}
-    st.html('<div class="saring"><span class="chip"><b>Lingkup</b> '
-            f'hanya perkara melawan {NAMA_LINGKUP[pilih_instansi]}'
-            '</span></div>')
-
-if halaman in DIMENSI:
-    st.html(f'<div class="tingkat">Dimensi {DIMENSI[halaman]}</div>')
+# Kepala halaman terpadu. Nama halaman didahulukan, karena itu penanda
+# terpenting bagi pembaca yang baru berpindah; dimensi analisis dan lingkup
+# unit menjadi label kecil di sampingnya, bukan baris tersendiri. Beranda
+# dikecualikan karena judulnya menyebut peran, bukan nama halaman.
+NAMA_LINGKUP = {
+    "Kemenkeu": "Kemenkeu, DJP dan DJBC",
+    "DJP": "hanya DJP",
+    "DJBC": "hanya DJBC",
+    "Pemda": "hanya Pemda",
+    "Belum terbaca": "unit belum terbaca"}
+if halaman != "Beranda":
+    if halaman == "Metodologi":
+        # Halaman ini memotret pipa data secara keseluruhan dan sengaja
+        # tidak mengikuti unit analisis. Labelnya harus menyebut itu, sebab
+        # label lingkup di atas angka seluruh arsip akan menyesatkan.
+        label = "seluruh arsip" if kode_instansi else None
+    else:
+        label = NAMA_LINGKUP.get(pilih_instansi) if kode_instansi else None
+    st.html(TV.kepala_halaman(halaman, DIMENSI.get(halaman), label))
 
 
 # ---------------------------------------------------------------------------
@@ -1694,7 +1688,6 @@ def _ikhtisar_ringkas() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_nilai() -> None:
-    st.subheader("Nilai Sengketa")
     rs = resmi_lingkup()
     if rs.empty:
         st.info("Daftar resmi belum dimuat ke basis data. Jalankan "
@@ -2190,8 +2183,6 @@ def hal_telusur() -> None:
         st.session_state.pop("buka_doc", None)
 
     kiri, kanan = st.columns([3, 2])
-    with kiri:
-        st.subheader("Risalah Putusan")
     with kanan:
         panel = st.popover("Saring dan cari", width="stretch")
 
@@ -2406,7 +2397,6 @@ def hal_telusur() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_belajar() -> None:
-    st.subheader("Pola Putusan Sejenis")
     st.caption(
         "Pilih ciri perkara, dan halaman menunjukkan rekam jejaknya: "
         "bagaimana perkara serupa diputus, argumen apa yang menyertai "
@@ -2530,7 +2520,6 @@ def hal_belajar() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_jalur() -> None:
-    st.subheader("Pilihan Upaya Hukum")
     st.caption(
         "Bekal menentukan jalur sebelum perkara didaftarkan: peluang "
         "tiap jalur menurut putusan yang sudah ada, tenggat yang "
@@ -2657,7 +2646,6 @@ def hal_jalur() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_konsistensi() -> None:
-    st.subheader("Konsistensi Putusan Hakim")
     st.caption(
         "Perkara yang sejenis semestinya diputus serupa, siapa pun yang "
         "memutus. Halaman ini memeriksanya dari tiga sisi: antar kelompok "
@@ -2936,7 +2924,6 @@ def _konsistensi_perkara() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_berulang() -> None:
-    st.subheader("Sengketa Berulang")
     st.caption(
         "Wajib pajak yang bersengketa berulang kali dengan pokok serupa "
         "menandakan persoalan yang tidak selesai di tingkat keberatan lalu "
@@ -3167,7 +3154,6 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
 # ---------------------------------------------------------------------------
 
 def hal_ketetapan() -> None:
-    st.subheader("Mutu Ketetapan")
     st.caption(
         "Melihat sengketa dari sisi penerbit ketetapan: jenis ketetapan "
         "dan koreksi apa yang paling sering gugur di pengadilan. Lima "
@@ -3753,7 +3739,6 @@ def _mutu_formal() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_dasar() -> None:
-    st.subheader("Pasal Penentu")
     st.caption(
         "Pasal yang paling sering dirujuk ketika ketetapan dikoreksi "
         "pengadilan. Bagi penelaah keberatan, pasal pasal inilah yang "
@@ -3920,7 +3905,6 @@ def rapikan_unit(v) -> str:
 
 
 def hal_unit() -> None:
-    st.subheader("Unit Penerbit Ketetapan")
     st.caption(
         "Menelaah sengketa menurut unit penerbitnya, yaitu unit mana yang "
          "ketetapannya paling sering disengketakan dan bagaimana hasilnya di "
@@ -4015,7 +3999,6 @@ def hal_unit() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_hakim() -> None:
-    st.subheader("Profil Hakim")
     st.caption(
         "Rekapitulasi putusan yang telah diucapkan menurut hakim, dipilah "
         "per kategori amar. Susunan majelis hanya termuat pada risalah era "
@@ -4204,7 +4187,6 @@ def hal_hakim() -> None:
 # ---------------------------------------------------------------------------
 
 def hal_kinerja() -> None:
-    st.subheader("Durasi Penyelesaian Sengketa")
     st.caption(
         "Lama penyelesaian perkara dan titik proses yang paling lama "
         "tertahan. Temuan utamanya terletak pada jeda yang jarang dilaporkan, "
@@ -4403,7 +4385,6 @@ def _durasi_keadaan(j: pd.Series) -> None:
 # ---------------------------------------------------------------------------
 
 def hal_metode() -> None:
-    st.subheader("Metodologi")
     st.markdown(
         "Seluruh dokumen diambil dari laman Sekretariat Pengadilan Pajak, "
         "yang menyediakannya untuk diakses umum. Setiap berkas disimpan tanpa "
@@ -4617,7 +4598,6 @@ def petakan_tema(pokok: pd.Series, koreksi: pd.Series) -> pd.DataFrame:
 
 
 def hal_tema() -> None:
-    st.subheader("Tema Sengketa")
     st.caption(
         "Apa yang sebenarnya dipersengketakan, dibaca dari uraian pokok "
         "sengketa dan jenis koreksi pada tiap putusan. Dua pertanyaannya "
@@ -4798,7 +4778,6 @@ def hal_banding() -> None:
     memang dipilih untuk disandingkan, berikut selisih dan penilaian apakah
     selisih itu berarti.
     """
-    st.subheader("Banding Unit")
     st.caption(
         "Dua unit disandingkan pada satu layar agar dapat dibandingkan tanpa "
         "berpindah pilihan. Mengikuti penyaring tahun di bilah samping, "
@@ -5033,7 +5012,6 @@ def profil_karakter(kunci: tuple, min_n: int) -> pd.DataFrame:
 
 
 def hal_karakter() -> None:
-    st.subheader("Karakter Memutus")
     st.caption(
         "Bagaimana pola tiap hakim dalam memutus, bukan siapa yang benar. "
         "Empat perilaku diukur, dan tingkat dikabulkannya sudah disesuaikan "
@@ -5240,7 +5218,6 @@ def hal_panduan() -> None:
     urutan berpikir seorang dokter, lalu menunjukkan halaman mana menjawab
     pertanyaan apa.
     """
-    st.subheader("Panduan Analisis")
     st.caption(
         "Arti penanda dimensi yang tampil di tiap halaman, dijelaskan "
         "dengan bahasa sehari hari, beserta peta halaman mana menjawab "

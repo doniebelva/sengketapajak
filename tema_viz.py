@@ -461,16 +461,19 @@ def gaya(gelap: bool) -> str:
   }}
 
   /* --- Pita keandalan data ---------------------------------------------- */
+  /* Pita keandalan dijadikan satu baris tipis tanpa kotak. Sebagai kotak
+     setinggi delapan puluh piksel di kepala halaman, ia merebut perhatian
+     dari judul padahal isinya keterangan pendukung. */
   .andal-pita {{
-    display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
-    margin: 26px 0 4px; padding: 11px 14px;
-    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
-    border-radius: 10px; font-size: 12px; color: {p["tinta_2"]};
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    margin: 2px 0 16px; padding: 0 0 10px;
+    border-bottom: 1px solid {p["tepi"]};
+    font-size: 11.5px; color: {p["tinta_2"]};
   }}
   .andal-judul {{ margin-right: 3px; }}
   .andal {{
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 3px 10px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 1px 8px; border-radius: 999px;
     background: {p["bidang"]}; border: 1px solid {p["tepi"]};
     color: {p["tinta"]}; font-weight: 550; white-space: nowrap;
   }}
@@ -478,8 +481,29 @@ def gaya(gelap: bool) -> str:
   .andal-baik i {{ background: {p["baik"]}; }}
   .andal-awas i {{ background: {p["awas"]}; }}
   .andal-genting i {{ background: {p["genting"]}; }}
-  .andal-ket {{ flex-basis: 100%; font-size: 11px;
-                color: {p["tinta_2"]}; }}
+  /* Kalimat penutup pita hanya tampil saat ada bagian kuning atau merah,
+     karena hanya di situ ia menambah keterangan. */
+  .andal-ket {{ font-size: 11px; color: {p["tinta_2"]}; }}
+
+  /* Kepala halaman terpadu: nama halaman lebih dulu, keterangan pendukung
+     menjadi label kecil di sampingnya. */
+  .kepala-hal {{
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px;
+    margin: 2px 0 2px;
+  }}
+  .kepala-hal h3 {{
+    font-size: 21px !important; font-weight: 700 !important;
+    letter-spacing: -.012em; margin: 0 !important; padding: 0 !important;
+    color: {p["tinta"]};
+  }}
+  .kh-dim, .kh-lingkup {{
+    font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+    white-space: nowrap;
+  }}
+  .kh-dim {{ color: {p["tinta_2"]}; background: {p["bidang"]};
+             border: 1px solid {p["tepi"]}; }}
+  .kh-lingkup {{ color: #fff; background: {p["navy"]}; }}
 
   /* Judul sisi pada mode banding. Dua sisi yang tampil bersebelahan harus
      dapat dibedakan sekali pandang, dan tanpa judul bergaris pemisah
@@ -1271,6 +1295,26 @@ def catatan_siap(judul: str, isi: str) -> str:
     return f'<div class="siap"><b>{judul}</b><br>{isi}</div>'
 
 
+def kepala_halaman(judul: str, dimensi: str | None,
+                   lingkup: str | None = None) -> str:
+    """
+    Kepala halaman terpadu: nama halaman, dimensi, dan lingkup dalam satu
+    baris.
+
+    Susunan lama menempatkan penanda dimensi dan pita keandalan lebih dulu,
+    sehingga nama halaman baru muncul pada urutan ketiga. Pembaca yang
+    berpindah halaman kehilangan penanda paling penting, yaitu ia sedang
+    berada di mana. Kini namanya yang pertama, dan keterangan pendukungnya
+    menjadi label kecil di sampingnya, bukan baris tersendiri.
+    """
+    label = ""
+    if dimensi:
+        label += f'<span class="kh-dim">{dimensi}</span>'
+    if lingkup:
+        label += f'<span class="kh-lingkup">{lingkup}</span>'
+    return (f'<div class="kepala-hal"><h3>{judul}</h3>{label}</div>')
+
+
 def keterangan_waktu(rentang: str, diperbarui: str | None) -> str:
     """
     Keterangan kapan, dipasang tepat di atas deret kartu angka.
@@ -1311,14 +1355,15 @@ def pita_andal(item: list, n: int) -> str:
     # sempat dipakai dan pembaca tidak paham maksudnya; yang ingin
     # disampaikan sederhana saja: dari semua putusan yang sedang tampil,
     # berapa persen yang bagian datanya berhasil terbaca.
+    # Kalimat penutup hanya ditambahkan ketika memang ada bagian yang perlu
+    # diwaspadai. Pada halaman yang seluruh ruasnya hijau, kalimat itu hanya
+    # menambah panjang tanpa menambah keterangan.
+    perlu = any(pr < 85 for _, pr in item)
+    ekor = ('<span class="andal-ket">Bagian kuning atau merah sebaiknya '
+            'dibaca sebagai perkiraan.</span>') if perlu else ""
     return ('<div class="andal-pita"><span class="andal-judul">'
-            f'Seberapa lengkap data di balik halaman ini? Dari {n:,} putusan '
-            'yang sedang tampil, bagian yang berhasil terbaca:</span>'
-            + "".join(biji)
-            + '<span class="andal-ket">Makin tinggi persennya, makin dapat '
-              'dipercaya angkanya. Angka yang bersandar pada bagian kuning '
-              'atau merah sebaiknya dibaca sebagai perkiraan, bukan angka '
-              'pasti.</span></div>')
+            f'Kelengkapan data, dari {n:,} putusan yang tampil:</span>'
+            + "".join(biji) + ekor + '</div>')
 
 
 # ---------------------------------------------------------------------------
