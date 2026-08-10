@@ -1229,6 +1229,44 @@ if cari_cepat.strip():
         st.session_state["cari_lalu"] = cari_cepat.strip()
         st.session_state["nav_tujuan"] = "Risalah Putusan"
 
+kode_peta = peta_kode()
+
+# Saklar lingkup instansi: satu kendali yang membelah seluruh dashboard.
+#
+# Letaknya di sini, sebelum tombol menu digambar, dan itu bukan soal
+# selera. Tombol menu memanggil muat ulang seketika begitu ditekan,
+# sehingga baris apa pun sesudahnya tidak pernah dijalankan pada putaran
+# itu. Ketika kendali ini berada sesudahnya, ia tidak ikut digambar,
+# Streamlit menganggapnya sudah tidak dipakai lalu membuang keadaannya,
+# dan pilihan pemakai kembali ke Semua setiap kali berpindah halaman.
+# Urutan tampilnya tetap di puncak karena diarahkan ke wadahnya sendiri.
+# DJP, DJBC, dan pemerintah daerah berbeda watak perkaranya, dan pemakai
+# perlu dapat membaca setiap halaman untuk satu instansi saja. Dibuat
+# sebagai lingkup di bilah samping, bukan tab per halaman, supaya seluruh
+# enam belas halaman beserta tabnya ikut serentak tanpa digandakan.
+# Lima pilihan: Semua sebagai bawaan yang memuat seluruh arsip termasuk
+# putusan yang instansinya belum terbaca, lalu empat kluster analisis:
+# Kemenkeu sebagai gabungan DJP dan DJBC, DJP sendiri, DJBC sendiri, dan
+# pemerintah daerah.
+LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
+                    "DJP": ("djp",), "DJBC": ("djbc",),
+                    "Pemda": ("pemda",)}
+# Bentuknya daftar jatuh, bukan deret pil. Lima pilihan tidak muat pada
+# satu baris bilah samping, dan pilihan terakhirnya melipat sendiri menjadi
+# baris penuh yang tampak seperti salah susun. Daftar jatuh selalu setinggi
+# satu baris berapa pun banyak pilihannya, dan menyisakan ruang bagi
+# pilihan baru di kemudian hari.
+bagian_instansi.html('<div class="sb-judul">Unit analisis</div>')
+pilih_instansi = bagian_instansi.selectbox(
+    "Unit analisis", list(LINGKUP_INSTANSI), index=0,
+    key="lingkup_instansi", label_visibility="collapsed",
+    help="Membatasi seluruh halaman pada perkara melawan unit ini. "
+         "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang unitnya "
+         "belum terbaca hanya termuat pada pilihan Semua.")
+pilih_instansi = pilih_instansi or "Semua"
+kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi)
+
+
 # Bila tujuan drill tidak tersedia pada modul terpilih, modul dipulangkan ke
 # Semua lebih dulu, sebelum pemilih modulnya digambar.
 _tujuan = st.session_state.get("nav_tujuan")
@@ -1277,35 +1315,6 @@ with bagian_menu, st.container(key="menu-nav"):
                 st.session_state["nav"] = _h
                 st.session_state.pop("buka_doc", None)
                 st.rerun()
-
-kode_peta = peta_kode()
-
-# Saklar lingkup instansi: satu kendali yang membelah seluruh dashboard.
-# DJP, DJBC, dan pemerintah daerah berbeda watak perkaranya, dan pemakai
-# perlu dapat membaca setiap halaman untuk satu instansi saja. Dibuat
-# sebagai lingkup di bilah samping, bukan tab per halaman, supaya seluruh
-# enam belas halaman beserta tabnya ikut serentak tanpa digandakan.
-# Lima pilihan: Semua sebagai bawaan yang memuat seluruh arsip termasuk
-# putusan yang instansinya belum terbaca, lalu empat kluster analisis:
-# Kemenkeu sebagai gabungan DJP dan DJBC, DJP sendiri, DJBC sendiri, dan
-# pemerintah daerah.
-LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
-                    "DJP": ("djp",), "DJBC": ("djbc",),
-                    "Pemda": ("pemda",)}
-# Bentuknya daftar jatuh, bukan deret pil. Lima pilihan tidak muat pada
-# satu baris bilah samping, dan pilihan terakhirnya melipat sendiri menjadi
-# baris penuh yang tampak seperti salah susun. Daftar jatuh selalu setinggi
-# satu baris berapa pun banyak pilihannya, dan menyisakan ruang bagi
-# pilihan baru di kemudian hari.
-bagian_instansi.html('<div class="sb-judul">Unit analisis</div>')
-pilih_instansi = bagian_instansi.selectbox(
-    "Unit analisis", list(LINGKUP_INSTANSI), index=0,
-    key="lingkup_instansi", label_visibility="collapsed",
-    help="Membatasi seluruh halaman pada perkara melawan unit ini. "
-         "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang unitnya "
-         "belum terbaca hanya termuat pada pilihan Semua.")
-pilih_instansi = pilih_instansi or "Semua"
-kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi)
 
 tahun_ada = sorted(int(t) for t in df["tahun_putusan"].dropna().unique())
 if len(tahun_ada) > 1:
