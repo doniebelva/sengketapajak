@@ -1364,7 +1364,15 @@ bagian_lingkup.caption(
 # Lingkup instansi yang aktif ditandai mencolok di kepala tiap halaman.
 # Tanpa penanda ini, pembaca yang lupa saklarnya sedang menyala akan
 # mengutip angka DJP saja seolah angka seluruh pengadilan.
-if kode_instansi:
+if kode_instansi and halaman == "Metodologi":
+    # Metodologi memotret pipa data dan mutu arsip secara keseluruhan, dan
+    # sengaja tidak mengikuti unit analisis. Tanpa keterangan ini, penanda
+    # lingkup di atas angka seluruh arsip akan terbaca seolah angka itu
+    # angka unit terpilih, dan itu menyesatkan.
+    st.html('<div class="saring"><span class="chip"><b>Catatan</b> '
+            f'halaman ini memotret seluruh arsip, tidak mengikuti unit '
+            f'analisis {pilih_instansi}</span></div>')
+elif kode_instansi:
     NAMA_LINGKUP = {
         "Kemenkeu": "Kementerian Keuangan, gabungan DJP dan DJBC",
         "DJP": "Direktorat Jenderal Pajak",
@@ -1955,6 +1963,39 @@ def ikon_berkas(nama: str) -> str:
                            ":material/draft:")
 
 
+# Dua pergantian baris sebagai tetapan, supaya untai panjang di bawah tidak
+# perlu memuat lambang pelarian yang mudah rusak ketika disunting.
+NL2 = chr(10) + chr(10)
+
+
+def belum_ada(pesan: str) -> None:
+    """
+    Pemberitahuan bahwa tidak ada data, yang menyebut sebabnya.
+
+    Keterangan kosong yang hanya berbunyi belum terdapat data membuat
+    pembaca menduga dashboardnya rusak. Ketika penyebabnya penyaring yang
+    sedang aktif, penyaring itu wajib disebut namanya, beserta jalan
+    keluarnya. Unit analisis disebut lebih dulu karena itu penyaring paling
+    sering menyempitkan populasi sampai kosong.
+    """
+    sebab = []
+    if kode_instansi:
+        sebab.append(f"unit analisis **{pilih_instansi}**")
+    if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
+        sebab.append(f"tahun **{th[0]} sampai {th[1]}**")
+    if hanya_teks:
+        sebab.append("**hanya dokumen berlapis teks asli**")
+    if sebab:
+        st.info(pesan + NL2 + "Penyaring yang sedang aktif: "
+                + ", ".join(sebab)
+                + ". Melonggarkan salah satunya, misalnya memilih unit "
+                  "analisis Semua, kemungkinan memunculkan datanya.")
+    else:
+        st.info(pesan + NL2 + "Seluruh penyaring sedang terbuka, jadi data "
+                "ini memang belum tersedia pada arsip yang sudah "
+                "terkumpul.")
+
+
 def tombol_kembali(kunci_daftar: str, label: str) -> None:
     """
     Tombol pulang untuk drill di dalam halaman.
@@ -2236,7 +2277,7 @@ def hal_telusur() -> None:
            .sort_values(ascending=False)
            .rename_axis(dim_nama).reset_index(name="Putusan"))
     if kel.empty:
-        st.info(f"Ruas {dim_nama.lower()} belum terisi pada putusan terpilih.")
+        belum_ada(f"Ruas {dim_nama.lower()} belum terisi pada putusan terpilih.")
         return
 
     # Kelompok beranggota kurang dari lima digabungkan menjadi Lainnya.
@@ -2268,18 +2309,18 @@ def hal_telusur() -> None:
 
     nilai_kel = titik_terpilih(ev)
     if nilai_kel is None:
-        st.info(f"{len(h):,} putusan terbagi ke dalam {len(kel)} kelompok "
+        belum_ada(f"{len(h):,} putusan terbagi ke dalam {len(kel)} kelompok "
                 f"menurut {dim_nama.lower()}. Pilih salah satu batang untuk menampilkan rinciannya.")
         return
     if nilai_kel == LAINNYA:
-        st.info("Kelompok gabungan ini berisi campuran kelompok kecil dan "
+        belum_ada("Kelompok gabungan ini berisi campuran kelompok kecil dan "
                 "tidak dapat dimasuki. Rinciannya tersedia pada panel tabel "
                 "di "
                 "bawah bagan, atau populasinya dipersempit melalui panel "
                 "penyaringan.")
         return
     if len(kel) > 14 and nilai_kel not in set(pot[dim_nama]):
-        st.info("Kelompok itu di luar empat belas terbesar. Populasi perlu dipersempit terlebih dahulu melalui panel "
+        belum_ada("Kelompok itu di luar empat belas terbesar. Populasi perlu dipersempit terlebih dahulu melalui panel "
             "penyaringan.")
         return
 
@@ -2399,7 +2440,7 @@ def hal_belajar() -> None:
     menang_id = set(ss[ss["amar"].isin(AMAR_MENANG)]["doc_id"])
     dh = dh[dh["doc_id"].isin(menang_id)]
     if dh.empty:
-        st.info("Belum terdapat rujukan dasar hukum pada kelompok ini.")
+        belum_ada("Belum terdapat rujukan dasar hukum pada kelompok ini.")
     else:
         r = (dh.groupby("rujukan", observed=True)["doc_id"].nunique()
              .sort_values(ascending=False).head(8)
@@ -2466,13 +2507,13 @@ def hal_jalur() -> None:
 
     rs = resmi_lingkup()
     if rs.empty:
-        st.info("Halaman ini membutuhkan daftar resmi. Jalankan "
+        belum_ada("Halaman ini membutuhkan daftar resmi. Jalankan "
                 "setpp_resmi.py impor terlebih dahulu.")
         return
 
     rs = saring_tahun(rs, "tahun_ucap", "tahun_jalur")
     if rs.empty:
-        st.info("Tidak terdapat putusan pada rentang tahun tersebut.")
+        belum_ada("Tidak terdapat putusan pada rentang tahun tersebut.")
         return
 
     # Proksi jalur pada daftar resmi: baris berjenis pajak Gugatan Pajak
@@ -2615,7 +2656,7 @@ def _konsistensi_majelis() -> None:
     dd = beramar(d).dropna(subset=["kode_majelis", "kode_jenis_pajak"]).copy()
     dd["menang"] = dd["amar"].isin(AMAR_MENANG)
     if dd.empty:
-        st.info("Belum terdapat putusan bermajelis pada lingkup ini.")
+        belum_ada("Belum terdapat putusan bermajelis pada lingkup ini.")
         return
 
     # Kelompok pembanding: jenis pajak berputusan terbanyak.
@@ -2633,7 +2674,7 @@ def _konsistensi_majelis() -> None:
          .reset_index().rename(columns={"kode_majelis": "Majelis"}))
     g = g[g["Putusan"] >= 20].copy()
     if len(g) < 2:
-        st.info("Belum terdapat dua majelis dengan minimal dua puluh "
+        belum_ada("Belum terdapat dua majelis dengan minimal dua puluh "
                 "putusan pada kelompok ini.")
         return
     g["Dikabulkan"] = (100 * g["menang"] / g["Putusan"]).round(1)
@@ -2717,7 +2758,7 @@ def _konsistensi_perkara() -> None:
             "Amar dominan": LABEL_AMAR.get(amar_dom, amar_dom),
             "Keseragaman": round(100 * int(cnt.max()) / n, 1)})
     if not dom:
-        st.info("Belum terdapat kelompok dengan sedikitnya lima belas putusan.")
+        belum_ada("Belum terdapat kelompok dengan sedikitnya lima belas putusan.")
         return
     t = pd.DataFrame(dom).sort_values("Keseragaman")
 
@@ -2774,7 +2815,7 @@ def _konsistensi_perkara() -> None:
         dd["hakim_ketua"] = kunci_f.map(nama_tampil)
         dd = dd[dd["hakim_ketua"].notna()]
     if len(dd) < 100:
-        st.info("Belum cukup putusan berhakim untuk analisis ini.")
+        belum_ada("Belum cukup putusan berhakim untuk analisis ini.")
     else:
         dd["menang"] = dd["amar"].isin(AMAR_MENANG)
         laju_kel = dd.groupby("kode_jenis_pajak")["menang"].mean()
@@ -2784,7 +2825,7 @@ def _konsistensi_perkara() -> None:
                   harapan=("harapan", "mean")).reset_index())
         h = h[h["n"] >= 20].copy()
         if h.empty:
-            st.info("Belum terdapat hakim ketua dengan dua puluh putusan beramar.")
+            belum_ada("Belum terdapat hakim ketua dengan dua puluh putusan beramar.")
         else:
             h["Dikabulkan"] = (100 * h["aktual"]).round(1)
             h["Harapan"] = (100 * h["harapan"]).round(1)
@@ -2872,7 +2913,7 @@ def hal_berulang() -> None:
     n_samar = int((d["nama_disamarkan"] == 1).sum())
     dn = d[(d["nama_disamarkan"] == 0) & d["nama_pemohon_norm"].notna()]
     if dn.empty:
-        st.info("Belum terdapat nama pemohon yang terbaca pada lingkup ini.")
+        belum_ada("Belum terdapat nama pemohon yang terbaca pada lingkup ini.")
         return
     st.html(TV.catatan_siap(
         "Cakupan analisis pada halaman ini.",
@@ -2901,7 +2942,7 @@ def hal_berulang() -> None:
     # bersengketa tunggal tidak pantas tampil di halaman berjudul berulang.
     vc2 = vc[vc >= 2]
     if vc2.empty:
-        st.info("Tidak terdapat wajib pajak dengan dua sengketa atau lebih pada "
+        belum_ada("Tidak terdapat wajib pajak dengan dua sengketa atau lebih pada "
                 "lingkup ini. Penyaring tahun pada bilah samping dapat "
                 "diperlonggar.")
         return
@@ -3010,7 +3051,7 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
     bukan peramalan amar.
     """
     if dd.empty:
-        st.info("Belum terdapat putusan beramar pada lingkup ini.")
+        belum_ada("Belum terdapat putusan beramar pada lingkup ini.")
         return
 
     baris = []
@@ -3033,7 +3074,7 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
                              f" sampai "
                              f"{tampil_tahun(grp['tahun_putusan'].max())}"})
     if not baris:
-        st.info("Belum terdapat wajib pajak dengan dua putusan beramar atau "
+        belum_ada("Belum terdapat wajib pajak dengan dua putusan beramar atau "
                 "lebih pada lingkup ini.")
         return
 
@@ -3121,7 +3162,7 @@ def _mutu_jenis_ketetapan() -> None:
     kj = kj[kj["jenis_ketetapan"].notna()].copy()
     kj["menang"] = kj["amar"].isin(AMAR_MENANG)
     if kj.empty:
-        st.info("Belum terdapat ketetapan yang teridentifikasi jenisnya.")
+        belum_ada("Belum terdapat ketetapan yang teridentifikasi jenisnya.")
         return
 
     g = (kj.groupby("jenis_ketetapan")
@@ -3325,7 +3366,7 @@ def _mutu_arah() -> None:
     """
     t = _deret_tahunan(beramar(d))
     if len(t) < 3:
-        st.info("Belum terdapat cukup tahun bermuatan putusan memadai untuk "
+        belum_ada("Belum terdapat cukup tahun bermuatan putusan memadai untuk "
                 "menggambarkan arah pergerakannya.")
         return
 
@@ -3438,7 +3479,7 @@ def _mutu_instansi() -> None:
              "pemda": "Pemerintah daerah"}
     dd = beramar(d).dropna(subset=["instansi_terbanding"]).copy()
     if dd.empty:
-        st.info("Belum terdapat putusan yang instansi terbandingnya "
+        belum_ada("Belum terdapat putusan yang instansi terbandingnya "
                 "teridentifikasi.")
         return
     dd["menang"] = dd["amar"].isin(AMAR_MENANG)
@@ -3448,7 +3489,7 @@ def _mutu_instansi() -> None:
          .reset_index())
     g = g[g["Putusan"] >= 20].copy()
     if g.empty:
-        st.info("Belum terdapat instansi dengan putusan yang memadai.")
+        belum_ada("Belum terdapat instansi dengan putusan yang memadai.")
         return
     g["Instansi"] = [LABEL.get(v, v) for v in g["instansi_terbanding"]]
     g["Dikabulkan"] = (100 * g["menang"] / g["Putusan"]).round(1)
@@ -3553,7 +3594,7 @@ def _mutu_instansi() -> None:
               "bukan keadaan umum perekonomian maupun perubahan sikap "
               "pengadilan, melainkan sesuatu di dalam instansinya sendiri.")
     else:
-        st.info("Belum terdapat cukup tahun bermuatan putusan memadai untuk "
+        belum_ada("Belum terdapat cukup tahun bermuatan putusan memadai untuk "
                 "menggambarkan arah tiap instansi.")
 
 
@@ -3573,12 +3614,12 @@ def _mutu_formal() -> None:
     """
     dd = d[d["amar"].notna()].copy()
     if dd.empty:
-        st.info("Belum terdapat putusan beramar pada lingkup ini.")
+        belum_ada("Belum terdapat putusan beramar pada lingkup ini.")
         return
     gagal = dd[dd["amar"] == "tidak_dapat_diterima"]
     n, ng = len(dd), len(gagal)
     if ng == 0:
-        st.info("Tidak terdapat putusan beramar tidak dapat diterima pada "
+        belum_ada("Tidak terdapat putusan beramar tidak dapat diterima pada "
                 "lingkup ini.")
         return
 
@@ -3690,7 +3731,7 @@ def hal_dasar() -> None:
     dh = muat_dasar_hukum()
     dd = beramar(d)
     if dh.empty or dd.empty:
-        st.info("Belum terdapat rujukan dasar hukum pada lingkup ini.")
+        belum_ada("Belum terdapat rujukan dasar hukum pada lingkup ini.")
         return
 
     k1, k2 = st.columns(2)
@@ -3725,14 +3766,14 @@ def hal_dasar() -> None:
     # pun. Karena itu populasinya dijaga, dan pasal yang dirujuk kurang dari
     # tiga putusan tidak ikut ditampilkan.
     if len(menang_id) < 10:
-        st.info(
+        belum_ada(
             f"Hanya {len(menang_id)} putusan dikabulkan pada pilihan ini, "
             "terlalu sedikit untuk membaca pasal mana yang menentukan. "
             "Salah satu pilihan dapat diperlonggar.")
         return
     rk = rk[rk >= 3]
     if rk.empty:
-        st.info("Belum terdapat pasal yang dirujuk sedikitnya tiga putusan "
+        belum_ada("Belum terdapat pasal yang dirujuk sedikitnya tiga putusan "
                 "dikabulkan pada pilihan ini. Salah satu pilihan dapat "
                 "diperlonggar.")
         return
@@ -3860,7 +3901,7 @@ def hal_unit() -> None:
     du = beramar(d)
     du = du[du["unit_penerbit"].notna()].copy()
     if du.empty:
-        st.info("Belum terdapat unit penerbit yang terbaca pada lingkup ini.")
+        belum_ada("Belum terdapat unit penerbit yang terbaca pada lingkup ini.")
         return
     du["unit"] = du["unit_penerbit"].map(rapikan_unit)
     du = du[du["unit"] != ""]
@@ -3875,7 +3916,7 @@ def hal_unit() -> None:
          .rename(columns={"unit": "Unit penerbit", "size": "Putusan"}))
     g = g[g["Putusan"] >= 15].copy()
     if g.empty:
-        st.info("Belum terdapat unit dengan sedikitnya lima belas putusan "
+        belum_ada("Belum terdapat unit dengan sedikitnya lima belas putusan "
                 "beramar pada pilihan ini. Penelaahan dapat ditunda sampai "
                 "cakupan arsip bertambah, atau "
             "penyaring diperlonggar.")
@@ -3968,7 +4009,7 @@ def hal_hakim() -> None:
     if rentang_th:
         dh = d[d["tahun_putusan"].between(rentang_th[0], rentang_th[1])]
         if dh.empty:
-            st.info("Tidak terdapat putusan pada rentang tahun tersebut.")
+            belum_ada("Tidak terdapat putusan pada rentang tahun tersebut.")
             return
 
     if peran == "Hakim ketua":
@@ -3996,7 +4037,7 @@ def hal_hakim() -> None:
     s["hakim"] = kunci_f.map(nama_tampil)
     s = s[s["hakim"].notna()]
     if s.empty:
-        st.info("Belum terdapat putusan yang susunan majelisnya terbaca pada "
+        belum_ada("Belum terdapat putusan yang susunan majelisnya terbaca pada "
                 "lingkup ini.")
         return
 
@@ -4076,7 +4117,7 @@ def hal_hakim() -> None:
     if not semua:
         tab = tab[tab["Putusan diucapkan"] >= ambang]
     if tab.empty:
-        st.info("Belum terdapat hakim yang memenuhi ambang tersebut.")
+        belum_ada("Belum terdapat hakim yang memenuhi ambang tersebut.")
         return
 
     # Rentang tahun bertugas menurut arsip: tahun putusan tertua sampai
@@ -4140,7 +4181,7 @@ def hal_kinerja() -> None:
 
     j = jeda_hari(d)
     if len(j) < 20:
-        st.info("Belum cukup putusan yang kedua tanggalnya terbaca.")
+        belum_ada("Belum cukup putusan yang kedua tanggalnya terbaca.")
         return
 
     t1, t2 = st.tabs(["Keadaan durasi", "Perkiraan menurut ciri perkara"])
@@ -4165,7 +4206,7 @@ def _durasi_perkiraan() -> None:
     dd["jeda"] = (u - m).dt.days
     dd = dd[dd["jeda"].between(0, 1500)]
     if len(dd) < 50:
-        st.info("Belum cukup putusan bertanggal lengkap untuk perkiraan.")
+        belum_ada("Belum cukup putusan bertanggal lengkap untuk perkiraan.")
         return
 
     st.markdown(
@@ -4321,7 +4362,7 @@ def _durasi_keadaan(j: pd.Series) -> None:
               "itu rata-rata tidak ditampilkan, dan perbandingan "
               "antar kohort menunggu data lengkap.")
     else:
-        st.info("Putusan berpola nomor baru dengan tahun lengkap belum cukup "
+        belum_ada("Putusan berpola nomor baru dengan tahun lengkap belum cukup "
                 "untuk sebaran lama penyelesaian.")
 
 
@@ -4338,6 +4379,10 @@ def hal_metode() -> None:
         "dashboard ini dapat ditelusuri mundur sampai ke berkas aslinya.")
 
     st.html('<div class="tingkat">Tahapan Pengolahan Data</div>')
+    st.caption("Menggambarkan seluruh arsip yang terkumpul, tidak mengikuti "
+               "unit analisis maupun penyaring tahun, karena yang "
+               "digambarkan di sini pipa pengolahannya, bukan populasi yang "
+               "sedang ditelaah.")
     baris = [("Berkas terkumpul", corong["unduh"]),
              ("Punya lapis teks", corong["teks"]),
              ("Masuk dataset terstruktur", corong["urai"])]
@@ -4348,7 +4393,15 @@ def hal_metode() -> None:
     tabel_bernavigasi(t, "tahap_olah")
 
     st.html('<div class="tingkat">Kelengkapan Ruas Data</div>')
-    n = len(df)
+    # Bagian ini justru mengikuti unit analisis, karena mutu pembacaan ruas
+    # berbeda nyata antar unit dan pembaca perlu tahu keandalan datanya pada
+    # unit yang sedang ditelaahnya.
+    sumber_ruas = d if kode_instansi else df
+    if kode_instansi:
+        st.caption(f"Dihitung pada unit analisis {pilih_instansi}, "
+                   f"{len(sumber_ruas):,} putusan. Bagian lain pada halaman "
+                   "ini memotret seluruh arsip.")
+    n = len(sumber_ruas)
     # Nama ruas ditampilkan sebagai istilah, bukan nama kolom basis data.
     ruas = [("nomor_putusan_raw", "Nomor putusan"),
             ("amar", "Amar putusan"),
@@ -4363,9 +4416,9 @@ def hal_metode() -> None:
             ("masa_pajak", "Masa pajak")]
     t = pd.DataFrame([
         {"Ruas": label,
-         "Terisi": int(df[k].notna().sum()),
-         "Persen": round(100 * df[k].notna().sum() / n, 1)}
-        for k, label in ruas if k in df])
+         "Terisi": int(sumber_ruas[k].notna().sum()),
+         "Persen": round(100 * sumber_ruas[k].notna().sum() / max(n, 1), 1)}
+        for k, label in ruas if k in sumber_ruas])
     tabel_bernavigasi(t, "lengkap_ruas", kolom_persen=("Persen",))
 
     st.html('<div class="tingkat">Peta Kode Jenis Pajak</div>')
@@ -4543,7 +4596,7 @@ def hal_tema() -> None:
                & (d["pokok_sengketa"].str.len() > 15))
               | d["jenis_koreksi"].notna()].copy()
     if punya.empty:
-        st.info("Belum terdapat putusan yang tema sengketanya terbaca pada "
+        belum_ada("Belum terdapat putusan yang tema sengketanya terbaca pada "
                 "lingkup ini.")
         return
     st.markdown(
@@ -4556,7 +4609,7 @@ def hal_tema() -> None:
     indeks = punya.set_index("doc_id")
     peta = petakan_tema(indeks["pokok_sengketa"], indeks["jenis_koreksi"])
     if peta.empty:
-        st.info("Tidak ada tema yang dikenali pada lingkup ini.")
+        belum_ada("Tidak ada tema yang dikenali pada lingkup ini.")
         return
     gabung = peta.merge(
         punya[["doc_id", "amar", "amar_label", "tahun_putusan",
@@ -4644,7 +4697,7 @@ def hal_tema() -> None:
         cukup = tt.groupby("Tahun")["Putusan"].sum()
         tt = tt[tt["Tahun"].isin(cukup[cukup >= 20].index)]
         if tt.empty or tt["Tahun"].nunique() < 3:
-            st.info("Belum terdapat cukup tahun untuk menggambarkan tren "
+            belum_ada("Belum terdapat cukup tahun untuk menggambarkan tren "
                     "tema pada lingkup ini.")
         else:
             fig = px.line(tt, x="Tahun", y="Putusan", color="Tema",
@@ -4792,7 +4845,7 @@ def hal_karakter() -> None:
     # dan pemakai yang memilih DJBC tetap membaca profil gabungan.
     prof = profil_karakter((pilih_instansi, th, hanya_teks), min_n)
     if prof.empty or len(prof) < 5:
-        st.info("Belum terdapat cukup hakim yang memenuhi ambang tersebut "
+        belum_ada("Belum terdapat cukup hakim yang memenuhi ambang tersebut "
                 "pada lingkup ini. Ambang dapat diturunkan.")
         return
 
