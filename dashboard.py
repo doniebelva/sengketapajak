@@ -1125,7 +1125,8 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Tema Sengketa", "Mutu Ketetapan",
            "Pasal Penentu", "Unit Penerbit Ketetapan",
-           "Profil Hakim", "Durasi Penyelesaian Sengketa",
+           "Profil Hakim", "Karakter Memutus",
+           "Durasi Penyelesaian Sengketa",
            "Panduan Analisis", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
@@ -1137,6 +1138,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pasal Penentu": "Diagnostik",
            "Unit Penerbit Ketetapan": "Diagnostik",
            "Profil Hakim": "Deskriptif",
+           "Karakter Memutus": "Diagnostik",
            "Durasi Penyelesaian Sengketa": "Prediktif"}
 
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
@@ -1152,13 +1154,14 @@ MODUL = {
     "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
                  "Risalah Putusan", "Konsistensi Putusan Hakim",
                  "Sengketa Berulang", "Tema Sengketa", "Profil Hakim",
-                 "Durasi Penyelesaian Sengketa", "Panduan Analisis",
+                 "Karakter Memutus", "Durasi Penyelesaian Sengketa",
+                 "Panduan Analisis",
                  "Metodologi"],
     "Fiskus": ["Beranda", "Ringkasan Eksekutif", "Tema Sengketa",
                "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit Ketetapan",
-               "Konsistensi Putusan Hakim", "Risalah Putusan",
-               "Panduan Analisis", "Metodologi"],
+               "Konsistensi Putusan Hakim", "Karakter Memutus",
+               "Risalah Putusan", "Panduan Analisis", "Metodologi"],
     "Wajib pajak": ["Beranda", "Ringkasan Eksekutif", "Pola Putusan Sejenis",
                     "Pilihan Upaya Hukum", "Risalah Putusan",
                     "Panduan Analisis", "Metodologi"],
@@ -4546,6 +4549,273 @@ def hal_tema() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Karakter memutus: keragaman antar hakim setelah campuran perkara dikendalikan
+# ---------------------------------------------------------------------------
+
+@st.cache_data(show_spinner="Menyusun profil karakter memutus...")
+def profil_karakter(kunci: tuple, min_n: int) -> pd.DataFrame:
+    """
+    Empat perilaku memutus tiap hakim ketua, dengan campuran perkara
+    dikendalikan.
+
+    Pengendalian itu inti halaman ini. Hakim yang banyak menangani perkara
+    kepabeanan akan tampak lebih sering menolak daripada rekannya yang
+    menangani perkara pajak, dan itu bukan sifat hakimnya melainkan sifat
+    perkaranya. Karena itu tiap putusan dibandingkan dengan harapan
+    kelompoknya sendiri, yaitu rata rata dikabulkan pada gabungan jenis
+    pajak dan instansi yang sama, lalu selisihnya yang dirata ratakan.
+
+    Pengukuran pada arsip ini menunjukkan campuran perkara menjelaskan 46
+    persen keragaman antar hakim, dan 54 persen sisanya tetap melekat pada
+    hakimnya. Tanpa pengendalian, hampir separuh angka yang dibaca pemakai
+    sebenarnya menggambarkan perkaranya, bukan yang memutusnya.
+
+    Masukannya sengaja tuple, bukan bingkai, supaya singgahan dapat
+    mengenali panggilan yang sama tanpa menyalin data besar.
+    """
+    dd = beramar(d).dropna(subset=["hakim_ketua"]).copy()
+    if dd.empty:
+        return pd.DataFrame()
+    dd["menang"] = dd["amar"].isin(AMAR_MENANG)
+    kunci_baku, nama_tampil = bakukan_hakim(dd["hakim_ketua"])
+    dd["kunci"] = kunci_baku
+    dd = dd[dd["kunci"] != ""]
+    if dd.empty:
+        return pd.DataFrame()
+
+    dd["kelompok"] = (dd["kode_jenis_pajak"].astype(str) + "|"
+                      + dd["instansi_terbanding"].astype(str))
+    harap = dd.groupby("kelompok")["menang"].transform("mean")
+    dd["selisih"] = dd["menang"].astype(float) - harap
+
+    u = pd.to_datetime(dd["tanggal_ucap"], errors="coerce")
+    m = pd.to_datetime(dd["tanggal_musyawarah"], errors="coerce")
+    dd["jeda"] = (u - m).dt.days
+    dd.loc[~dd["jeda"].between(0, 1500), "jeda"] = float("nan")
+
+    g = dd.groupby("kunci")
+    n_kabul = g["menang"].sum()
+    prof = pd.DataFrame({
+        "Putusan": g.size(),
+        "menang": n_kabul,
+        "Dikabulkan": 100 * g["menang"].mean(),
+        "Selisih dari harapan": 100 * g["selisih"].mean(),
+        "Kabul sebagian": 100 * g.apply(
+            lambda x: (x["amar"] == "kabul_sebagian").sum()
+            / max(int(x["amar"].isin(AMAR_MENANG).sum()), 1),
+            include_groups=False),
+        "Gugur formal": 100 * g.apply(
+            lambda x: (x["amar"] == "tidak_dapat_diterima").mean(),
+            include_groups=False),
+        "Median jeda hari": g["jeda"].median(),
+        "awal": g["tahun_putusan"].min(),
+        "akhir": g["tahun_putusan"].max(),
+    })
+    prof = prof[prof["Putusan"] >= min_n].copy()
+    if prof.empty:
+        return prof
+    batas = [selang_wilson(int(a), int(b))
+             for a, b in zip(prof["menang"], prof["Putusan"])]
+    prof["Batas bawah"] = [round(x[0], 1) for x in batas]
+    prof["Batas atas"] = [round(x[1], 1) for x in batas]
+    prof["Hakim"] = [nama_tampil.get(k, k) for k in prof.index]
+    prof["Periode"] = [
+        f"{int(a)}" if pd.notna(a) and a == b else
+        (f"{int(a)}-{int(b)}" if pd.notna(a) and pd.notna(b) else "-")
+        for a, b in zip(prof["awal"], prof["akhir"])]
+    return prof.drop(columns=["menang", "awal", "akhir"]).reset_index(drop=True)
+
+
+def hal_karakter() -> None:
+    st.subheader("Karakter Memutus")
+    st.caption(
+        "Bagaimana pola tiap hakim dalam memutus, bukan siapa yang benar. "
+        "Empat perilaku diukur, dan tingkat dikabulkannya sudah disesuaikan "
+        "dengan jenis perkara yang ditangani, supaya yang terbaca sifat "
+        "memutusnya, bukan sifat perkaranya.")
+
+    min_n = st.slider(
+        "Jumlah putusan minimal per hakim", 20, 120, 40, step=10,
+        key="kar_min",
+        help="Hakim dengan putusan sedikit menghasilkan persentase yang "
+             "bergoyang liar. Ambang yang lebih tinggi memberi angka lebih "
+             "kokoh, tetapi hakim yang dinilai lebih sedikit.")
+    prof = profil_karakter(("v1",), min_n)
+    if prof.empty or len(prof) < 5:
+        st.info("Belum terdapat cukup hakim yang memenuhi ambang tersebut "
+                "pada lingkup ini. Ambang dapat diturunkan.")
+        return
+
+    t1, t2, t3 = st.tabs(["Seberapa beragam", "Peta karakter",
+                          "Tabel lengkap"])
+    with t1:
+        _karakter_ragam(prof)
+    with t2:
+        _karakter_peta(prof)
+    with t3:
+        _karakter_tabel(prof)
+
+    st.html(TV.catatan_siap(
+        "Batas yang wajib disebut ketika angka halaman ini dikutip.",
+        "Yang terukur adalah hakim ketua, sedangkan putusan diambil majelis "
+        "secara bersama, sehingga sebenarnya yang tergambar kecenderungan "
+        "majelis yang dipimpinnya. Pengendali campuran perkara baru mencakup "
+        "jenis pajak dan instansi, belum kerumitan maupun nilai perkara, "
+        "sehingga sebagian keragaman yang tersisa masih mungkin berasal dari "
+        "perbedaan perkara yang belum terukur. Dan yang terpenting, tingkat "
+        "dikabulkan tinggi atau rendah tidak berarti benar atau salah: "
+        "halaman ini menyajikan keragaman sebagai bahan pembicaraan "
+        "konsistensi, bukan sebagai penilaian kinerja perorangan. Karena itu "
+        "halaman ini sengaja tidak memuat peringkat."))
+
+
+def _karakter_ragam(prof: pd.DataFrame) -> None:
+    """Apakah keragaman antar hakim nyata, dan seberapa besar."""
+    dd = beramar(d).dropna(subset=["hakim_ketua"]).copy()
+    dd["menang"] = dd["amar"].isin(AMAR_MENANG).astype(float)
+    p = float(dd["menang"].mean())
+    n = prof["Putusan"].to_numpy(dtype=float)
+    laju = prof["Dikabulkan"].to_numpy(dtype=float) / 100
+    ragam_ada = float(np.var(laju, ddof=1))
+    ragam_acak = float(np.mean(p * (1 - p) / n))
+    lipat = ragam_ada / max(ragam_acak, 1e-12)
+
+    k = st.columns(3)
+    k[0].html(TV.kartu("Hakim yang dinilai", f"{len(prof):,}",
+                       f"mencakup {int(prof['Putusan'].sum()):,} putusan "
+                       "beramar"))
+    k[1].html(TV.kartu("Keragaman dibanding kebetulan", f"{lipat:.0f} kali",
+                       "satu kali berarti seluruh perbedaan hanya kebetulan"))
+    p10 = prof["Selisih dari harapan"].quantile(0.10)
+    p90 = prof["Selisih dari harapan"].quantile(0.90)
+    k[2].html(TV.kartu("Jarak antar hakim", f"{p90 - p10:.0f} poin",
+                       "setelah jenis perkara dikendalikan, persentil 10 "
+                       "sampai 90"))
+
+    st.markdown(
+        "Pertanyaan pertama yang harus dijawab sebelum apa pun: **apakah "
+        "perbedaan antar hakim ini nyata, atau sekadar kebetulan?** Hakim "
+        "dengan empat puluh putusan wajar berbeda beberapa poin hanya "
+        "karena kebetulan, seperti melempar koin empat puluh kali tidak "
+        "selalu menghasilkan dua puluh sisi gambar.\n\n"
+        f"Jawabannya: keragaman yang terlihat **{lipat:.0f} kali lipat lebih "
+        "besar** daripada yang dapat dijelaskan kebetulan. Jadi hasil "
+        "perkara memang bergantung pada siapa yang memutus.\n\n"
+        "Pertanyaan kedua yang lebih tajam: **berapa banyak dari perbedaan "
+        "itu sekadar karena hakim menangani jenis perkara yang berbeda?** "
+        "Ini yang dikendalikan pada seluruh halaman. Tiap putusan "
+        "dibandingkan dengan harapan kelompoknya sendiri, dan selisihnya "
+        "itulah yang diukur. Nol berarti hakim tersebut memutus persis "
+        "seperti kebiasaan pada jenis perkara yang ditanganinya; positif "
+        "berarti lebih sering mengabulkan daripada kebiasaan itu.")
+
+    t = prof.sort_values("Selisih dari harapan")
+    fig = px.histogram(t, x="Selisih dari harapan", nbins=24,
+                       title="Sebaran selisih dari harapan kelompoknya")
+    fig.update_traces(hovertemplate="%{x:.0f} poin: %{y} hakim<extra></extra>")
+    fig.add_vline(x=0, line_dash="dot", line_color=P["tinta_2"],
+                  annotation_text="memutus seperti kebiasaan kelompoknya",
+                  annotation_position="top",
+                  annotation_font=dict(size=11, color=P["tinta_2"]))
+    fig.update_xaxes(showgrid=False, title="Poin persen dari harapan")
+    fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
+                     title="Jumlah hakim")
+    fig.update_layout(margin=dict(b=64))
+    bagan(fig, 340, None,
+          "Sebaran yang melebar jauh dari nol berarti perkara setara dapat "
+          "berakhir berbeda tergantung majelis yang memeriksanya. Ini bahan "
+          "pembakuan pedoman, bukan penilaian perorangan.")
+
+    st.html('<div class="tingkat">Tiga Keragaman yang Paling Layak Dibahas</div>')
+    for kolom, judul, ket in (
+            ("Gugur formal", "Ketatnya syarat formal",
+             "Menentukan perkara diperiksa atau tidak, sebelum pokok "
+             "sengketanya tersentuh sama sekali."),
+            ("Kabul sebagian", "Gaya mengabulkan",
+             "Sebagian hakim cenderung memutus penuh ke satu arah, sebagian "
+             "lain cenderung membelah. Keduanya sah, tetapi berakibat sangat "
+             "berbeda bagi perencanaan arus kas wajib pajak."),
+            ("Median jeda hari", "Kecepatan pengucapan",
+             "Tidak menyangkut isi putusan sama sekali, dan justru itu yang "
+             "paling mudah diseragamkan.")):
+        v = prof[kolom].dropna()
+        if v.empty:
+            continue
+        satuan = " hari" if "jeda" in kolom else " persen"
+        st.markdown(
+            f"**{judul}.** Dari {v.quantile(.1):,.0f}{satuan} pada persentil "
+            f"sepuluh sampai {v.quantile(.9):,.0f}{satuan} pada persentil "
+            f"sembilan puluh, dengan median {v.median():,.0f}{satuan}. {ket}")
+
+
+def _karakter_peta(prof: pd.DataFrame) -> None:
+    """Peta dua sumbu: kecenderungan mengabulkan dan gaya mengabulkan."""
+    st.markdown(
+        "Peta ini menempatkan tiap hakim menurut dua perilaku sekaligus. "
+        "Sumbu mendatar adalah **selisih dari harapan kelompoknya**: ke "
+        "kanan berarti lebih sering mengabulkan daripada kebiasaan pada "
+        "jenis perkara yang ditanganinya. Sumbu tegak adalah **gaya "
+        "mengabulkan**: ke atas berarti lebih sering mengabulkan sebagian "
+        "daripada seluruhnya. Besar titik menunjukkan banyaknya putusan, dan "
+        "warnanya menunjukkan ketatnya pada syarat formal.\n\n"
+        "Yang penting dibaca di sini bukan posisi satu hakim, melainkan "
+        "**seberapa tersebar titiknya**. Titik yang berkerumun rapat berarti "
+        "praktik sudah seragam; titik yang tersebar luas berarti hasil "
+        "perkara bergantung pada majelis mana yang kebagian memeriksanya.")
+
+    t = prof.copy()
+    t["Ketat formal"] = t["Gugur formal"].round(1)
+    fig = px.scatter(
+        t, x="Selisih dari harapan", y="Kabul sebagian",
+        size="Putusan", color="Ketat formal",
+        color_continuous_scale=[[0, P["seri"][2]], [0.5, P["seri"][1]],
+                                [1, P["genting"]]],
+        hover_name="Hakim", size_max=34,
+        title="Peta karakter memutus")
+    fig.update_traces(
+        hovertemplate="<b>%{hovertext}</b><br>"
+                      "selisih dari harapan %{x:.1f} poin<br>"
+                      "kabul sebagian %{y:.1f} persen<br>"
+                      "gugur formal %{marker.color:.1f} persen"
+                      "<extra></extra>")
+    fig.add_vline(x=0, line_dash="dot", line_color=P["sumbu"])
+    fig.add_hline(y=float(t["Kabul sebagian"].median()), line_dash="dot",
+                  line_color=P["sumbu"])
+    fig.update_xaxes(showgrid=True, gridcolor=P["garis_bantu"],
+                     title="Selisih dari harapan, poin persen")
+    fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
+                     ticksuffix="%", title="")
+    fig.update_layout(margin=dict(b=70, t=64),
+                      coloraxis_colorbar=dict(title="Gugur<br>formal %"))
+    bagan(fig, 520, None,
+          "Garis tegak berada pada nol, yaitu memutus persis seperti "
+          "kebiasaan kelompok perkaranya. Garis mendatar pada gaya "
+          "mengabulkan yang paling lazim. Titik berwarna merah adalah hakim "
+          "yang paling sering menggugurkan perkara pada syarat formal.")
+
+
+def _karakter_tabel(prof: pd.DataFrame) -> None:
+    st.markdown(
+        "Tabel lengkapnya, **diurutkan menurut nama, bukan menurut peringkat "
+        "apa pun.** Urutan menurut angka akan mengundang pembacaan sebagai "
+        "papan peringkat, padahal tingkat dikabulkan tinggi atau rendah "
+        "tidak berarti benar atau salah.\n\n"
+        "Kolom **Batas bawah** dan **Batas atas** adalah rentang "
+        "ketidakpastian tingkat dikabulkan. Dua hakim yang rentangnya masih "
+        "bersinggungan belum dapat dinyatakan berbeda.")
+    t = prof[["Hakim", "Periode", "Putusan", "Dikabulkan",
+              "Selisih dari harapan", "Kabul sebagian", "Gugur formal",
+              "Median jeda hari", "Batas bawah", "Batas atas"]].copy()
+    t = t.round({"Dikabulkan": 1, "Selisih dari harapan": 1,
+                 "Kabul sebagian": 1, "Gugur formal": 1,
+                 "Median jeda hari": 0}).sort_values("Hakim")
+    tabel_bernavigasi(
+        t, "karakter_hakim", kelas="rata",
+        kolom_persen=("Dikabulkan", "Selisih dari harapan", "Kabul sebagian",
+                      "Gugur formal", "Batas bawah", "Batas atas"))
+
+
+# ---------------------------------------------------------------------------
 # Panduan analisis: menjelaskan empat dimensi dengan bahasa sehari hari
 # ---------------------------------------------------------------------------
 
@@ -4810,6 +5080,7 @@ def hal_beranda() -> None:
     "Mutu Ketetapan": hal_ketetapan,
     "Profil Hakim": hal_hakim,
     "Durasi Penyelesaian Sengketa": hal_kinerja,
+    "Karakter Memutus": hal_karakter,
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
 }[halaman]()
@@ -4851,6 +5122,9 @@ RUAS_ANDAL = {
                       ("Jenis ketetapan", "jenis_ketetapan")],
     "Unit Penerbit Ketetapan": [("Unit penerbit", "unit_penerbit"),
                                 ("Amar", "amar")],
+    "Karakter Memutus": [("Hakim ketua", "hakim_ketua"),
+                         ("Amar", "amar"),
+                         ("Jenis pajak", "kode_jenis_pajak")],
     "Profil Hakim": [("Hakim ketua", "hakim_ketua"),
                      ("Hakim anggota", "hakim_anggota"),
                      ("Tanggal ucap", "tanggal_ucap")],

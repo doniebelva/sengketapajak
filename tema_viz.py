@@ -259,6 +259,22 @@ def rapikan(fig, tinggi: int | None = None, gelap: bool = False):
         # menjadi bagian paling mencolok pada bagannya.
         if getattr(t, "line", None) is not None and t.line.width == 0:
             continue
+        # Deret titik yang warnanya atau ukurannya dipetakan dari data
+        # dibiarkan apa adanya. Pemaksaan satu warna dan satu ukuran di
+        # bawah menghapus pemetaan itu tanpa jejak: peta sebaran yang
+        # warnanya menyatakan satu ukuran dan besar titiknya menyatakan
+        # ukuran lain berubah menjadi kerumunan titik seragam yang tidak
+        # lagi memberi keterangan apa pun.
+        mk = getattr(t, "marker", None)
+        if mk is not None:
+            dipetakan = (
+                getattr(mk, "coloraxis", None) is not None
+                or (getattr(mk, "color", None) is not None
+                    and not isinstance(mk.color, str))
+                or (getattr(mk, "size", None) is not None
+                    and not isinstance(mk.size, (int, float))))
+            if dipetakan:
+                continue
         warna = None
         if getattr(t, "line", None) is not None:
             warna = getattr(t.line, "color", None)
@@ -1253,6 +1269,7 @@ _IKON_NAV = {
     "Unit Penerbit Ketetapan": "%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V4l8-2v19'/%3E%3Cpath d='M13 21h6V9l-6-2'/%3E%3Cpath d='M8 8h.01M8 12h.01M8 16h.01'/%3E",
     "Profil Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
     "Durasi Penyelesaian Sengketa": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
+    "Karakter Memutus": "%3Ccircle cx='7' cy='16' r='2.4'/%3E%3Ccircle cx='13' cy='9' r='2.4'/%3E%3Ccircle cx='18.5' cy='14' r='2'/%3E%3Cpath d='M3 21h18'/%3E",
     "Panduan Analisis": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v.01'/%3E%3Cpath d='M12 13a2.5 2.5 0 0 0 1.5-4.5 2.5 2.5 0 0 0-3.9 2'/%3E",
     "Metodologi": "%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E",
 }
