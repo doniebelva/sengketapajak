@@ -436,6 +436,25 @@ def gaya(gelap: bool) -> str:
     visibility: hidden !important;
   }}
 
+  /* Keterangan kapan di atas kartu angka. */
+  .kapan {{
+    font-size: 12px; color: {p["tinta_2"]}; margin: 2px 0 12px;
+  }}
+  .kapan b {{ color: {p["tinta"]}; font-weight: 620; }}
+  .kapan .pisah {{ margin: 0 8px; color: {p["sumbu"]}; }}
+
+  /* Temuan utama ditegaskan. Kalimat pembuka tiap temuan adalah inti
+     halaman depan, dan pada ukuran biasa ia tenggelam di antara paragraf
+     lain yang sama tebalnya. */
+  .temuan {{
+    font-size: 15.5px; line-height: 1.6; color: {p["tinta_2"]};
+    margin: 0 0 14px 0;
+  }}
+  .temuan b {{
+    font-size: 17.5px; font-weight: 700; color: {p["tinta"]};
+    line-height: 1.5;
+  }}
+
   /* --- Pita keandalan data ---------------------------------------------- */
   .andal-pita {{
     display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
@@ -1209,6 +1228,22 @@ def tabel(df, kolom_kiri: tuple = (), kolom_persen: tuple = (),
 
 def catatan_siap(judul: str, isi: str) -> str:
     return f'<div class="siap"><b>{judul}</b><br>{isi}</div>'
+
+
+def keterangan_waktu(rentang: str, diperbarui: str | None) -> str:
+    """
+    Keterangan kapan, dipasang tepat di atas deret kartu angka.
+
+    Angka tanpa keterangan waktu tidak dapat dikutip: pembaca yang
+    menyalinnya ke paparan tidak punya cara menyebutkan angka itu berlaku
+    untuk periode apa dan diambil kapan. Keduanya berbeda dan keduanya
+    disebut, yaitu rentang tahun putusan yang sedang diamati, dan tanggal
+    arsipnya terakhir diperbarui.
+    """
+    ekor = (f'<span class="pisah">·</span>arsip diperbarui '
+            f'<b>{diperbarui}</b>' if diperbarui else "")
+    return ('<div class="kapan">Angka pada halaman ini mencakup putusan '
+            f'tahun <b>{rentang}</b>{ekor}</div>')
 
 
 def pita_andal(item: list, n: int) -> str:

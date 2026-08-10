@@ -370,13 +370,23 @@ def keadaan_tarikan() -> dict:
         except sqlite3.OperationalError:
             terakhir = None
     if not terakhir:
-        return {"aktif": False, "menit": None}
+        return {"aktif": False, "menit": None, "terakhir": None}
     try:
         t = _dt.datetime.fromisoformat(terakhir)
         menit = (_dt.datetime.now(_dt.timezone.utc) - t).total_seconds() / 60
     except ValueError:
-        return {"aktif": False, "menit": None}
-    return {"aktif": menit < 5, "menit": menit}
+        return {"aktif": False, "menit": None, "terakhir": None}
+    return {"aktif": menit < 5, "menit": menit,
+            "terakhir": t.strftime("%d-%m-%Y")}
+
+
+def rentang_tahun(df_: pd.DataFrame) -> str:
+    """Rentang tahun putusan pada lingkup yang sedang tampil."""
+    th = df_["tahun_putusan"].dropna()
+    if th.empty:
+        return "-"
+    a, b = int(th.min()), int(th.max())
+    return f"{a}" if a == b else f"{a} sampai {b}"
 
 
 @st.cache_resource(show_spinner="Memuat rujukan dasar hukum...")
@@ -411,7 +421,10 @@ def cari_teks(kueri: str, batas: int) -> pd.DataFrame:
                ORDER BY rank LIMIT ?""", c, params=(kueri, batas))
 
 
-@st.cache_data(ttl=300, show_spinner="Membuka isi putusan...")
+# Isi putusan bisa sebesar beberapa megabita per dokumen; singgahannya
+# dibatasi ketat supaya pembacaan beruntun tidak menumpuk di memori.
+@st.cache_data(ttl=120, max_entries=6,
+               show_spinner="Membuka isi putusan...")
 def muat_isi(doc_id: int) -> tuple[str, str]:
     with sambung() as c:
         b = c.execute(
@@ -1249,8 +1262,14 @@ st.sidebar.caption("Menentukan populasi yang diamati pada seluruh halaman.")
 kode_peta = peta_kode()
 tahun_ada = sorted(int(t) for t in df["tahun_putusan"].dropna().unique())
 if len(tahun_ada) > 1:
+    # Penggeser rentang tidak dikenali semua orang. Keterangan pendek di
+    # bawahnya menyebutkan gunanya, karena pemakai yang tidak terbiasa
+    # cenderung mengira ini penunjuk, bukan alat.
     th = st.sidebar.slider("Tahun putusan", min(tahun_ada), max(tahun_ada),
-                           (min(tahun_ada), max(tahun_ada)))
+                           (min(tahun_ada), max(tahun_ada)),
+                           help="Tarik salah satu ujungnya untuk mempersempit "
+                                "tahun. Seluruh halaman ikut menyesuaikan.")
+    st.sidebar.caption("Geser untuk melihat tren tahunan.")
 else:
     th = None
 
@@ -1259,8 +1278,13 @@ hanya_teks = st.sidebar.checkbox(
     help="Mengeluarkan dokumen hasil pengenalan karakter optis, yang "
          "keandalannya pada angka dan nomor pasal lebih rendah.")
 
-d = df.copy()
-if th:
+# Tanpa penyaring aktif, bingkai singgahan dipakai langsung tanpa disalin.
+# Salinan 24 MB per gerakan per sesi adalah salah satu penekan memori di
+# peladen berjatah satu gigabita, dan seluruh halaman memang membaca tanpa
+# mengubah. Ketika penyaring aktif, penyaringan itu sendiri sudah
+# menghasilkan bingkai baru, jadi salinan tersendiri tetap tidak perlu.
+d = df
+if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
     d = d[d["tahun_putusan"].between(th[0], th[1]) | d["tahun_putusan"].isna()]
 if hanya_teks:
     d = d[d["sumber_teks"] != "ocr"]
@@ -1338,32 +1362,52 @@ def _ikhtisar_proyeksi() -> None:
         "hakim, panitera, dan ruang sidang yang perlu disiapkan lembaga "
         "penerima berbanding lurus dengan angka ini.")
 
+    # Perkiraan digambar sebagai batang, sewarna tetapi bergaris putus
+    # putus, bukan sebagai wajik bergaris tegak. Bentuk wajik beserta
+    # sungutnya menuntut pembaca memahami lambang statistik lebih dulu, dan
+    # penguji melaporkan bagan lamanya sulit ditafsirkan. Batang bergaris
+    # putus terbaca langsung: bentuknya sama dengan tahun lain sehingga
+    # tingginya dapat dibandingkan, dan garis putusnya menyatakan angka ini
+    # belum terjadi.
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        x=t["Tahun"], y=t["Putusan"], name="Putusan per tahun",
-        marker_color=TV.lembut(P["seri"][0], 0.16),
+        x=t["Tahun"], y=t["Putusan"], name="Sudah terjadi",
+        marker_color=TV.lembut(P["seri"][0], 0.18),
         marker_line=dict(color=P["seri"][0], width=1.6),
         text=[f"{v:,.0f}" for v in t["Putusan"]], textposition="outside",
+        textfont=dict(size=11),
         hovertemplate="%{x}: %{y:,} putusan<extra></extra>"))
-    fig.add_trace(go.Scatter(
-        x=[tahun_depan], y=[taksir], mode="markers", name="Perkiraan",
-        marker=dict(color=P["seri"][1], size=13, symbol="diamond"),
+    fig.add_trace(go.Bar(
+        x=[tahun_depan], y=[taksir], name="Perkiraan, belum terjadi",
+        # Garis tepi batang tidak mengenal ragam putus putus; yang
+        # membedakannya dari batang lain adalah warnanya beserta pola
+        # arsirnya.
+        marker=dict(color=TV.lembut(P["seri"][1], 0.10),
+                    line=dict(color=P["seri"][1], width=1.8),
+                    pattern=dict(shape="/", size=6, solidity=0.22,
+                                 fgcolor=P["seri"][1])),
+        text=[f"{taksir:,.0f}"], textposition="outside",
+        textfont=dict(size=11),
         error_y=dict(type="data", symmetric=False,
                      array=[atas - taksir], arrayminus=[taksir - bawah],
-                     color=P["tinta_2"], thickness=1.4, width=6),
-        hovertemplate=(f"{tahun_depan}: perkiraan %{{y:,.0f}}"
+                     color=P["seri"][1], thickness=1.4, width=7),
+        hovertemplate=(f"{tahun_depan}: perkiraan %{{y:,.0f}} putusan, "
+                       f"rentang wajar {bawah:,.0f} sampai {atas:,.0f}"
                        "<extra></extra>")))
     fig.update_layout(
-        title="Putusan per tahun pada daftar resmi, dan perkiraannya",
+        title=f"Putusan per tahun, dan perkiraan {tahun_depan}",
         legend=dict(orientation="h", yanchor="top", y=-0.14,
                     xanchor="left", x=0),
-        margin=dict(b=70))
+        margin=dict(b=70), bargap=0.28)
     fig.update_xaxes(showgrid=False, dtick=1, title="")
-    fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="")
-    bagan(fig, 380, None,
-          "Batang adalah jumlah nyata menurut daftar resmi. Wajik di ujung "
-          "kanan adalah perkiraan tahun berikutnya, dan garis tegak di "
-          "atasnya adalah rentang wajarnya.")
+    fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"], title="",
+                     rangemode="tozero")
+    bagan(fig, 400, None,
+          "Batang polos adalah jumlah yang sudah terjadi menurut daftar "
+          "resmi. Batang berarsir di ujung kanan adalah "
+          f"perkiraan tahun {tahun_depan}, yang belum terjadi. Garis tegak "
+          "kecil di atasnya menunjukkan rentang wajar perkiraan itu: hasil "
+          "sebenarnya dapat berada di mana saja sepanjang garis tersebut.")
 
     st.html(TV.catatan_siap(
         "Batas proyeksi ini.",
@@ -1380,6 +1424,14 @@ def _ikhtisar_ringkas() -> None:
     pangsa = 100 * n_menang / len(dd) if len(dd) else 0
     j = jeda_hari(d)
     n_formal = int((d["amar"] == "tidak_dapat_diterima").sum())
+
+    # Keterangan waktu di atas kartu angka. Angka tanpa keterangan kapan
+    # tidak dapat dikutip: pembaca yang menyalinnya ke paparan tidak punya
+    # cara menyebutkan angka itu berlaku untuk periode apa dan diambil
+    # kapan. Dua duanya disebut, karena keduanya berbeda: rentang tahun
+    # putusan yang diamati, dan saat arsipnya terakhir diperbarui.
+    st.html(TV.keterangan_waktu(
+        rentang_tahun(d), keadaan_tarikan().get("terakhir")))
 
     k = st.columns(4)
     k[0].html(TV.kartu("Putusan terurai", f"{len(d):,}",
@@ -1427,21 +1479,33 @@ def _ikhtisar_ringkas() -> None:
     if len(norm):
         vc = norm["nama_pemohon_norm"].value_counts()
         ulang = 100 * int(vc[vc >= 2].sum()) / len(norm)
-    st.markdown(
-        f"**{kj_menang:.0f} persen ketetapan yang disengketakan berujung "
-        f"dikabulkan** seluruhnya atau sebagian. Angka ini dihitung dari "
-        f"{len(kj):,} putusan yang jenis ketetapannya terbaca, bagian dari "
-        f"{len(d):,} putusan dalam lingkup; pada sisanya jenis ketetapan "
-        "tidak tertulis terbaca di dokumennya. Rinciannya pada halaman "
-        "Mutu Ketetapan.\n\n"
-        f"**{ulang:.0f} persen sengketa datang dari wajib pajak yang "
-        "bersengketa lebih dari sekali.** Rinciannya pada halaman Sengketa "
-        "Berulang.\n\n"
-        "**Terdapat kelompok perkara yang putusannya bervariasi tiga arah** "
-        "pada "
-        "perkara sejenis, dan sebagian lain sangat seragam. Peta lengkapnya "
-        "pada "
-        "halaman Konsistensi Putusan Hakim.")
+    # Tiap temuan disajikan sebagai satu blok: kalimat inti berhuruf besar,
+    # keterangan pendukung di bawahnya, lalu tombol yang membawa langsung ke
+    # halaman rinciannya. Sebelumnya rincian hanya disebut namanya, dan
+    # pembaca harus mencarinya sendiri di menu samping.
+    for inti, keterangan, tujuan in (
+            (f"{kj_menang:.0f} persen ketetapan yang disengketakan "
+             "berujung dikabulkan",
+             f"seluruhnya atau sebagian. Dihitung dari {len(kj):,} putusan "
+             f"yang jenis ketetapannya terbaca, bagian dari {len(d):,} "
+             "putusan dalam lingkup; pada sisanya jenis ketetapan tidak "
+             "tertulis terbaca di dokumennya.",
+             "Mutu Ketetapan"),
+            (f"{ulang:.0f} persen sengketa datang dari wajib pajak yang "
+             "bersengketa lebih dari sekali",
+             "Persoalan yang sama kembali ke pengadilan berulang kali, dan "
+             "sebagian besar berakhir dengan amar yang sama pula.",
+             "Sengketa Berulang"),
+            ("Terdapat kelompok perkara yang putusannya bervariasi tiga arah",
+             "pada perkara yang jenis pajak dan jenis koreksinya sama "
+             "persis, sementara sebagian kelompok lain justru sangat "
+             "seragam.",
+             "Konsistensi Putusan Hakim")):
+        st.html(f'<div class="temuan"><b>{inti}</b> {keterangan}</div>')
+        if st.button(f"Buka halaman {tujuan}", icon=":material/arrow_forward:",
+                     key=f"temuan-{TV.kunci_nav(tujuan)}"):
+            st.session_state["nav_tujuan"] = tujuan
+            st.rerun()
 
     t = (d.dropna(subset=["tahun_putusan"])["tahun_putusan"].astype(int)
          .value_counts().sort_index()
@@ -5062,37 +5126,15 @@ def hal_beranda() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Penyalur dan kaki
-# ---------------------------------------------------------------------------
-
-{
-    "Beranda": hal_beranda,
-    "Ringkasan Eksekutif": hal_ikhtisar,
-    "Nilai Sengketa": hal_nilai,
-    "Risalah Putusan": hal_telusur,
-    "Pola Putusan Sejenis": hal_belajar,
-    "Pilihan Upaya Hukum": hal_jalur,
-    "Pasal Penentu": hal_dasar,
-    "Unit Penerbit Ketetapan": hal_unit,
-    "Konsistensi Putusan Hakim": hal_konsistensi,
-    "Sengketa Berulang": hal_berulang,
-    "Tema Sengketa": hal_tema,
-    "Mutu Ketetapan": hal_ketetapan,
-    "Profil Hakim": hal_hakim,
-    "Durasi Penyelesaian Sengketa": hal_kinerja,
-    "Karakter Memutus": hal_karakter,
-    "Panduan Analisis": hal_panduan,
-    "Metodologi": hal_metode,
-}[halaman]()
-
-# ---------------------------------------------------------------------------
-# Pita keandalan, digambar di kaki tiap halaman analisis.
+# Pita keandalan, digambar di kepala tiap halaman analisis.
 #
 # Tiap halaman bertumpu pada ruas yang berbeda, dan kelengkapannya berbeda
 # jauh. Daftar di bawah menyebut ruas penopang tiap halaman, dan pitanya
 # menghitung kelengkapan pada lingkup yang sedang tampil, bukan pada seluruh
 # arsip, supaya angkanya ikut berubah ketika penyaring tahun digeser.
-# Metodologi tidak diberi pita karena sudah memuat tabel kelengkapan lengkap.
+# Metodologi tidak diberi pita karena sudah memuat tabel kelengkapan
+# lengkap. Letaknya di kepala halaman, bukan di kaki: pembaca perlu tahu
+# seberapa lengkap datanya sebelum membaca angkanya, bukan sesudah.
 # ---------------------------------------------------------------------------
 
 RUAS_ANDAL = {
@@ -5147,6 +5189,31 @@ elif halaman == "Nilai Sengketa":
             [("Nilai awal", 100 * _rs["nilai_awal"].notna().mean()),
              ("Nilai akhir", 100 * _rs["nilai_akhir"].notna().mean()),
              ("Amar", 100 * _rs["amar"].notna().mean())], len(_rs)))
+
+
+# ---------------------------------------------------------------------------
+# Penyalur dan kaki
+# ---------------------------------------------------------------------------
+
+{
+    "Beranda": hal_beranda,
+    "Ringkasan Eksekutif": hal_ikhtisar,
+    "Nilai Sengketa": hal_nilai,
+    "Risalah Putusan": hal_telusur,
+    "Pola Putusan Sejenis": hal_belajar,
+    "Pilihan Upaya Hukum": hal_jalur,
+    "Pasal Penentu": hal_dasar,
+    "Unit Penerbit Ketetapan": hal_unit,
+    "Konsistensi Putusan Hakim": hal_konsistensi,
+    "Sengketa Berulang": hal_berulang,
+    "Tema Sengketa": hal_tema,
+    "Mutu Ketetapan": hal_ketetapan,
+    "Profil Hakim": hal_hakim,
+    "Durasi Penyelesaian Sengketa": hal_kinerja,
+    "Karakter Memutus": hal_karakter,
+    "Panduan Analisis": hal_panduan,
+    "Metodologi": hal_metode,
+}[halaman]()
 
 _t = keadaan_tarikan()
 if _t["menit"] is None:
