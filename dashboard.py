@@ -1292,14 +1292,18 @@ kode_peta = peta_kode()
 LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
                     "DJP": ("djp",), "DJBC": ("djbc",),
                     "Pemda": ("pemda",)}
-bagian_instansi.html('<div class="sb-judul">Instansi terbanding</div>')
-pilih_instansi = bagian_instansi.segmented_control(
-    "Instansi terbanding", list(LINGKUP_INSTANSI), default="Semua",
+# Bentuknya daftar jatuh, bukan deret pil. Lima pilihan tidak muat pada
+# satu baris bilah samping, dan pilihan terakhirnya melipat sendiri menjadi
+# baris penuh yang tampak seperti salah susun. Daftar jatuh selalu setinggi
+# satu baris berapa pun banyak pilihannya, dan menyisakan ruang bagi
+# pilihan baru di kemudian hari.
+bagian_instansi.html('<div class="sb-judul">Unit analisis</div>')
+pilih_instansi = bagian_instansi.selectbox(
+    "Unit analisis", list(LINGKUP_INSTANSI), index=0,
     key="lingkup_instansi", label_visibility="collapsed",
-    help="Membatasi seluruh halaman pada perkara melawan instansi ini. "
-         "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang instansinya "
+    help="Membatasi seluruh halaman pada perkara melawan unit ini. "
+         "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang unitnya "
          "belum terbaca hanya termuat pada pilihan Semua.")
-# Kendali bawaan mengizinkan pilihan dikosongkan; kosong diartikan Semua.
 pilih_instansi = pilih_instansi or "Semua"
 kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi)
 
