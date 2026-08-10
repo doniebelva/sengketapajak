@@ -1311,13 +1311,52 @@ st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # Seluruh tombol menu dikumpulkan dalam satu wadah bernama, supaya jarak
 # antar barisnya dapat dirapatkan sekaligus tanpa mengganggu jarak antar
 # unsur lain di bilah samping.
+# Menu dikelompokkan menurut dimensi analisis, bukan berderet rata. Enam
+# belas halaman dalam satu senarai memaksa pembaca memindai seluruhnya
+# untuk menemukan satu; dikelompokkan menurut urutan berpikir yang sudah
+# dijelaskan pada Panduan Analisis, daftar itu menjadi peta, bukan senarai.
+# Halaman yang tidak masuk kelompok mana pun, seperti Beranda dan
+# Metodologi, ditaruh di kelompok pembuka dan penutup.
+KELOMPOK_MENU = [
+    ("Mulai dari sini", ["Beranda", "Ringkasan Eksekutif"]),
+    ("Memeriksa keadaan", ["Nilai Sengketa", "Risalah Putusan",
+                           "Profil Hakim"]),
+    ("Mencari sebab", ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
+                       "Unit Penerbit Ketetapan", "Sengketa Berulang",
+                       "Konsistensi Putusan Hakim", "Karakter Memutus",
+                       "Banding Unit"]),
+    ("Memperkirakan", ["Pola Putusan Sejenis",
+                       "Durasi Penyelesaian Sengketa"]),
+    ("Menentukan tindakan", ["Pilihan Upaya Hukum"]),
+    ("Keterangan", ["Panduan Analisis", "Metodologi"]),
+]
+
 with bagian_menu, st.container(key="menu-nav"):
-    for _h in daftar_hal:
-        if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
-            if _h != halaman:
-                st.session_state["nav"] = _h
-                st.session_state.pop("buka_doc", None)
-                st.rerun()
+    _tersaji = set()
+    for _judul, _isi in KELOMPOK_MENU:
+        _ada = [h for h in _isi if h in daftar_hal]
+        if not _ada:
+            continue
+        st.html(f'<div class="menu-kelompok">{_judul}</div>')
+        for _h in _ada:
+            _tersaji.add(_h)
+            if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
+                if _h != halaman:
+                    st.session_state["nav"] = _h
+                    st.session_state.pop("buka_doc", None)
+                    st.rerun()
+    # Jaring pengaman: halaman baru yang belum dimasukkan ke kelompok mana
+    # pun tetap tampil, supaya menambah halaman tidak diam diam
+    # menghilangkannya dari menu.
+    _sisa = [h for h in daftar_hal if h not in _tersaji]
+    if _sisa:
+        st.html('<div class="menu-kelompok">Lainnya</div>')
+        for _h in _sisa:
+            if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
+                if _h != halaman:
+                    st.session_state["nav"] = _h
+                    st.session_state.pop("buka_doc", None)
+                    st.rerun()
 
 tahun_ada = sorted(int(t) for t in df["tahun_putusan"].dropna().unique())
 if len(tahun_ada) > 1:
@@ -1468,7 +1507,7 @@ def _ikhtisar_proyeksi() -> None:
                        "dua simpangan dari garis tren"))
 
     arah = "naik" if b > 0 else "turun"
-    st.markdown(
+    jelas(
         f"Sepanjang {int(x.min())} sampai {int(x.max())}, jumlah putusan "
         f"bergerak **{arah} sekitar {abs(b):,.0f} per tahun**. Kalau tren "
         f"itu berlanjut, tahun {tahun_depan} akan berada di sekitar "
@@ -1899,7 +1938,7 @@ def _nilai_simulasi(ada: pd.DataFrame) -> None:
     koreksi = float(ada["koreksi"].sum())
     per_putusan = koreksi / n_kabul
 
-    st.markdown(
+    jelas(
         "Bagian ini menjawab pertanyaan yang selalu muncul dalam rapat: "
         "**kalau mutu ketetapan diperbaiki, berapa nilainya?**\n\n"
         f"Dasarnya keadaan sekarang. Dari {n:,} putusan bernilai lengkap, "
@@ -2019,6 +2058,37 @@ def belum_ada(pesan: str) -> None:
         st.info(pesan + NL2 + "Seluruh penyaring sedang terbuka, jadi data "
                 "ini memang belum tersedia pada arsip yang sudah "
                 "terkumpul.")
+
+
+# Pencacah lipatan penjelasan. Nilainya menjadi kunci wadah, sehingga tiap
+# lipatan dapat disasar gaya tanpa bergantung pada urutan unsur lain. Angkanya
+# kembali ke nol pada tiap penggambaran, karena berkas ini memang dijalankan
+# ulang seutuhnya oleh Streamlit, jadi kuncinya tetap sama antar penggambaran
+# selama susunan halamannya tidak berubah.
+_urut_lipat = 0
+
+
+def jelas(teks: str, tampak: int = 1) -> None:
+    """
+    Penjelasan panjang, dengan alinea pembuka tampak dan sisanya dilipat.
+
+    Paragraf penjelasan adalah kekuatan dashboard ini, dan justru karena itu
+    ia menghalangi pembaca yang sudah paham: satu halaman dapat memuat empat
+    ribu huruf penjelasan sebelum angka pertamanya terlihat. Yang dilakukan
+    di sini bukan memangkasnya, melainkan menyisakan alinea pembuka yang
+    memuat inti bacaannya, lalu menyimpan sisanya di balik Selengkapnya.
+    Pembaca baru tetap terbimbing, pembaca lama langsung sampai ke angkanya.
+    """
+    global _urut_lipat
+    alinea = [a.strip() for a in teks.split(NL2) if a.strip()]
+    if not alinea:
+        return
+    st.markdown(NL2.join(alinea[:tampak]))
+    if len(alinea) <= tampak:
+        return
+    _urut_lipat += 1
+    with st.container(key=f"lipat-{_urut_lipat}"), st.expander("Selengkapnya"):
+        st.markdown(NL2.join(alinea[tampak:]))
 
 
 def tombol_kembali(kunci_daftar: str, label: str) -> None:
@@ -2719,7 +2789,7 @@ def _konsistensi_majelis() -> None:
         "selang keyakinan ujung atas dan bawah "
         + ("tidak bersinggungan" if terpisah else "masih bersinggungan")))
 
-    st.markdown(
+    jelas(
         "Tiap batang adalah satu majelis, dan panjangnya adalah persentase "
         f"perkara {pilih} yang dikabulkan pada majelis itu. Garis melintang "
         "di ujung batang adalah rentang ketidakpastiannya.\n\n"
@@ -2783,7 +2853,7 @@ def _konsistensi_perkara() -> None:
     t = pd.DataFrame(dom).sort_values("Keseragaman")
 
     _rendah, _tinggi = t.iloc[0], t.iloc[-1]
-    st.markdown(
+    jelas(
         "**Keseragaman** adalah persentase amar yang paling sering muncul "
         "dalam satu kelompok. Seratus persen berarti semua perkara di "
         "kelompok itu berakhir sama. Sekitar sepertiga berarti putusannya "
@@ -2867,7 +2937,7 @@ def _konsistensi_perkara() -> None:
             paling = h.iloc[-1]
             arah = ("lebih sering" if paling["Selisih"] > 0
                     else "lebih jarang")
-            st.markdown(
+            jelas(
                 "Kolom **Dikabulkan** adalah tingkat pengabulan yang "
                 "sebenarnya terjadi pada perkara yang ditangani hakim "
                 "tersebut. Kolom **Harapan** adalah tingkat pengabulan yang "
@@ -3115,7 +3185,7 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
     k[2].html(TV.kartu("Keseragaman rata rata", f"{rerata:.0f} %",
                        f"pada {len(tb):,} wajib pajak berulang"))
 
-    st.markdown(
+    jelas(
         "Kolom **Keseragaman** adalah bagian putusan seorang wajib pajak "
         "yang amarnya sama. Seratus persen berarti seluruh sengketanya "
         "berakhir dengan amar yang sama persis, tanpa satu pun "
@@ -3193,7 +3263,7 @@ def _mutu_jenis_ketetapan() -> None:
     # Contoh dibaca dari data yang sedang tampil, sehingga penjelasannya
     # selalu cocok dengan bagannya walau cakupan arsip bertambah.
     puncak = g.sort_values("Dikabulkan").iloc[-1]
-    st.markdown(
+    jelas(
         "Bagan ini menjawab satu pertanyaan: **dari ketetapan yang dibawa ke "
         "pengadilan, berapa persen yang akhirnya dikoreksi?** Panjang batang "
         "adalah persentasenya, dan angka dalam kurung adalah jumlah putusan "
@@ -3243,7 +3313,7 @@ def _mutu_jenis_koreksi() -> None:
     gk["Bobot"] = (gk["Putusan"] * gk["Tingkat dikabulkan"] / 100).round(1)
     gk = gk.drop(columns=["menang"]).sort_values("Bobot", ascending=False)
     teratas = gk.iloc[0]
-    st.markdown(
+    jelas(
         "Tabel ini menjawab pertanyaan lain: **koreksi jenis apa yang paling "
         "banyak menimbulkan pembatalan?** Persentase saja belum cukup untuk "
         "menentukan prioritas. Koreksi yang hampir selalu batal tetapi hanya "
@@ -3410,7 +3480,7 @@ def _mutu_arah() -> None:
         "naik berarti ketetapan makin sering batal"
         if selisih > 0 else "turun berarti ketetapan makin tahan uji"))
 
-    st.markdown(
+    jelas(
         "Bagan ini menjawab pertanyaan yang tidak dapat dijawab satu angka "
         "saja: **mutu ketetapan membaik atau memburuk?** Garis tengah adalah "
         "persentase ketetapan yang dikoreksi pengadilan pada tahun itu, dan "
@@ -3653,7 +3723,7 @@ def _mutu_formal() -> None:
         f"median jeda musyawarah ke pengucapan, {len(jeda):,} putusan"
         if len(jeda) else "tanggalnya belum terbaca"))
 
-    st.markdown(
+    jelas(
         "Amar **tidak dapat diterima** berarti pengadilan tidak pernah "
         "sampai menilai benar salahnya koreksi. Perkaranya sudah gugur lebih "
         "dulu pada syarat formal, misalnya diajukan lewat tenggat, ditempuh "
@@ -3815,7 +3885,7 @@ def hal_dasar() -> None:
 
     unggul = t.assign(_s=t["Selisih poin"]).sort_values(
         "_s", ascending=False).iloc[0]
-    st.markdown(
+    jelas(
         "Bagan ini membandingkan **seberapa sering suatu pasal muncul pada "
         "putusan yang dikabulkan dibandingkan pada putusan yang ditolak.** "
         "Panjang batang adalah jumlah putusan dikabulkan yang merujuk pasal "
@@ -4647,7 +4717,7 @@ def hal_tema() -> None:
 
         sering = g.iloc[0]
         rawan = g.loc[g["Dikabulkan"].idxmax()]
-        st.markdown(
+        jelas(
             "Tabel ini memperlihatkan dua hal sekaligus: **seberapa sering "
             "sebuah tema muncul**, dan **seberapa sering wajib pajak "
             "menang** pada tema itu.\n\n"
@@ -4851,7 +4921,7 @@ def hal_banding() -> None:
         if terpisah else "selang keyakinan masih bersinggungan, "
                          "perbedaannya belum dapat disimpulkan"))
 
-    st.markdown(
+    jelas(
         f"Tabel di bawah menyandingkan **{kiri_nama}** dan **{kanan_nama}** "
         "pada delapan hal yang paling sering ditanyakan. Kolom selisih "
         "dihitung sebagai nilai kiri dikurangi nilai kanan, sehingga "
@@ -5080,7 +5150,7 @@ def _karakter_ragam(prof: pd.DataFrame) -> None:
                        "setelah jenis perkara dikendalikan, persentil 10 "
                        "sampai 90"))
 
-    st.markdown(
+    jelas(
         "Pertanyaan pertama yang harus dijawab sebelum apa pun: **apakah "
         "perbedaan antar hakim ini nyata, atau sekadar kebetulan?** Hakim "
         "dengan empat puluh putusan wajar berbeda beberapa poin hanya "
@@ -5138,7 +5208,7 @@ def _karakter_ragam(prof: pd.DataFrame) -> None:
 
 def _karakter_peta(prof: pd.DataFrame) -> None:
     """Peta dua sumbu: kecenderungan mengabulkan dan gaya mengabulkan."""
-    st.markdown(
+    jelas(
         "Peta ini menempatkan tiap hakim menurut dua perilaku sekaligus. "
         "Sumbu mendatar adalah **selisih dari harapan kelompoknya**: ke "
         "kanan berarti lebih sering mengabulkan daripada kebiasaan pada "
@@ -5183,7 +5253,7 @@ def _karakter_peta(prof: pd.DataFrame) -> None:
 
 
 def _karakter_tabel(prof: pd.DataFrame) -> None:
-    st.markdown(
+    jelas(
         "Tabel lengkapnya, **diurutkan menurut nama, bukan menurut peringkat "
         "apa pun.** Urutan menurut angka akan mengundang pembacaan sebagai "
         "papan peringkat, padahal tingkat dikabulkan tinggi atau rendah "

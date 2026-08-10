@@ -754,6 +754,20 @@ def gaya(gelap: bool) -> str:
     margin: 10px 0 6px 2px;
   }}
 
+  /* Nama kelompok di dalam menu. Dibedakan dari judul bagian di atasnya lewat
+     ukuran dan garis pemisah, bukan lewat warna yang lebih pudar: tulisan
+     sekecil ini akan jatuh di bawah ambang kontras kalau diredupkan. */
+  section[data-testid="stSidebar"] .menu-kelompok {{
+    font-size: 9.5px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: {p["tinta_2"]};
+    margin: 12px 0 4px 3px; padding-top: 8px;
+    border-top: 1px solid {p["garis_bantu"]};
+  }}
+  section[data-testid="stSidebar"] .st-key-menu-nav
+    div[data-testid="stHtml"]:first-child .menu-kelompok {{
+    margin-top: 0;
+  }}
+
   /* Label pada penggeser tahun. Streamlit menuliskannya dengan warna utama
      dan dengan tembus pandang enam puluh persen, dan keduanya jatuh di bawah
      ambang kontras. Warnanya dipaksa memakai tinta yang berlaku di sini. */
@@ -762,6 +776,12 @@ def gaya(gelap: bool) -> str:
     font-size: 11.5px !important; font-weight: 600 !important;
     background: {p["permukaan"]}; padding: 0 5px; border-radius: 5px;
   }}
+  /* Angka tahun terkecil dan terbesar di ujung penggeser. Streamlit menamai
+     kedua ujung itu berbeda beda antar versi, sehingga yang disasar adalah
+     wadah pembungkusnya beserta seluruh tulisan di dalamnya. Warna bawaannya
+     tembus enam puluh persen dan jatuh di bawah ambang kontras. */
+  div[data-testid="stSliderTickBar"],
+  div[data-testid="stSliderTickBar"] p,
   div[data-testid="stSliderTickBarMin"],
   div[data-testid="stSliderTickBarMax"] {{
     color: {p["tinta_2"]} !important; opacity: 1 !important;
@@ -1006,6 +1026,32 @@ def gaya(gelap: bool) -> str:
     border-radius: 0 !important; background: transparent;
   }}
   div[data-testid="stExpander"] summary {{ font-size: 13px; }}
+
+  /* Lipatan penjelasan. Bentuknya sengaja dibuat sekecil tautan, bukan
+     sepanjang panel: yang dilipat adalah lanjutan alinea yang sudah dimulai
+     tepat di atasnya, sehingga sebuah kotak bergaris justru memutus bacaan
+     yang seharusnya menyambung. Garis atas bawaan panel dicabut, dan tepinya
+     dirapatkan supaya sejajar dengan alinea pembukanya. */
+  div[class*="st-key-lipat-"] div[data-testid="stExpander"],
+  div[class*="st-key-lipat-"] div[data-testid="stExpander"] details {{
+    border: none !important; background: transparent !important;
+    box-shadow: none !important; margin: -8px 0 2px 0 !important;
+  }}
+  div[class*="st-key-lipat-"] summary {{
+    padding: 2px 0 !important; font-size: 12.5px !important;
+    font-weight: 600 !important; color: {p["seri"][0]} !important;
+    width: fit-content; background: transparent !important;
+  }}
+  div[class*="st-key-lipat-"] summary p {{
+    color: {p["seri"][0]} !important; font-weight: 600 !important;
+  }}
+  div[class*="st-key-lipat-"] summary:hover {{ text-decoration: underline; }}
+  div[class*="st-key-lipat-"] summary svg {{
+    fill: {p["seri"][0]} !important;
+  }}
+  div[class*="st-key-lipat-"] details > div {{
+    padding: 0 !important; border: none !important;
+  }}
 
   /* --- Tulisan ---------------------------------------------------------- */
   h3 {{ font-size: 16px !important; font-weight: 620 !important;
