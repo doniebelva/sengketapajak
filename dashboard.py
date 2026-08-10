@@ -1317,18 +1317,24 @@ st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # dijelaskan pada Panduan Analisis, daftar itu menjadi peta, bukan senarai.
 # Halaman yang tidak masuk kelompok mana pun, seperti Beranda dan
 # Metodologi, ditaruh di kelompok pembuka dan penutup.
+# Nama kelompoknya sengaja memakai peristilahan yang sudah dipakai di tempat
+# lain pada dashboard ini, yaitu empat dimensi analisis yang tercetak sebagai
+# penanda di samping judul tiap halaman. Ikhtisar untuk halaman pembuka,
+# Potret Keadaan untuk yang deskriptif, Telaah Sebab untuk yang diagnostik,
+# Proyeksi untuk yang prediktif, dan Rekomendasi untuk yang preskriptif.
+# Dengan begitu nama kelompok di menu dan penanda di kepala halaman saling
+# menerangkan, bukan menjadi dua peristilahan yang harus dihafal terpisah.
 KELOMPOK_MENU = [
-    ("Mulai dari sini", ["Beranda", "Ringkasan Eksekutif"]),
-    ("Memeriksa keadaan", ["Nilai Sengketa", "Risalah Putusan",
-                           "Profil Hakim"]),
-    ("Mencari sebab", ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
-                       "Unit Penerbit Ketetapan", "Sengketa Berulang",
-                       "Konsistensi Putusan Hakim", "Karakter Memutus",
-                       "Banding Unit"]),
-    ("Memperkirakan", ["Pola Putusan Sejenis",
-                       "Durasi Penyelesaian Sengketa"]),
-    ("Menentukan tindakan", ["Pilihan Upaya Hukum"]),
-    ("Keterangan", ["Panduan Analisis", "Metodologi"]),
+    ("Ikhtisar", ["Beranda", "Ringkasan Eksekutif"]),
+    ("Potret Keadaan", ["Nilai Sengketa", "Risalah Putusan",
+                        "Profil Hakim"]),
+    ("Telaah Sebab", ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
+                      "Unit Penerbit Ketetapan", "Sengketa Berulang",
+                      "Konsistensi Putusan Hakim", "Karakter Memutus",
+                      "Banding Unit"]),
+    ("Proyeksi", ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
+    ("Rekomendasi", ["Pilihan Upaya Hukum"]),
+    ("Panduan dan Metode", ["Panduan Analisis", "Metodologi"]),
 ]
 
 with bagian_menu, st.container(key="menu-nav"):
@@ -1397,6 +1403,21 @@ elif kode_instansi:
     d = d[d["instansi_terbanding"].isin(kode_instansi)]
 
 
+# Sebab kosongnya daftar resmi ada dua, dan keduanya menuntut kalimat yang
+# berbeda. Kalau lingkup yang dipilih Belum terbaca, daftar itu memang tidak
+# punya padanannya, sebab daftar resmi disusun menurut unit terbanding
+# sedangkan lingkup ini justru berisi perkara yang unit terbandingnya gagal
+# terbaca. Kalau lingkup lain, sebabnya daftar itu belum diimpor.
+def sebab_resmi_kosong(kegunaan: str) -> str:
+    if kode_instansi and set(kode_instansi) == {"__kosong__"}:
+        return ("Daftar resmi Sekretariat disusun menurut unit terbanding, "
+                "sehingga tidak punya padanan untuk lingkup Belum terbaca. "
+                f"{kegunaan} hanya dapat ditampilkan pada lingkup yang unit "
+                "terbandingnya terbaca.")
+    return ("Daftar resmi belum dimuat ke basis data. Jalankan "
+            "setpp_resmi.py impor terlebih dahulu.")
+
+
 def lingkup_unit(kode: tuple) -> pd.DataFrame:
     """Bingkai arsip untuk satu unit, memakai penyaring lain yang sedang
     aktif. Dipakai mode banding untuk menyiapkan dua sisi sekaligus."""
@@ -1422,7 +1443,15 @@ def resmi_lingkup() -> pd.DataFrame:
     rs_ = muat_resmi()
     if kode_instansi and not rs_.empty and "terbanding" in rs_:
         peta_balik = {"djp": "DJP", "djbc": "DJBC", "pemda": "Pemda"}
-        sasaran = [peta_balik[k] for k in kode_instansi]
+        sasaran = [peta_balik[k] for k in kode_instansi if k in peta_balik]
+        # Lingkup Belum terbaca tidak punya padanan pada daftar resmi. Daftar
+        # itu disusun menurut unit terbanding, sehingga perkara yang justru
+        # unit terbandingnya gagal terbaca dari dokumennya tidak berada di
+        # kategori mana pun di sana. Yang dikembalikan bingkai kosong, supaya
+        # halaman menyatakan datanya tidak tersedia, bukan diam diam
+        # menyajikan angka seluruh unit seolah itu angka lingkup ini.
+        if not sasaran:
+            return rs_.iloc[0:0]
         return rs_[rs_["terbanding"].isin(sasaran)]
     return rs_
 
@@ -1474,7 +1503,7 @@ def _ikhtisar_proyeksi() -> None:
     """
     rs = resmi_lingkup()
     if rs.empty or "tahun_ucap" not in rs:
-        st.info("Daftar resmi belum tersedia untuk proyeksi.")
+        st.info(sebab_resmi_kosong("Proyeksi beban perkara"))
         return
     t = (rs.dropna(subset=["tahun_ucap"])
          .groupby(rs["tahun_ucap"].astype(int)).size()
@@ -1729,8 +1758,7 @@ def _ikhtisar_ringkas() -> None:
 def hal_nilai() -> None:
     rs = resmi_lingkup()
     if rs.empty:
-        st.info("Daftar resmi belum dimuat ke basis data. Jalankan "
-                "setpp_resmi.py impor terlebih dahulu.")
+        st.info(sebab_resmi_kosong("Nilai sengketa"))
         return
     st.caption(
         f"Sumber: daftar resmi putusan Sekretariat, {len(rs):,} putusan "
@@ -2598,8 +2626,7 @@ def hal_jalur() -> None:
 
     rs = resmi_lingkup()
     if rs.empty:
-        belum_ada("Halaman ini membutuhkan daftar resmi. Jalankan "
-                "setpp_resmi.py impor terlebih dahulu.")
+        belum_ada(sebab_resmi_kosong("Pilihan upaya hukum"))
         return
 
     rs = saring_tahun(rs, "tahun_ucap", "tahun_jalur")
