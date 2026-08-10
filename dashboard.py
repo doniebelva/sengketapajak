@@ -376,8 +376,12 @@ def keadaan_tarikan() -> dict:
         menit = (_dt.datetime.now(_dt.timezone.utc) - t).total_seconds() / 60
     except ValueError:
         return {"aktif": False, "menit": None, "terakhir": None}
+    # Cap waktu disajikan dalam WIB, karena pemakainya di Indonesia dan
+    # cap mentahnya tercatat dalam UTC.
+    wib = t + _dt.timedelta(hours=7) if t.tzinfo is None else         t.astimezone(_dt.timezone(_dt.timedelta(hours=7)))
     return {"aktif": menit < 5, "menit": menit,
-            "terakhir": t.strftime("%d-%m-%Y")}
+            "terakhir": t.strftime("%d-%m-%Y"),
+            "cap": wib.strftime("%d-%m-%Y %H.%M")}
 
 
 def rentang_tahun(df_: pd.DataFrame) -> str:
@@ -1111,9 +1115,16 @@ except Exception as exc:
 
 cakupan = 100 * corong["unduh"] / max(1, ID_MAKS)
 
+# Cap pembaruan data di sisi kanan bilah judul. Diambil dari cap waktu
+# unduhan terakhir yang terbawa di dalam paket data, sehingga otomatis
+# berganti setiap paket baru terpasang, dan menjawab pertanyaan pertama
+# pembaca angka: data ini per kapan.
+_cap_data = keadaan_tarikan().get("cap")
 st.html(TV.kop("Dashboard Analitik Sengketa Pajak",
                "Analitik Risalah Putusan Pengadilan Pajak · Sumber data: "
-               "https://setpp.kemenkeu.go.id/risalah", ""))
+               "https://setpp.kemenkeu.go.id/risalah",
+               (f"Pembaruan data terakhir<br><b>{_cap_data} WIB</b>"
+                if _cap_data else "")))
 
 with st.container(key="tema"):
     pilih_tema = st.segmented_control(

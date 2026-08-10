@@ -361,7 +361,12 @@ def gaya(gelap: bool) -> str:
                 line-height: 1.25; letter-spacing: .005em; }}
   .kop-sub {{ font-size: 12px; color: rgba(255,255,255,.80); margin-top: 3px; }}
   .kop-kanan {{ margin-left: auto; text-align: right;
-                font-size: 11.5px; color: rgba(255,255,255,.84); }}
+                font-size: 11.5px; color: rgba(255,255,255,.84);
+                line-height: 1.45;
+                /* Diberi jarak dari pemilih tema yang menimpa pojok kanan
+                   bilah judul, supaya cap pembaruannya tidak tertutup. */
+                padding-right: 78px; }}
+  .kop-kanan b {{ color: #fff; font-weight: 650; }}
 
   /* Bilah alat bawaan Streamlit dikosongkan, bukan dihapus. Isinya tombol
      tiga titik berisi muat ulang, rekam layar, dan setelan pengembang, yang
