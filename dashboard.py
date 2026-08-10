@@ -1277,15 +1277,22 @@ kode_peta = peta_kode()
 # perlu dapat membaca setiap halaman untuk satu instansi saja. Dibuat
 # sebagai lingkup di bilah samping, bukan tab per halaman, supaya seluruh
 # enam belas halaman beserta tabnya ikut serentak tanpa digandakan.
-LINGKUP_INSTANSI = {"Semua": None, "DJP": "djp", "DJBC": "djbc",
-                    "Pemda": "pemda"}
+# Lima pilihan: Semua sebagai bawaan yang memuat seluruh arsip termasuk
+# putusan yang instansinya belum terbaca, lalu empat kluster analisis:
+# Kemenkeu sebagai gabungan DJP dan DJBC, DJP sendiri, DJBC sendiri, dan
+# pemerintah daerah.
+LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
+                    "DJP": ("djp",), "DJBC": ("djbc",),
+                    "Pemda": ("pemda",)}
 pilih_instansi = st.sidebar.segmented_control(
     "Instansi terbanding", list(LINGKUP_INSTANSI), default="Semua",
     key="lingkup_instansi",
     help="Membatasi seluruh halaman pada perkara melawan instansi ini. "
-         "Putusan yang instansinya belum terbaca ikut keluar dari lingkup.")
+         "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang instansinya "
+         "belum terbaca hanya termuat pada pilihan Semua.")
 # Kendali bawaan mengizinkan pilihan dikosongkan; kosong diartikan Semua.
-kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi or "Semua")
+pilih_instansi = pilih_instansi or "Semua"
+kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi)
 
 tahun_ada = sorted(int(t) for t in df["tahun_putusan"].dropna().unique())
 if len(tahun_ada) > 1:
@@ -1316,7 +1323,7 @@ if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
 if hanya_teks:
     d = d[d["sumber_teks"] != "ocr"]
 if kode_instansi:
-    d = d[d["instansi_terbanding"] == kode_instansi]
+    d = d[d["instansi_terbanding"].isin(kode_instansi)]
 
 
 def resmi_lingkup() -> pd.DataFrame:
@@ -1332,7 +1339,8 @@ def resmi_lingkup() -> pd.DataFrame:
     rs_ = muat_resmi()
     if kode_instansi and not rs_.empty and "terbanding" in rs_:
         peta_balik = {"djp": "DJP", "djbc": "DJBC", "pemda": "Pemda"}
-        return rs_[rs_["terbanding"] == peta_balik[kode_instansi]]
+        sasaran = [peta_balik[k] for k in kode_instansi]
+        return rs_[rs_["terbanding"].isin(sasaran)]
     return rs_
 
 st.sidebar.caption(f"{len(d):,} dari {len(df):,} putusan dalam lingkup.")
@@ -1341,11 +1349,13 @@ st.sidebar.caption(f"{len(d):,} dari {len(df):,} putusan dalam lingkup.")
 # Tanpa penanda ini, pembaca yang lupa saklarnya sedang menyala akan
 # mengutip angka DJP saja seolah angka seluruh pengadilan.
 if kode_instansi:
-    NAMA_LINGKUP = {"djp": "Direktorat Jenderal Pajak",
-                    "djbc": "Direktorat Jenderal Bea dan Cukai",
-                    "pemda": "Pemerintah daerah"}
+    NAMA_LINGKUP = {
+        "Kemenkeu": "Kementerian Keuangan, gabungan DJP dan DJBC",
+        "DJP": "Direktorat Jenderal Pajak",
+        "DJBC": "Direktorat Jenderal Bea dan Cukai",
+        "Pemda": "Pemerintah daerah"}
     st.html('<div class="saring"><span class="chip"><b>Lingkup</b> '
-            f'hanya perkara melawan {NAMA_LINGKUP[kode_instansi]}'
+            f'hanya perkara melawan {NAMA_LINGKUP[pilih_instansi]}'
             '</span></div>')
 if halaman in DIMENSI:
     st.html(f'<div class="tingkat">Dimensi {DIMENSI[halaman]}</div>')
