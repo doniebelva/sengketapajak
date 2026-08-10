@@ -1208,7 +1208,18 @@ if not st.session_state.get("alamat_terbaca"):
     if _q.get("halaman") in HALAMAN_SAH:
         st.session_state["nav"] = _q["halaman"]
 
-cari_cepat = st.sidebar.text_input(
+# Urutan tampil bilah samping diatur lewat wadah, terlepas dari urutan
+# kode: saklar instansi tampil paling atas karena itu pilihan analisis
+# utama, menu halaman di bawahnya, lalu pencarian dan modul pengguna, dan
+# penyaring lanjutan di paling bawah. Kodenya sendiri tetap berjalan dengan
+# urutan lama, karena pemilih modul harus dihitung sebelum menu halaman.
+bagian_instansi = st.sidebar.container()
+bagian_menu = st.sidebar.container()
+bagian_bawah = st.sidebar.container()
+bagian_lingkup = st.sidebar.container()
+
+bagian_bawah.html('<div class="sb-judul">Cari isi putusan</div>')
+cari_cepat = bagian_bawah.text_input(
     "Cari cepat", key="cari_cepat", placeholder="Cari isi putusan...",
     label_visibility="collapsed")
 if cari_cepat.strip():
@@ -1226,9 +1237,9 @@ if (_tujuan in HALAMAN
                                      HALAMAN)):
     st.session_state["modul"] = "Semua"
 
-st.sidebar.html('<div class="sb-judul">Modul pengguna</div>')
-modul = st.sidebar.selectbox("Modul pengguna", list(MODUL), key="modul",
-                             label_visibility="collapsed")
+bagian_bawah.html('<div class="sb-judul">Modul pengguna</div>')
+modul = bagian_bawah.selectbox("Modul pengguna", list(MODUL), key="modul",
+                               label_visibility="collapsed")
 daftar_hal = MODUL[modul]
 
 # Perpindahan halaman lewat kode, misalnya drill dari daftar nomor putusan
@@ -1245,7 +1256,7 @@ if st.session_state.get("hapus_kunci"):
 if st.session_state.get("nav") not in daftar_hal:
     st.session_state["nav"] = daftar_hal[0]
 
-st.sidebar.html('<div class="sb-judul">Halaman</div>')
+bagian_menu.html('<div class="sb-judul">Halaman</div>')
 # Menu berupa tombol, bukan pilihan bulat: yang dimaksud pengguna adalah
 # berpindah halaman, bukan mencentang sesuatu. Kuncinya juga menjadi sasaran
 # gaya, sehingga ikon dan penanda terpilih tidak bergantung urutan unsur.
@@ -1259,16 +1270,13 @@ st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # Seluruh tombol menu dikumpulkan dalam satu wadah bernama, supaya jarak
 # antar barisnya dapat dirapatkan sekaligus tanpa mengganggu jarak antar
 # unsur lain di bilah samping.
-with st.sidebar.container(key="menu-nav"):
+with bagian_menu, st.container(key="menu-nav"):
     for _h in daftar_hal:
         if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
             if _h != halaman:
                 st.session_state["nav"] = _h
                 st.session_state.pop("buka_doc", None)
                 st.rerun()
-
-st.sidebar.html('<div class="sb-judul">Ruang lingkup data</div>')
-st.sidebar.caption("Menentukan populasi yang diamati pada seluruh halaman.")
 
 kode_peta = peta_kode()
 
@@ -1284,9 +1292,10 @@ kode_peta = peta_kode()
 LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
                     "DJP": ("djp",), "DJBC": ("djbc",),
                     "Pemda": ("pemda",)}
-pilih_instansi = st.sidebar.segmented_control(
+bagian_instansi.html('<div class="sb-judul">Instansi terbanding</div>')
+pilih_instansi = bagian_instansi.segmented_control(
     "Instansi terbanding", list(LINGKUP_INSTANSI), default="Semua",
-    key="lingkup_instansi",
+    key="lingkup_instansi", label_visibility="collapsed",
     help="Membatasi seluruh halaman pada perkara melawan instansi ini. "
          "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang instansinya "
          "belum terbaca hanya termuat pada pilihan Semua.")
@@ -1299,15 +1308,17 @@ if len(tahun_ada) > 1:
     # Penggeser rentang tidak dikenali semua orang. Keterangan pendek di
     # bawahnya menyebutkan gunanya, karena pemakai yang tidak terbiasa
     # cenderung mengira ini penunjuk, bukan alat.
-    th = st.sidebar.slider("Tahun putusan", min(tahun_ada), max(tahun_ada),
-                           (min(tahun_ada), max(tahun_ada)),
-                           help="Tarik salah satu ujungnya untuk mempersempit "
-                                "tahun. Seluruh halaman ikut menyesuaikan.")
-    st.sidebar.caption("Geser untuk melihat tren tahunan.")
+    bagian_lingkup.html('<div class="sb-judul">Ruang lingkup data</div>')
+    th = bagian_lingkup.slider(
+        "Tahun putusan", min(tahun_ada), max(tahun_ada),
+        (min(tahun_ada), max(tahun_ada)),
+        help="Tarik salah satu ujungnya untuk mempersempit tahun. Seluruh "
+             "halaman ikut menyesuaikan.")
+    bagian_lingkup.caption("Geser untuk melihat tren tahunan.")
 else:
     th = None
 
-hanya_teks = st.sidebar.checkbox(
+hanya_teks = bagian_lingkup.checkbox(
     "Hanya dokumen berlapis teks asli", value=False,
     help="Mengeluarkan dokumen hasil pengenalan karakter optis, yang "
          "keandalannya pada angka dan nomor pasal lebih rendah.")
@@ -1343,7 +1354,8 @@ def resmi_lingkup() -> pd.DataFrame:
         return rs_[rs_["terbanding"].isin(sasaran)]
     return rs_
 
-st.sidebar.caption(f"{len(d):,} dari {len(df):,} putusan dalam lingkup.")
+bagian_lingkup.caption(
+    f"{len(d):,} dari {len(df):,} putusan dalam lingkup.")
 
 # Lingkup instansi yang aktif ditandai mencolok di kepala tiap halaman.
 # Tanpa penanda ini, pembaca yang lupa saklarnya sedang menyala akan
@@ -4770,7 +4782,11 @@ def hal_karakter() -> None:
         help="Hakim dengan putusan sedikit menghasilkan persentase yang "
              "bergoyang liar. Ambang yang lebih tinggi memberi angka lebih "
              "kokoh, tetapi hakim yang dinilai lebih sedikit.")
-    prof = profil_karakter(("v1",), min_n)
+    # Kunci singgahan wajib memuat seluruh penyaring lingkup. Kunci tetap
+    # yang lama membuat pergantian saklar instansi tidak berpengaruh pada
+    # halaman ini: hitungan lingkup Semua yang tersimpan terus disajikan,
+    # dan pemakai yang memilih DJBC tetap membaca profil gabungan.
+    prof = profil_karakter((pilih_instansi, th, hanya_teks), min_n)
     if prof.empty or len(prof) < 5:
         st.info("Belum terdapat cukup hakim yang memenuhi ambang tersebut "
                 "pada lingkup ini. Ambang dapat diturunkan.")

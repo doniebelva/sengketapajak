@@ -481,6 +481,40 @@ def gaya(gelap: bool) -> str:
   .andal-ket {{ flex-basis: 100%; font-size: 11px;
                 color: {p["tinta_2"]}; }}
 
+  /* --- Saklar lingkup instansi ------------------------------------------ */
+  /* Baki pil di puncak bilah samping. Kendali bawaannya tampil sebagai
+     tombol kecil terserak dua baris; di sini dijadikan baki bersambung
+     dengan pil aktif berwarna navy Kemenkeu, supaya pilihan analisis utama
+     dashboard terlihat sebagai satu kesatuan yang menonjol. */
+  .st-key-lingkup_instansi {{
+    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
+    border-radius: 12px; padding: 4px;
+  }}
+  .st-key-lingkup_instansi > div {{ width: 100%; }}
+  .st-key-lingkup_instansi button {{
+    /* Lebar mengikuti isi tulisannya, supaya Kemenkeu tidak terpenggal
+       menjadi Keme; pil yang tidak muat melipat sendiri ke baris kedua. */
+    flex: 1 1 auto !important; min-height: 30px !important;
+    padding: 2px 12px !important; white-space: nowrap !important;
+    border: none !important; border-radius: 8px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }}
+  .st-key-lingkup_instansi button p {{
+    font-size: 12.5px !important; font-weight: 620 !important;
+    color: {p["tinta_2"]} !important;
+  }}
+  .st-key-lingkup_instansi button:hover p {{ color: {p["tinta"]} !important; }}
+  .st-key-lingkup_instansi
+    button[data-testid="stBaseButton-segmented_controlActive"] {{
+    background: {p["navy"]} !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,.22) !important;
+  }}
+  .st-key-lingkup_instansi
+    button[data-testid="stBaseButton-segmented_controlActive"] p {{
+    color: #fff !important;
+  }}
+
   /* --- Penanda pemuatan ------------------------------------------------- */
   /* Data tumbuh mengikuti arsip, dan jeda pemuatan ikut memanjang. Penanda
      pemuatan diseragamkan dengan tema supaya jeda itu terasa sebagai bagian
