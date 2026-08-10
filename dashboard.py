@@ -2573,15 +2573,15 @@ def hal_jalur() -> None:
         n = max(1, len(grp))
         baris += [
             {"Jalur": nama, "Amar": "Dikabulkan",
-             "Pangsa": 100 * int(grp["menang"].sum()) / n},
+             "Bagian": 100 * int(grp["menang"].sum()) / n},
             {"Jalur": nama, "Amar": "Ditolak",
-             "Pangsa": 100 * int((grp["amar"] == "tolak").sum()) / n},
+             "Bagian": 100 * int((grp["amar"] == "tolak").sum()) / n},
             {"Jalur": nama, "Amar": "Tidak dapat diterima",
-             "Pangsa": 100 * int((grp["amar"]
+             "Bagian": 100 * int((grp["amar"]
                                   == "tidak_dapat_diterima").sum()) / n}]
     tj = pd.DataFrame(baris)
-    tj["Ket"] = tj["Pangsa"].map(lambda v: f"{v:.1f}%")
-    fig = px.bar(tj, x="Jalur", y="Pangsa", color="Amar", barmode="group",
+    tj["Ket"] = tj["Bagian"].map(lambda v: f"{v:.1f}%")
+    fig = px.bar(tj, x="Jalur", y="Bagian", color="Amar", barmode="group",
                  text="Ket", title="Hasil Putusan menurut jalur, data resmi")
     fig.update_xaxes(showgrid=False, title="")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
@@ -3791,7 +3791,7 @@ def hal_dasar() -> None:
           .groupby("Rujukan", observed=True)["doc_id"].nunique())
     rt = (du[du["doc_id"].isin(tolak_id)]
           .groupby("Rujukan", observed=True)["doc_id"].nunique())
-    # Pangsa kehadiran tidak bermakna pada populasi yang sangat kecil. Ketika
+    # Bagian kehadiran tidak bermakna pada populasi yang sangat kecil. Ketika
     # penyaring menyempit sampai tersisa segelintir putusan dikabulkan, tiap
     # pasal yang kebetulan dirujuk satu putusan akan tampil seratus persen,
     # dan seluruh batang menjadi sama panjang tanpa memberi keterangan apa
@@ -3813,10 +3813,10 @@ def hal_dasar() -> None:
     t = (pd.DataFrame({"Dikabulkan merujuk": rk, "Ditolak merujuk": rt})
          .fillna(0).astype(int))
     n_m, n_t = max(1, len(menang_id)), max(1, len(tolak_id))
-    t["Pangsa saat dikabulkan"] = (100 * t["Dikabulkan merujuk"] / n_m)
-    t["Pangsa saat ditolak"] = (100 * t["Ditolak merujuk"] / n_t)
-    t["Selisih poin"] = (t["Pangsa saat dikabulkan"]
-                         - t["Pangsa saat ditolak"])
+    t["% putusan dikabulkan"] = (100 * t["Dikabulkan merujuk"] / n_m)
+    t["% putusan ditolak"] = (100 * t["Ditolak merujuk"] / n_t)
+    t["Selisih poin"] = (t["% putusan dikabulkan"]
+                         - t["% putusan ditolak"])
     t = t.sort_values("Dikabulkan merujuk", ascending=False)
 
     atas = t.head(10).reset_index()
@@ -3824,8 +3824,8 @@ def hal_dasar() -> None:
     # "53% lawan 56%", dan kata lawan tidak menerangkan apa yang sedang
     # dibandingkan, sehingga pembaca harus menebak.
     atas["Ket"] = [
-        f"{r['Pangsa saat dikabulkan']:.0f}% dikabulkan, "
-        f"{r['Pangsa saat ditolak']:.0f}% ditolak"
+        f"{r['% putusan dikabulkan']:.0f}% dikabulkan, "
+        f"{r['% putusan ditolak']:.0f}% ditolak"
         for _, r in atas.iterrows()]
 
     unggul = t.assign(_s=t["Selisih poin"]).sort_values(
@@ -3834,16 +3834,16 @@ def hal_dasar() -> None:
         "Bagan ini membandingkan **seberapa sering suatu pasal muncul pada "
         "putusan yang dikabulkan dibandingkan pada putusan yang ditolak.** "
         "Panjang batang adalah jumlah putusan dikabulkan yang merujuk pasal "
-        "tersebut, sedangkan dua angka di ujungnya adalah pangsa "
+        "tersebut, sedangkan dua angka di ujungnya adalah bagian "
         "kehadirannya pada masing-masing kelompok.\n\n"
         f"Sebagai contoh, {unggul.name} hadir pada "
-        f"{unggul['Pangsa saat dikabulkan']:.0f} persen putusan yang "
-        f"dikabulkan, tetapi hanya {unggul['Pangsa saat ditolak']:.0f} "
+        f"{unggul['% putusan dikabulkan']:.0f} persen putusan yang "
+        f"dikabulkan, tetapi hanya {unggul['% putusan ditolak']:.0f} "
         "persen putusan yang ditolak. Selisih "
         f"{unggul['Selisih poin']:.0f} poin itulah yang menjadikannya "
         "penanda arah: ketika pasal ini dibahas dalam pertimbangan, "
         "perkaranya cenderung berakhir dikabulkan.\n\n"
-        "Pasal yang pangsanya hampir sama pada kedua kelompok, misalnya 50 "
+        "Pasal yang bagiannya hampir sama pada kedua kelompok, misalnya 50 "
         "persen berbanding 49 persen, tidak membedakan apa pun. Pasal "
         "seperti itu memang selalu dirujuk pada perkara jenis ini, sehingga "
         "kehadirannya tidak memberi petunjuk tentang arah putusannya. Yang "
@@ -3854,17 +3854,17 @@ def hal_dasar() -> None:
                            "pengadilan", "Ket"),
           max(300, 36 * len(atas) + 120), None,
           "Hanya pasal yang dirujuk sedikitnya tiga putusan dikabulkan yang "
-          "ditampilkan, karena pangsa yang dihitung dari satu dua putusan "
+          "ditampilkan, karena bagian yang dihitung dari satu dua putusan "
           "selalu tampak seratus persen tanpa berarti apa pun. Hubungan yang "
           "tersaji berupa kemunculan bersama, bukan sebab akibat.")
 
     with st.expander("Dua puluh rujukan teratas sebagai tabel"):
         tabel_bernavigasi(
             t.head(20).reset_index()
-            .round({"Pangsa saat dikabulkan": 2, "Pangsa saat ditolak": 2,
+            .round({"% putusan dikabulkan": 2, "% putusan ditolak": 2,
                     "Selisih poin": 2}),
             "pasal_atas",
-            kolom_persen=("Pangsa saat dikabulkan", "Pangsa saat ditolak",
+            kolom_persen=("% putusan dikabulkan", "% putusan ditolak",
                           "Selisih poin"))
 
     st.html(TV.catatan_siap(
@@ -4117,7 +4117,7 @@ def hal_hakim() -> None:
               LABEL_AMAR["gugur"]: "Gugur",
               LABEL_AMAR["pembetulan"]: "Pembetulan"}
 
-    # Pangsa dikabulkan dihitung atas putusan beramar substantif saja,
+    # Bagian dikabulkan dihitung atas putusan beramar substantif saja,
     # yaitu tanpa pembetulan kesalahan tulis dan tanpa amar yang tidak terbaca.
     n_substantif = (tab["Putusan diucapkan"] - tab["Tidak terbaca"]
                     - tab[LABEL_AMAR["pembetulan"]])
@@ -4178,10 +4178,10 @@ def hal_hakim() -> None:
         "nama yang sama, termasuk perbedaan gelar, perbedaan tanda baca, dan "
         "salah baca satu huruf, "
         "disatukan ke penulisan yang paling sering digunakan, dan potongan "
-        "yang hanya berisi gelar dikeluarkan. Pangsa dikabulkan dihitung "
+        "yang hanya berisi gelar dikeluarkan. Bagian dikabulkan dihitung "
         "atas putusan beramar substantif, tanpa pembetulan kesalahan tulis "
         "dan tanpa amar yang tidak terbaca. Hakim dengan jumlah putusan "
-        "sedikit wajar memperlihatkan pangsa "
+        "sedikit wajar memperlihatkan bagian "
             "ekstrem, yaitu nol atau seratus persen, sehingga belum dapat "
             "dibaca sebagai pola. Untuk perbandingan yang memperhitungkan "
             "campuran "
