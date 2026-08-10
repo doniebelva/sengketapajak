@@ -1271,6 +1271,22 @@ st.sidebar.html('<div class="sb-judul">Ruang lingkup data</div>')
 st.sidebar.caption("Menentukan populasi yang diamati pada seluruh halaman.")
 
 kode_peta = peta_kode()
+
+# Saklar lingkup instansi: satu kendali yang membelah seluruh dashboard.
+# DJP, DJBC, dan pemerintah daerah berbeda watak perkaranya, dan pemakai
+# perlu dapat membaca setiap halaman untuk satu instansi saja. Dibuat
+# sebagai lingkup di bilah samping, bukan tab per halaman, supaya seluruh
+# enam belas halaman beserta tabnya ikut serentak tanpa digandakan.
+LINGKUP_INSTANSI = {"Semua": None, "DJP": "djp", "DJBC": "djbc",
+                    "Pemda": "pemda"}
+pilih_instansi = st.sidebar.segmented_control(
+    "Instansi terbanding", list(LINGKUP_INSTANSI), default="Semua",
+    key="lingkup_instansi",
+    help="Membatasi seluruh halaman pada perkara melawan instansi ini. "
+         "Putusan yang instansinya belum terbaca ikut keluar dari lingkup.")
+# Kendali bawaan mengizinkan pilihan dikosongkan; kosong diartikan Semua.
+kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi or "Semua")
+
 tahun_ada = sorted(int(t) for t in df["tahun_putusan"].dropna().unique())
 if len(tahun_ada) > 1:
     # Penggeser rentang tidak dikenali semua orang. Keterangan pendek di
@@ -1299,9 +1315,38 @@ if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
     d = d[d["tahun_putusan"].between(th[0], th[1]) | d["tahun_putusan"].isna()]
 if hanya_teks:
     d = d[d["sumber_teks"] != "ocr"]
+if kode_instansi:
+    d = d[d["instansi_terbanding"] == kode_instansi]
+
+
+def resmi_lingkup() -> pd.DataFrame:
+    """
+    Daftar resmi yang mengikuti saklar lingkup instansi.
+
+    Dipakai seluruh halaman penyaji angka, supaya pilihan DJP atau DJBC di
+    bilah samping juga membelah angka resmi, bukan hanya arsip risalah.
+    Validasi silang pada Metodologi sengaja tetap memakai daftar penuh,
+    karena yang diuji di sana kecocokan arsip terhadap populasi, dan
+    populasi tidak boleh ikut tersaring.
+    """
+    rs_ = muat_resmi()
+    if kode_instansi and not rs_.empty and "terbanding" in rs_:
+        peta_balik = {"djp": "DJP", "djbc": "DJBC", "pemda": "Pemda"}
+        return rs_[rs_["terbanding"] == peta_balik[kode_instansi]]
+    return rs_
 
 st.sidebar.caption(f"{len(d):,} dari {len(df):,} putusan dalam lingkup.")
 
+# Lingkup instansi yang aktif ditandai mencolok di kepala tiap halaman.
+# Tanpa penanda ini, pembaca yang lupa saklarnya sedang menyala akan
+# mengutip angka DJP saja seolah angka seluruh pengadilan.
+if kode_instansi:
+    NAMA_LINGKUP = {"djp": "Direktorat Jenderal Pajak",
+                    "djbc": "Direktorat Jenderal Bea dan Cukai",
+                    "pemda": "Pemerintah daerah"}
+    st.html('<div class="saring"><span class="chip"><b>Lingkup</b> '
+            f'hanya perkara melawan {NAMA_LINGKUP[kode_instansi]}'
+            '</span></div>')
 if halaman in DIMENSI:
     st.html(f'<div class="tingkat">Dimensi {DIMENSI[halaman]}</div>')
 
@@ -1328,7 +1373,7 @@ def _ikhtisar_proyeksi() -> None:
     daftar resmi Sekretariat 2021 sampai 2025, populasi penuh lima tahun,
     sehingga trennya bukan taksiran dari contoh.
     """
-    rs = muat_resmi()
+    rs = resmi_lingkup()
     if rs.empty or "tahun_ucap" not in rs:
         st.info("Daftar resmi belum tersedia untuk proyeksi.")
         return
@@ -1459,7 +1504,7 @@ def _ikhtisar_ringkas() -> None:
 
     # Baris kedua dari daftar resmi 2021 sampai 2025: populasi penuh, bukan
     # contoh, sehingga angkanya boleh dikutip apa adanya.
-    rs = muat_resmi()
+    rs = resmi_lingkup()
     if not rs.empty:
         ada_rs = (rs[rs["mata_uang"] == "Rupiah"]
                   .dropna(subset=["nilai_awal", "nilai_akhir"]))
@@ -1584,7 +1629,7 @@ def _ikhtisar_ringkas() -> None:
 
 def hal_nilai() -> None:
     st.subheader("Nilai Sengketa")
-    rs = muat_resmi()
+    rs = resmi_lingkup()
     if rs.empty:
         st.info("Daftar resmi belum dimuat ke basis data. Jalankan "
                 "setpp_resmi.py impor terlebih dahulu.")
@@ -2393,7 +2438,7 @@ def hal_jalur() -> None:
         "mengikat, dan risiko yang jarang disadari. Semua angka adalah "
         "catatan masa lalu, bukan nasihat hukum atas perkara tertentu.")
 
-    rs = muat_resmi()
+    rs = resmi_lingkup()
     if rs.empty:
         st.info("Halaman ini membutuhkan daftar resmi. Jalankan "
                 "setpp_resmi.py impor terlebih dahulu.")
@@ -5041,7 +5086,7 @@ def hal_beranda() -> None:
         st.subheader("Beranda Pimpinan")
         st.caption("Keadaan sengketa dalam satu pandangan, untuk pengambilan "
                    "kebijakan.")
-        rs = muat_resmi()
+        rs = resmi_lingkup()
         ada = (rs[rs["mata_uang"] == "Rupiah"]
                .dropna(subset=["nilai_awal", "nilai_akhir"])
                if not rs.empty else pd.DataFrame())
@@ -5194,7 +5239,7 @@ if halaman in RUAS_ANDAL and not d.empty:
 elif halaman == "Nilai Sengketa":
     # Halaman ini bersumber daftar resmi, bukan arsip risalah, sehingga
     # ruas yang dinilai berbeda: nilai awal dan akhir per putusan.
-    _rs = muat_resmi()
+    _rs = resmi_lingkup()
     if not _rs.empty:
         st.html(TV.pita_andal(
             [("Nilai awal", 100 * _rs["nilai_awal"].notna().mean()),
