@@ -481,6 +481,22 @@ def gaya(gelap: bool) -> str:
   .andal-ket {{ flex-basis: 100%; font-size: 11px;
                 color: {p["tinta_2"]}; }}
 
+  /* Judul sisi pada mode banding. Dua sisi yang tampil bersebelahan harus
+     dapat dibedakan sekali pandang, dan tanpa judul bergaris pemisah
+     pembaca mudah tertukar membaca angka kiri sebagai angka kanan. */
+  .banding-judul {{
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 10px; margin: 4px 0 12px;
+    padding: 9px 13px; border-radius: 10px;
+    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
+    border-left: 3px solid {p["navy"]};
+    font-size: 13.5px; font-weight: 680; color: {p["tinta"]};
+  }}
+  .banding-judul span {{
+    font-size: 11.5px; font-weight: 550; color: {p["tinta_2"]};
+    white-space: nowrap;
+  }}
+
   /* --- Pemilih unit analisis -------------------------------------------- */
   /* Daftar jatuh di puncak bilah samping. Karena inilah pilihan analisis
      utama dashboard, tampilannya ditegaskan: berlatar navy Kemenkeu dengan
@@ -1330,6 +1346,7 @@ _IKON_NAV = {
     "Profil Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
     "Durasi Penyelesaian Sengketa": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
     "Karakter Memutus": "%3Ccircle cx='7' cy='16' r='2.4'/%3E%3Ccircle cx='13' cy='9' r='2.4'/%3E%3Ccircle cx='18.5' cy='14' r='2'/%3E%3Cpath d='M3 21h18'/%3E",
+    "Banding Unit": "%3Cpath d='M12 3v18'/%3E%3Crect x='3' y='7' width='6' height='11' rx='1'/%3E%3Crect x='15' y='11' width='6' height='7' rx='1'/%3E",
     "Panduan Analisis": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v.01'/%3E%3Cpath d='M12 13a2.5 2.5 0 0 0 1.5-4.5 2.5 2.5 0 0 0-3.9 2'/%3E",
     "Metodologi": "%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E",
 }

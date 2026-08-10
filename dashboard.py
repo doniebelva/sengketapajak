@@ -1149,7 +1149,7 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pilihan Upaya Hukum", "Konsistensi Putusan Hakim",
            "Sengketa Berulang", "Tema Sengketa", "Mutu Ketetapan",
            "Pasal Penentu", "Unit Penerbit Ketetapan",
-           "Profil Hakim", "Karakter Memutus",
+           "Profil Hakim", "Karakter Memutus", "Banding Unit",
            "Durasi Penyelesaian Sengketa",
            "Panduan Analisis", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
@@ -1163,6 +1163,7 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Unit Penerbit Ketetapan": "Diagnostik",
            "Profil Hakim": "Deskriptif",
            "Karakter Memutus": "Diagnostik",
+           "Banding Unit": "Diagnostik",
            "Durasi Penyelesaian Sengketa": "Prediktif"}
 
 # Tiga modul pengguna. Telusur putusan dan Catatan metode ada di semua modul:
@@ -1178,14 +1179,15 @@ MODUL = {
     "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
                  "Risalah Putusan", "Konsistensi Putusan Hakim",
                  "Sengketa Berulang", "Tema Sengketa", "Profil Hakim",
-                 "Karakter Memutus", "Durasi Penyelesaian Sengketa",
+                 "Karakter Memutus", "Banding Unit",
+                 "Durasi Penyelesaian Sengketa",
                  "Panduan Analisis",
                  "Metodologi"],
     "Fiskus": ["Beranda", "Ringkasan Eksekutif", "Tema Sengketa",
                "Mutu Ketetapan",
                "Pasal Penentu", "Unit Penerbit Ketetapan",
                "Konsistensi Putusan Hakim", "Karakter Memutus",
-               "Risalah Putusan", "Panduan Analisis", "Metodologi"],
+               "Banding Unit", "Risalah Putusan", "Panduan Analisis", "Metodologi"],
     "Wajib pajak": ["Beranda", "Ringkasan Eksekutif", "Pola Putusan Sejenis",
                     "Pilihan Upaya Hukum", "Risalah Putusan",
                     "Panduan Analisis", "Metodologi"],
@@ -1250,7 +1252,8 @@ kode_peta = peta_kode()
 # pemerintah daerah.
 LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
                     "DJP": ("djp",), "DJBC": ("djbc",),
-                    "Pemda": ("pemda",)}
+                    "Pemda": ("pemda",),
+                    "Belum terbaca": ("__kosong__",)}
 # Bentuknya daftar jatuh, bukan deret pil. Lima pilihan tidak muat pada
 # satu baris bilah samping, dan pilihan terakhirnya melipat sendiri menjadi
 # baris penuh yang tampak seperti salah susun. Daftar jatuh selalu setinggi
@@ -1346,8 +1349,25 @@ if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
     d = d[d["tahun_putusan"].between(th[0], th[1]) | d["tahun_putusan"].isna()]
 if hanya_teks:
     d = d[d["sumber_teks"] != "ocr"]
-if kode_instansi:
+if kode_instansi == ("__kosong__",):
+    # Perkara yang unit terbandingnya gagal terbaca dari dokumennya. Mereka
+    # termuat pada pilihan Semua tetapi hilang dari keempat kluster, dan
+    # tanpa pilihan ini tidak ada cara melihat apa yang hilang itu.
+    d = d[d["instansi_terbanding"].isna()]
+elif kode_instansi:
     d = d[d["instansi_terbanding"].isin(kode_instansi)]
+
+
+def lingkup_unit(kode: tuple) -> pd.DataFrame:
+    """Bingkai arsip untuk satu unit, memakai penyaring lain yang sedang
+    aktif. Dipakai mode banding untuk menyiapkan dua sisi sekaligus."""
+    b_ = df
+    if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
+        b_ = b_[b_["tahun_putusan"].between(th[0], th[1])
+                | b_["tahun_putusan"].isna()]
+    if hanya_teks:
+        b_ = b_[b_["sumber_teks"] != "ocr"]
+    return b_[b_["instansi_terbanding"].isin(kode)]
 
 
 def resmi_lingkup() -> pd.DataFrame:
@@ -1386,10 +1406,13 @@ elif kode_instansi:
         "Kemenkeu": "Kementerian Keuangan, gabungan DJP dan DJBC",
         "DJP": "Direktorat Jenderal Pajak",
         "DJBC": "Direktorat Jenderal Bea dan Cukai",
-        "Pemda": "Pemerintah daerah"}
+        "Pemda": "Pemerintah daerah",
+        "Belum terbaca": "perkara yang unit terbandingnya gagal terbaca "
+                         "dari dokumennya"}
     st.html('<div class="saring"><span class="chip"><b>Lingkup</b> '
             f'hanya perkara melawan {NAMA_LINGKUP[pilih_instansi]}'
             '</span></div>')
+
 if halaman in DIMENSI:
     st.html(f'<div class="tingkat">Dimensi {DIMENSI[halaman]}</div>')
 
@@ -4757,6 +4780,181 @@ def hal_tema() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Banding unit: dua unit disandingkan pada satu halaman
+# ---------------------------------------------------------------------------
+
+def hal_banding() -> None:
+    """
+    Membandingkan dua unit berdampingan, tanpa berpindah pilihan.
+
+    Rancangan awalnya menggandakan halaman yang sudah ada ke dua kolom.
+    Cara itu ditinggalkan karena dua sebab. Pertama, kendali pada halaman
+    yang sama digambar dua kali dengan kunci yang sama, dan Streamlit
+    melarangnya. Kedua, dan ini yang lebih menentukan, halaman penuh yang
+    dijejalkan ke kolom separuh lebar menjadi sempit dan berulang, sedangkan
+    yang dicari pembaca justru angka intinya saja bersisian.
+
+    Karena itu halaman ini dibangun tersendiri: satu deret pembanding yang
+    memang dipilih untuk disandingkan, berikut selisih dan penilaian apakah
+    selisih itu berarti.
+    """
+    st.subheader("Banding Unit")
+    st.caption(
+        "Dua unit disandingkan pada satu layar agar dapat dibandingkan tanpa "
+        "berpindah pilihan. Mengikuti penyaring tahun di bilah samping, "
+        "tetapi tidak mengikuti unit analisis, karena unitnya justru dipilih "
+        "di sini.")
+
+    NAMA = {"DJP": ("djp",), "DJBC": ("djbc",), "Pemda": ("pemda",),
+            "Kemenkeu": ("djp", "djbc")}
+    kol = st.columns(2)
+    kiri_nama = kol[0].selectbox("Unit di kiri", list(NAMA), index=0,
+                                 key="banding_kiri")
+    kanan_nama = kol[1].selectbox("Unit di kanan", list(NAMA), index=1,
+                                  key="banding_kanan")
+    if kiri_nama == kanan_nama:
+        belum_ada("Kedua sisi menunjuk unit yang sama, sehingga tidak ada "
+                  "yang dapat dibandingkan.")
+        return
+
+    a, b = lingkup_unit(NAMA[kiri_nama]), lingkup_unit(NAMA[kanan_nama])
+    if a.empty or b.empty:
+        belum_ada("Salah satu unit tidak memiliki putusan pada rentang ini.")
+        return
+
+    def ukur(x: pd.DataFrame) -> dict:
+        dd = beramar(x)
+        menang = dd["amar"].isin(AMAR_MENANG)
+        j = jeda_hari(x)
+        kor = (x["jenis_koreksi"].dropna().str.split("|").explode()
+               .map(lambda v: LABEL_KOREKSI.get(v, v)).value_counts())
+        pajak = x["kode_jenis_pajak"].dropna().astype(str).value_counts()
+        return {
+            "Putusan terurai": (len(x), f"{len(x):,}"),
+            "Dikabulkan": (100 * menang.mean() if len(dd) else 0,
+                           f"{100 * menang.mean():.1f} %" if len(dd) else "-"),
+            "Kabul sebagian dari yang dikabulkan": (
+                100 * (dd["amar"] == "kabul_sebagian").sum()
+                / max(int(menang.sum()), 1),
+                f"{100 * (dd['amar'] == 'kabul_sebagian').sum() / max(int(menang.sum()), 1):.1f} %"),
+            "Gugur sebelum pokok sengketa": (
+                100 * (x["amar"] == "tidak_dapat_diterima").mean(),
+                f"{100 * (x['amar'] == 'tidak_dapat_diterima').mean():.1f} %"),
+            "Median jeda musyawarah ke ucap": (
+                float(j.median()) if len(j) else 0,
+                f"{j.median():,.0f} hari" if len(j) else "-"),
+            "Sepuluh persen terlama": (
+                float(j.quantile(0.9)) if len(j) else 0,
+                f"{j.quantile(0.9):,.0f} hari" if len(j) else "-"),
+            "Jenis pajak tersering": (
+                0, label_kode(pajak.index[0], kode_peta) if len(pajak) else "-"),
+            "Koreksi tersering": (0, kor.index[0] if len(kor) else "-"),
+            "Wilson bawah": (0, ""), "Wilson atas": (0, ""),
+        }
+
+    ua, ub = ukur(a), ukur(b)
+    dda, ddb = beramar(a), beramar(b)
+    ma = int(dda["amar"].isin(AMAR_MENANG).sum())
+    mb = int(ddb["amar"].isin(AMAR_MENANG).sum())
+    la, ha = selang_wilson(ma, max(len(dda), 1))
+    lb, hb = selang_wilson(mb, max(len(ddb), 1))
+    terpisah = lb > ha or la > hb
+
+    k = st.columns(3)
+    k[0].html(TV.kartu(f"{kiri_nama} dikabulkan", ua["Dikabulkan"][1],
+                       f"dari {len(dda):,} putusan beramar"))
+    k[1].html(TV.kartu(f"{kanan_nama} dikabulkan", ub["Dikabulkan"][1],
+                       f"dari {len(ddb):,} putusan beramar"))
+    beda = ua["Dikabulkan"][0] - ub["Dikabulkan"][0]
+    k[2].html(TV.kartu(
+        "Selisihnya", f"{beda:+.1f} poin",
+        "selang keyakinan tidak bersinggungan, perbedaannya nyata"
+        if terpisah else "selang keyakinan masih bersinggungan, "
+                         "perbedaannya belum dapat disimpulkan"))
+
+    st.markdown(
+        f"Tabel di bawah menyandingkan **{kiri_nama}** dan **{kanan_nama}** "
+        "pada delapan hal yang paling sering ditanyakan. Kolom selisih "
+        "dihitung sebagai nilai kiri dikurangi nilai kanan, sehingga "
+        "tanda positif berarti sisi kiri lebih tinggi.\n\n"
+        "Perlu diingat, angka yang berbeda belum tentu berarti salah satunya "
+        "keliru: kedua unit menerbitkan jenis ketetapan yang berbeda dan "
+        "menghadapi jenis sengketa yang berbeda pula. Yang layak ditelaah "
+        "adalah selisih yang besar dan menetap.")
+
+    baris = []
+    for nama in ("Putusan terurai", "Dikabulkan",
+                 "Kabul sebagian dari yang dikabulkan",
+                 "Gugur sebelum pokok sengketa",
+                 "Median jeda musyawarah ke ucap", "Sepuluh persen terlama",
+                 "Jenis pajak tersering", "Koreksi tersering"):
+        va, vb = ua[nama], ub[nama]
+        if isinstance(va[0], (int, float)) and va[0] and vb[0]:
+            selisih = f"{va[0] - vb[0]:+,.1f}"
+        else:
+            selisih = "-"
+        baris.append({"Pembanding": nama, kiri_nama: va[1],
+                      kanan_nama: vb[1], "Selisih": selisih})
+    tabel_bernavigasi(pd.DataFrame(baris), "banding_ringkas", per=10)
+
+    st.html('<div class="tingkat">Arah Dikabulkan dari Tahun ke Tahun</div>')
+    fig = go.Figure()
+    ada = False
+    for nama, bingkai in ((kiri_nama, a), (kanan_nama, b)):
+        t = _deret_tahunan(beramar(bingkai))
+        if len(t) < 3:
+            continue
+        ada = True
+        fig.add_trace(go.Scatter(
+            x=t["Tahun"], y=t["Dikabulkan"], mode="lines+markers", name=nama,
+            hovertemplate="%{x}: %{y:.1f} persen<extra></extra>"))
+    if ada:
+        fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
+        fig.update_layout(
+            title="Tingkat dikabulkan menurut tahun putusan",
+            legend=dict(orientation="h", yanchor="top", y=-0.14,
+                        xanchor="left", x=0),
+            margin=dict(b=70))
+        fig.update_xaxes(showgrid=False, dtick=1, title="")
+        fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
+                         ticksuffix="%", title="")
+        bagan(fig, 400, None,
+              "Dua garis yang bergerak berlawanan arah menandakan sebabnya "
+              "ada di dalam unitnya masing masing, bukan pada keadaan umum "
+              "maupun perubahan sikap pengadilan.")
+    else:
+        belum_ada("Belum cukup tahun bermuatan putusan memadai pada salah "
+                  "satu unit untuk menggambarkan arahnya.")
+
+    st.html('<div class="tingkat">Tema Sengketa Teratas Tiap Unit</div>')
+    kol2 = st.columns(2)
+    for kolom, nama, bingkai in ((kol2[0], kiri_nama, a),
+                                 (kol2[1], kanan_nama, b)):
+        with kolom:
+            st.html(f'<div class="banding-judul">{nama}<span>'
+                    f'{len(bingkai):,} putusan</span></div>')
+            kor = (bingkai["jenis_koreksi"].dropna().str.split("|").explode()
+                   .map(lambda v: LABEL_KOREKSI.get(v, v)).value_counts()
+                   .head(8))
+            if kor.empty:
+                belum_ada("Jenis koreksi belum terbaca pada unit ini.")
+                continue
+            t = (kor.rename_axis("Jenis koreksi").reset_index(name="Putusan"))
+            st.html(TV.tabel(t))
+
+    unduh_laporan(
+        f"Banding Unit, {kiri_nama} dan {kanan_nama}",
+        [(r["Pembanding"], f"{r[kiri_nama]} lawan {r[kanan_nama]}",
+          f"selisih {r['Selisih']}") for r in baris],
+        None,
+        "Kedua unit menerbitkan jenis ketetapan yang berbeda dan menghadapi "
+        "jenis sengketa yang berbeda, sehingga selisih angka tidak dengan "
+        "sendirinya berarti salah satunya keliru. Yang layak ditelaah adalah "
+        "selisih yang besar dan menetap dari tahun ke tahun.",
+        "banding")
+
+
+# ---------------------------------------------------------------------------
 # Karakter memutus: keragaman antar hakim setelah campuran perkara dikendalikan
 # ---------------------------------------------------------------------------
 
@@ -5312,6 +5510,9 @@ RUAS_ANDAL = {
                       ("Jenis ketetapan", "jenis_ketetapan")],
     "Unit Penerbit Ketetapan": [("Unit penerbit", "unit_penerbit"),
                                 ("Amar", "amar")],
+    "Banding Unit": [("Amar", "amar"),
+                     ("Instansi", "instansi_terbanding"),
+                     ("Jenis koreksi", "jenis_koreksi")],
     "Karakter Memutus": [("Hakim ketua", "hakim_ketua"),
                          ("Amar", "amar"),
                          ("Jenis pajak", "kode_jenis_pajak")],
@@ -5359,6 +5560,7 @@ elif halaman == "Nilai Sengketa":
     "Profil Hakim": hal_hakim,
     "Durasi Penyelesaian Sengketa": hal_kinerja,
     "Karakter Memutus": hal_karakter,
+    "Banding Unit": hal_banding,
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
 }[halaman]()
