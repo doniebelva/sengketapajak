@@ -1670,18 +1670,39 @@ def _ikhtisar_ringkas() -> None:
     st.html(TV.keterangan_waktu(
         rentang_tahun(d), keadaan_tarikan().get("terakhir")))
 
+    # Pembanding tahun sebelumnya dihitung untuk ruas yang memang dapat
+    # dibandingkan antar tahun. Jumlah putusan terurai sengaja tidak diberi
+    # pembanding, karena angkanya mengikuti kemajuan penarikan arsip, bukan
+    # keadaan sengketanya, sehingga kenaikannya tidak berarti apa apa.
+    # Ditulis sebagai bagian dari keseluruhan, bukan sebagai rata rata.
+    # Pada deret benar salah keduanya menghasilkan angka yang sama persis,
+    # tetapi halaman ini memang berpantang memakai rata rata, dan
+    # mengecualikannya sekali akan menumpulkan pengawalnya untuk selamanya.
+    b_kabul, a_kabul = banding_tahun(
+        d, kolom_syarat=d["amar"].notna(),
+        ukur=lambda x: 100 * int(x["amar"].isin(AMAR_MENANG).sum())
+        / max(len(x), 1))
+    b_formal, a_formal = banding_tahun(
+        d, kolom_syarat=d["amar"].notna(),
+        ukur=lambda x: 100 * int((x["amar"] == "tidak_dapat_diterima").sum())
+        / max(len(x), 1))
+
     k = st.columns(4)
     k[0].html(TV.kartu("Putusan terurai", f"{len(d):,}",
                        f"dari {corong['unduh']:,} berkas terkumpul"))
     k[1].html(TV.kartu("Dikabulkan", f"{pangsa:.1f} %",
-                       f"{n_menang:,} dari {len(dd):,} putusan beramar"))
+                       f"{n_menang:,} dari {len(dd):,} putusan beramar",
+                       banding=b_kabul, arah=a_kabul,
+                       andal=andal_ruas("amar", "Amar putusan")))
     k[2].html(TV.kartu(
         "Jeda musyawarah ke pengucapan",
         f"{j.median():.0f} hari" if len(j) else "-",
-        f"median dari {len(j):,} putusan bertanggal" if len(j) else ""))
+        f"median dari {len(j):,} putusan bertanggal" if len(j) else "",
+        andal=andal_ruas("tanggal_musyawarah", "Tanggal musyawarah")))
     k[3].html(TV.kartu("Tidak dapat diterima", f"{n_formal:,}",
                        f"{100 * n_formal / max(1, len(d)):.1f} persen, gugur "
-                       "sebelum pokok sengketa"))
+                       "sebelum pokok sengketa",
+                       banding=b_formal, arah=a_formal))
 
     # Baris kedua dari daftar resmi 2021 sampai 2025: populasi penuh, bukan
     # contoh, sehingga angkanya boleh dikutip apa adanya.
@@ -2170,6 +2191,59 @@ def jelas(teks: str, tampak: int = 1) -> None:
     _urut_lipat += 1
     with st.container(key=f"lipat-{_urut_lipat}"), st.expander("Selengkapnya"):
         st.markdown(NL2.join(alinea[tampak:]))
+
+
+def banding_tahun(bingkai, kolom_syarat=None, ukur=None) -> tuple:
+    """
+    Pembanding tahun terakhir terhadap tahun sebelumnya.
+
+    Mengembalikan pasangan kalimat pembanding dan arahnya, atau pasangan
+    kosong bila tahunnya tidak cukup. Yang dibandingkan selalu dua tahun
+    penuh terakhir yang datanya ada, bukan tahun berjalan terhadap tahun
+    lalu, karena tahun berjalan selalu belum lengkap dan selisihnya akan
+    tampak menakutkan tanpa sebab.
+    """
+    if "tahun_putusan" not in bingkai:
+        return "", 0
+    s = bingkai[bingkai["tahun_putusan"].notna()]
+    if kolom_syarat is not None:
+        s = s[kolom_syarat.reindex(s.index).fillna(False)]
+    if s.empty:
+        return "", 0
+    th = sorted(int(x) for x in s["tahun_putusan"].unique())
+    if len(th) < 2:
+        return "", 0
+    kini, lalu = th[-1], th[-2]
+    a = s[s["tahun_putusan"] == kini]
+    b = s[s["tahun_putusan"] == lalu]
+    if len(a) < 30 or len(b) < 30:
+        return "", 0
+    va = ukur(a) if ukur else len(a)
+    vb = ukur(b) if ukur else len(b)
+    if vb in (0, None) or va is None:
+        return "", 0
+    selisih = va - vb
+    arah = 1 if selisih > 0 else -1 if selisih < 0 else 0
+    return (f"{abs(selisih):,.1f} poin {'naik' if arah > 0 else 'turun'} "
+            f"dari {lalu}" if arah else f"sama dengan {lalu}"), arah
+
+
+# Ambang kelengkapan ruas. Di bawah angka ini, kartu yang bersandar pada ruas
+# tersebut membawa penanda sendiri, tidak cukup mengandalkan pita di kepala
+# halaman yang mudah tertinggal ketika angkanya disalin.
+AMBANG_ANDAL = 75.0
+
+
+def andal_ruas(kolom: str, sebutan: str = "") -> str:
+    """Keterangan peringatan bila ruasnya jarang terbaca, atau untai kosong."""
+    if kolom not in d or d.empty:
+        return ""
+    persen = 100 * d[kolom].notna().sum() / len(d)
+    if persen >= AMBANG_ANDAL:
+        return ""
+    return (f"{sebutan or kolom} hanya terbaca pada {persen:.0f} persen "
+            f"putusan dalam lingkup ini, sehingga angka di kartu ini "
+            "dihitung dari sebagian arsip saja.")
 
 
 # Langkah lanjutan yang wajar sesudah tiap halaman.
@@ -5779,6 +5853,40 @@ def hal_panduan() -> None:
 # Beranda tiap modul peran
 # ---------------------------------------------------------------------------
 
+def _beranda_cari() -> None:
+    """
+    Pintu pencarian di Beranda, bukan hanya di bilah samping.
+
+    Bagi wajib pajak, yang menurut urutan kepentingan adalah pemakai nomor
+    satu, pekerjaan pertama justru mencari perkara yang serupa dengan
+    perkaranya sendiri, bukan membaca ringkasan. Selama ini pintu itu berada
+    paling bawah di bilah samping dan paling mudah terlewat, sehingga pemakai
+    baru mendarat di halaman angka padahal yang dicarinya perkara.
+
+    Kotak ini memakai kunci tersendiri, bukan kunci kotak di bilah samping,
+    karena dua kendali dengan kunci yang sama pada satu putaran ditolak
+    Streamlit. Isinya dititipkan lewat nav_tujuan seperti drill lainnya.
+    """
+    st.html('<div class="cari-beranda-judul">Cari perkara serupa</div>')
+    st.html('<div class="cari-beranda-ket">Ketik pokok sengketa, nama wajib '
+            'pajak, atau nomor putusan. Pencarian menjangkau pokok sengketa, '
+            'kutipan amar, dan nomor pada seluruh arsip yang sudah '
+            'terurai.</div>')
+    kol = st.columns([4, 1])
+    kata = kol[0].text_input(
+        "Cari perkara serupa", key="cari_beranda",
+        placeholder="misalnya nilai pabean, pajak masukan, atau PT",
+        label_visibility="collapsed")
+    tekan = kol[1].button("Cari", width="stretch",
+                          icon=":material/search:", type="primary")
+    if (tekan or kata.strip()) and kata.strip():
+        if st.session_state.get("cari_beranda_lalu") != kata.strip():
+            st.session_state["cari_beranda_lalu"] = kata.strip()
+            st.session_state["q_isi"] = kata.strip()
+            st.session_state["nav_tujuan"] = "Risalah Putusan"
+            st.rerun()
+
+
 def _beranda_tanya(daftar: list) -> None:
     """
     Daftar pertanyaan yang tiap barisnya membawa ke halaman jawabannya.
@@ -5835,6 +5943,9 @@ def hal_beranda() -> None:
                                f"{r_akhir - r_awal:+.1f} poin",
                                "dibanding tiga tahun pertama arsip; naik "
                                "berarti makin sering dikoreksi"))
+        # Pencarian juga disediakan di sini, tetapi sesudah angkanya,
+        # karena peran ini datang dengan pertanyaan umum lebih dulu.
+        _beranda_cari()
         _beranda_tanya([
             ("Berapa nilai yang dikoreksi pengadilan, dan berapa yang dapat "
              "diselamatkan bila mutu diperbaiki?", "Nilai Sengketa"),
@@ -5869,6 +5980,9 @@ def hal_beranda() -> None:
         k[2].html(TV.kartu("Gugur sebelum pokok sengketa",
                            f"{p_gugur:.1f} %",
                            "seluruhnya dapat dicegah sejak pendaftaran"))
+        # Pencarian juga disediakan di sini, tetapi sesudah angkanya,
+        # karena peran ini datang dengan pertanyaan umum lebih dulu.
+        _beranda_cari()
         _beranda_tanya([
             ("Jenis ketetapan dan koreksi mana yang paling sering gugur di "
              "pengadilan?", "Mutu Ketetapan"),
@@ -5884,6 +5998,11 @@ def hal_beranda() -> None:
         st.subheader("Beranda Wajib Pajak")
         st.caption("Bekal sebelum memutuskan mengajukan upaya hukum: peluang "
                    "historisnya, lamanya, dan jebakan yang paling merugikan.")
+        # Pencarian didahulukan pada modul ini, sebelum satu angka pun
+        # disajikan. Wajib pajak datang membawa perkaranya sendiri, dan
+        # pertanyaan pertamanya bukan berapa persen yang dikabulkan
+        # melainkan adakah putusan yang persoalannya serupa.
+        _beranda_cari()
         k = st.columns(3)
         k[0].html(TV.kartu("Perkara serupa yang dikabulkan secara historis",
                            f"{tingkat:.1f} %",

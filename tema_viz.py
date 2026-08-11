@@ -919,6 +919,27 @@ def gaya(gelap: bool) -> str:
                                font-weight: 620; }}
   .kpi-ket {{ font-size: 11.5px; color: {p["tinta_2"]}; margin-top: 4px; }}
 
+  /* Pembanding pada kartu. Warnanya netral, bukan hijau merah, karena naik
+     turunnya angka yang sama berarti kabar baik bagi satu pihak dan kabar
+     buruk bagi pihak lain: tingkat dikabulkan yang naik menguntungkan wajib
+     pajak dan merugikan fiskus. Yang diberikan hanya penunjuk arah. */
+  .kpi-banding {{
+    font-size: 11.5px; font-weight: 600; color: {p["tinta_2"]};
+    margin-top: 5px;
+  }}
+  .kpi-arah {{ margin-right: 4px; font-size: 10px; }}
+
+  /* Penanda ruas yang kelengkapannya rendah, menempel pada kartunya sendiri.
+     Peringatan di kepala halaman mudah tertinggal ketika pembaca menyalin
+     satu angka dari tengah halaman untuk bahan rapat. */
+  .kpi-andal {{
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 13px; height: 13px; margin-left: 6px; border-radius: 50%;
+    background: {p["awas"]}; color: #1a1a1a;
+    font-size: 9px; font-weight: 800; cursor: help;
+    vertical-align: middle;
+  }}
+
   /* --- Bagan dan tabel -------------------------------------------------- */
   div[data-testid="stPlotlyChart"] {{
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
@@ -1015,6 +1036,17 @@ def gaya(gelap: bool) -> str:
      terbaca sebagai ajakan berpindah, bukan sebagai bagian dari sajian di
      atasnya, dan alasan berpindahnya dicetak lebih kecil daripada nama
      halamannya karena yang harus menonjol tujuannya, bukan alasannya. */
+  /* Pintu pencarian di Beranda. Dibuat menonjol karena bagi wajib pajak
+     inilah pekerjaan pertama, bukan pelengkap di ujung bilah samping. */
+  .cari-beranda-judul {{
+    margin: 18px 0 4px 0; font-size: 15px; font-weight: 650;
+    color: {p["tinta"]};
+  }}
+  .cari-beranda-ket {{
+    font-size: 12.5px; color: {p["tinta_2"]}; line-height: 1.55;
+    margin-bottom: 8px;
+  }}
+
   .lanjut-judul {{
     margin: 26px 0 10px 0; padding-top: 16px;
     border-top: 1px solid {p["tepi"]};
@@ -1275,12 +1307,37 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
     )
 
 
-def kartu(label: str, nilai: str, ket: str = "") -> str:
+def kartu(label: str, nilai: str, ket: str = "", banding: str = "",
+          arah: int = 0, andal: str = "") -> str:
+    """
+    Kartu angka, dengan pembanding dan penanda keandalan yang boleh kosong.
+
+    Angka tunggal tidak dapat dinilai pembaca. Tingkat dikabulkan enam puluh
+    persen itu tinggi atau rendah, naik atau turun, tidak ada yang memberi
+    tahu, dan kartu tanpa pembanding memaksa pembaca menebak. Satu pembanding
+    saja, misalnya nilai tahun sebelumnya, mengubah kartu dari sekadar angka
+    menjadi keterangan.
+
+    Arah sengaja tidak diterjemahkan menjadi baik atau buruk. Naiknya tingkat
+    dikabulkan adalah kabar baik bagi wajib pajak dan kabar buruk bagi fiskus,
+    sehingga warnanya netral dan yang diberikan hanya penunjuk naik turun.
+
+    Penanda keandalan dititipkan pada kartunya sendiri, bukan hanya di kepala
+    halaman, karena pembaca yang menyalin satu angka untuk bahan rapat
+    membawa angka itu tanpa peringatan yang tertinggal di atas layar.
+    """
     ekor = f'<div class="kpi-ket">{ket}</div>' if ket else ""
+    if banding:
+        tanda = "▲" if arah > 0 else "▼" if arah < 0 else "•"
+        ekor = (f'<div class="kpi-banding"><span class="kpi-arah">{tanda}</span>'
+                f'{banding}</div>') + ekor
+    tanda_andal = (f'<span class="kpi-andal" title="{andal}">!</span>'
+                   if andal else "")
     n = len(str(nilai))
     kelas = ("kpi-nilai sangat-panjang" if n > 34
              else "kpi-nilai panjang" if n > 18 else "kpi-nilai")
-    return (f'<div class="kpi"><div class="kpi-label">{label}</div>'
+    return (f'<div class="kpi"><div class="kpi-label">{label}'
+            f'{tanda_andal}</div>'
             f'<div class="{kelas}">{nilai}</div>{ekor}</div>')
 
 
