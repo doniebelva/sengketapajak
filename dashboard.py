@@ -792,6 +792,132 @@ def selang_wilson(k: int, n: int) -> tuple[float, float]:
     return max(0.0, tengah - lebar) * 100, min(1.0, tengah + lebar) * 100
 
 
+# ---------------------------------------------------------------------------
+# Anatomi sengketa: memecah naskah putusan menjadi bagian yang dapat dibaca
+# ---------------------------------------------------------------------------
+#
+# Naskah risalah selama ini disajikan sebagai gelondongan, dan pembaca yang
+# ingin tahu mengapa majelis memutus begitu harus menyusurinya sendiri dari
+# awal. Padahal naskahnya berpola baku: pokok sengketa lebih dulu, lalu dalil
+# masing masing pihak, lalu pertimbangan majelis, lalu amarnya.
+#
+# Penanda babnya berbeda antar zaman, dan perbedaan itu sempat menipu. Risalah
+# era lama menulis Menurut Majelis, sedangkan era baru menulis Menimbang
+# bahwa. Mengenali yang lama saja membuat pertimbangan majelis seolah hanya
+# ada pada 48 persen putusan, padahal setelah keduanya dikenali angkanya 88
+# persen. Kekeliruan seperti itu tidak menampakkan diri sebagai kesalahan,
+# hanya sebagai bagian yang diam diam kosong.
+#
+# Yang tidak dikerjakan di sini adalah menyimpulkan alasan majelis menjadi
+# kategori. Penanda alasan yang tersurat, misalnya sengketa yuridis atau
+# sengketa pembuktian, hanya menjangkau seperlima putusan, sehingga bagan
+# yang mengaku memetakan alasan hakim akan meninggalkan empat dari lima
+# perkara tanpa terwakili. Yang disajikan adalah kata kata majelis sendiri.
+
+BAB_ANATOMI = [
+    ("Pokok sengketa",
+     r"(?:pokok\s+sengketa|nilai\s+sengketa\s+terbukti)\s*(?:dalam\s+"
+     r"sengketa\s+\w+\s+ini)?\s*[:\-]?",
+     "Apa yang sebenarnya dipersoalkan, beserta nilainya."),
+    ("Menurut fiskus",
+     r"menurut\s+(?:terbanding|tergugat)\s*[:\-]?",
+     "Dalil unit yang menerbitkan ketetapan."),
+    ("Menurut wajib pajak",
+     r"menurut\s+(?:pemohon\s+banding|pemohon|penggugat)\s*[:\-]?",
+     "Bantahan pihak yang mengajukan upaya hukum."),
+    ("Pertimbangan majelis",
+     r"(?:menurut\s+majelis|pendapat\s+majelis|majelis\s+berpendapat|"
+     r"pertimbangan\s+hukum)\s*[:\-]?",
+     "Jalan pikir hakim, dan inilah alasan putusannya."),
+    ("Amar putusan",
+     r"(?:m\s*e\s*m\s*u\s*t\s*u\s*s\s*k\s*a\s*n|mengadili)\s*[:\-]?",
+     "Bunyi putusannya."),
+]
+
+# Batas panjang tiap bagian. Pertimbangan majelis diberi jatah paling besar,
+# karena di situlah alasannya berada dan memotongnya terlalu dini justru
+# membuang hal yang paling dicari pembaca.
+BATAS_BAB = {"Pertimbangan majelis": 9000, "Pokok sengketa": 3500}
+BATAS_UMUM = 5000
+
+
+def anatomi_sengketa(teks: str) -> list:
+    """
+    Memecah naskah menjadi bagian bernama, menurut penanda bab yang baku.
+
+    Tiap bagian dipetik dari penanda babnya sampai penanda bab berikutnya
+    yang letaknya paling dekat, bukan sampai penanda tertentu, sebab urutan
+    babnya tidak selalu sama antar zaman dan antar majelis. Bagian yang
+    penandanya tidak ditemukan dilewati, bukan diisi keterangan kosong,
+    supaya pembaca tidak menyangka bagian itu memang tidak ada di naskahnya.
+    """
+    import re as _re
+    rapi = " ".join((teks or "").split())
+    if len(rapi) < 400:
+        return []
+
+    # Letak semua penanda dikumpulkan lebih dulu, supaya ujung tiap bagian
+    # dapat ditentukan dari penanda mana pun yang datang berikutnya.
+    letak = []
+    for nama, pola, guna in BAB_ANATOMI:
+        m = _re.search(pola, rapi, _re.IGNORECASE)
+        if m:
+            letak.append((m.start(), m.end(), nama, guna))
+    if not letak:
+        return []
+    letak.sort()
+    semua_awal = [a for a, _, _, _ in letak]
+
+    hasil = []
+    for i, (awal, akhir, nama, guna) in enumerate(letak):
+        # Ujung bagian: penanda berikutnya yang letaknya sesudah bagian ini.
+        sesudah = [x for x in semua_awal if x > awal]
+        ujung = min(sesudah) if sesudah else len(rapi)
+        batas = BATAS_BAB.get(nama, BATAS_UMUM)
+        isi = rapi[akhir:ujung].strip(" :-").strip()
+        if len(isi) < 40:
+            continue
+        dipotong = len(isi) > batas
+        hasil.append({"nama": nama, "guna": guna,
+                      "isi": isi[:batas], "dipotong": dipotong})
+    return hasil
+
+
+def hal_anatomi(r, isi: str, istilah: list) -> None:
+    """Sajian anatomi sengketa pada halaman detail putusan."""
+    bagian = anatomi_sengketa(isi)
+    if not bagian:
+        st.info(
+            "Naskah putusan ini tidak mengikuti pola bab yang baku, sehingga "
+            "belum dapat dipecah menjadi pokok sengketa, dalil para pihak, "
+            "dan pertimbangan majelis. Naskah utuhnya tetap dapat dibaca di "
+            "bawah.")
+        return
+
+    ada = {b["nama"] for b in bagian}
+    kurang = [n for n, _, _ in BAB_ANATOMI if n not in ada]
+    st.html('<div class="tingkat">Anatomi Sengketa</div>')
+    jelas(
+        "Naskah putusan dipecah menurut bab bakunya, sehingga alasan majelis "
+        "dapat dibaca tanpa menyusuri seluruh dokumen.\n\n"
+        "Isinya kutipan apa adanya dari naskah, bukan ringkasan atau tafsir. "
+        "Yang dipotong hanya panjangnya, dan bagian yang terpotong ditandai. "
+        "Untuk kutipan resmi, yang berlaku tetap berkas asli dari "
+        "Sekretariat, sebab teks hasil ekstraksi dapat memuat salah baca.")
+
+    for b in bagian:
+        with st.expander(b["nama"], expanded=(b["nama"] == "Pertimbangan majelis")):
+            st.caption(b["guna"])
+            st.html(f'<div class="anatomi-isi">{sorot(b["isi"], istilah)}</div>')
+            if b["dipotong"]:
+                st.caption("Bagian ini dipotong karena panjang. Selebihnya "
+                           "ada pada naskah utuh di bawah.")
+    if kurang:
+        st.caption("Bab yang penandanya tidak ditemukan pada naskah ini: "
+                   + ", ".join(kurang).lower()
+                   + ". Bagian itu tidak dikarang, melainkan dilewati.")
+
+
 def sorot(teks: str, istilah: list[str]) -> str:
     import html
     import re as _re
@@ -1262,6 +1388,13 @@ if not st.session_state.get("alamat_terbaca"):
         st.session_state["modul"] = _q["modul"]
     if _q.get("halaman") in HALAMAN_SAH:
         st.session_state["nav"] = _q["halaman"]
+    # Alamat langsung ke satu putusan. Wajib pajak yang menemukan perkara
+    # serupa perlu dapat mengirim tautannya kepada kuasa hukumnya, dan
+    # selama ini satu satunya jalan menuju sebuah putusan adalah menyusuri
+    # bagan lalu tabelnya sendiri, yang tidak dapat disalin sebagai alamat.
+    if str(_q.get("doc", "")).isdigit():
+        st.session_state["buka_doc"] = int(_q["doc"])
+        st.session_state["nav"] = "Risalah Putusan"
 
 # Urutan tampil bilah samping diatur lewat wadah, terlepas dari urutan
 # kode: saklar instansi tampil paling atas karena itu pilihan analisis
@@ -1357,9 +1490,14 @@ bagian_menu.html('<div class="sb-judul">Halaman</div>')
 halaman = st.session_state["nav"]
 # Alamat halaman disamakan dengan tampilan yang sedang aktif, sehingga
 # tautannya dapat langsung disalin dari bilah alamat peramban.
-if (st.query_params.get("halaman") != halaman
-        or st.query_params.get("modul") != modul):
-    st.query_params.update({"modul": modul, "halaman": halaman})
+_doc_buka = st.session_state.get("buka_doc")
+_alamat = {"modul": modul, "halaman": halaman}
+if _doc_buka is not None:
+    _alamat["doc"] = str(int(_doc_buka))
+if any(st.query_params.get(k) != v for k, v in _alamat.items()) or (
+        _doc_buka is None and st.query_params.get("doc")):
+    st.query_params.clear()
+    st.query_params.update(_alamat)
 st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # Seluruh tombol menu dikumpulkan dalam satu wadah bernama, supaya jarak
 # antar barisnya dapat dirapatkan sekaligus tanpa mengganggu jarak antar
@@ -1529,6 +1667,15 @@ if halaman != "Beranda":
         label = "seluruh arsip" if kode_instansi else None
     else:
         label = NAMA_LINGKUP.get(pilih_instansi) if kode_instansi else None
+    # Tema yang sedang dibuka disebut pada kepala halaman, bukan hanya di
+    # tengah sajian. Pembaca yang menggulir sampai bawah lalu kembali ke
+    # atas harus tetap tahu bahwa yang dilihatnya bukan seluruh arsip
+    # melainkan satu tema saja.
+    _tema_aktif = (st.session_state.get("tema_drill")
+                   if halaman == "Tema Sengketa" else None)
+    if _tema_aktif:
+        label = (f"{label}, tema {_tema_aktif}" if label
+                 else f"tema {_tema_aktif}")
     st.html(TV.kepala_halaman(halaman, DIMENSI.get(halaman), label))
 
 
@@ -2392,19 +2539,28 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
     cuplikan = cuplikan or {}
     judul = tampil(r.get("nomor_tampil"), f"Dokumen {r['doc_id']}")
 
+    # Ruas kosong ditulis sebagai kata, bukan sebagai tanda hubung tunggal.
+    #
+    # Markdown membaca baris yang hanya berisi tanda hubung sebagai garis
+    # bawah judul, sehingga label di atasnya, misalnya Pemohon atau
+    # Ketetapan, tercetak sebesar judul halaman setiap kali ruasnya kosong.
+    # Cacat ini tidak pernah menampakkan diri pada putusan yang ruasnya
+    # lengkap, dan justru muncul pada putusan yang datanya paling miskin.
+    KOSONG = "tidak tersedia"
     kol = st.columns(3)
-    kol[0].markdown(f"**Pemohon**  \n{tampil(r['nama_pemohon'])}\n\n"
+    kol[0].markdown(f"**Pemohon**  \n{tampil(r['nama_pemohon'], KOSONG)}\n\n"
                     f"**Jenis perkara**  \n{r['jenis_perkara_label']}\n\n"
                     f"**Tanggal putusan**  \n"
                     f"{tampil_tanggal(r['tanggal_ucap'], tampil_tahun(r['tahun_putusan']))}")
     kol[1].markdown(f"**Instansi terbanding**  \n"
-                    f"{LABEL_INSTANSI.get(r['instansi_terbanding'], '-')}\n\n"
-                    f"**Ketetapan**  \n{tampil(r['jenis_ketetapan'])} "
+                    f"{LABEL_INSTANSI.get(r['instansi_terbanding'], KOSONG)}\n\n"
+                    f"**Ketetapan**  \n"
+                    f"{tampil(r['jenis_ketetapan'], KOSONG)} "
                     f"{tampil(r['nomor_ketetapan'], '')}\n\n"
                     f"**Amar**  \n{LABEL_AMAR.get(r['amar'], 'tidak dikenali')}")
     kol[2].markdown(f"**Jenis pajak**  \n"
                     f"{label_kode(r['kode_jenis_pajak'], kode_peta)}\n\n"
-                    f"**Tahun pajak**  \n{tampil(r['tahun_pajak'])}\n\n"
+                    f"**Tahun pajak**  \n{tampil(r['tahun_pajak'], KOSONG)}\n\n"
                     f"**Pengenal berkas**  \n{r['doc_id']}")
 
     # Asal usul nomor disebut hanya ketika perlu diwaspadai, yaitu ketika
@@ -2465,6 +2621,12 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
                f"Berkas asli: {berkas}")
     istilah = [t for t in q_isi.replace('"', " ").split()
                if t.upper() not in ("OR", "AND", "NOT")]
+
+    # Anatomi didahulukan sebelum naskah utuh. Pembaca yang ingin tahu
+    # mengapa majelis memutus begitu tidak perlu lagi menyusuri tiga puluh
+    # ribu huruf dari awal untuk menemukan alinea pertimbangannya.
+    hal_anatomi(r, isi, istilah)
+    st.html('<div class="tingkat">Naskah Utuh</div>')
     # Tiap alinea diberi kelas tampilan yang meniru susunan naskah aslinya:
     # kepala putusan dirata tengah dan ditebalkan, badan dirata kiri kanan.
     potongan = []
@@ -5126,6 +5288,162 @@ def petakan_tema(pokok: pd.Series, koreksi: pd.Series) -> pd.DataFrame:
     return pd.DataFrame(baris).drop_duplicates()
 
 
+def _tema_rincian(pilih_tema: str, gabung, punya) -> None:
+    """
+    Rincian satu tema, digambar tepat di bawah tabel temanya.
+
+    Dahulu rincian ini berada pada tab tersendiri dengan daftar pilihan,
+    sehingga pembaca yang baru melihat sebuah tema menarik pada tabel harus
+    berpindah tab lalu mencari nama tema itu sekali lagi di daftar pilihan.
+    Dua langkah untuk satu maksud. Sekarang temanya dipilih langsung pada
+    tabelnya, dan rinciannya muncul di bawahnya.
+    """
+    isi = (gabung[gabung["Tema"] == pilih_tema]
+           .drop_duplicates("doc_id")
+           .sort_values("tahun_putusan", ascending=False))
+    if isi.empty:
+        belum_ada(f"Tidak ada putusan bertema {pilih_tema} pada lingkup ini.")
+        return
+
+    # Bingkai tema hasil pemetaan hanya membawa ruas yang diperlukan
+    # bagannya, tanpa pokok sengketa maupun amar mentah. Baris aslinya
+    # diambil kembali dari bingkai sumber melalui pengenal dokumen.
+    asli_t = punya[punya["doc_id"].isin(set(isi["doc_id"]))]
+    dd_t = beramar(asli_t)
+    menang_t = dd_t["amar"].isin(AMAR_MENANG)
+
+    st.html(f'<div class="jejak">Tema Sengketa<i>›</i>'
+            f'<b>{pilih_tema}</b></div>')
+    if st.button("Tutup rincian tema", icon=":material/arrow_back:",
+                 key="tema_tutup"):
+        # Pilihan baris pada tabel temanya ikut dibersihkan, bukan hanya
+        # penanda temanya. Tanpa itu tombol ini tampak tidak berfungsi:
+        # penanda memang terhapus, tetapi tabel digambar ulang dengan baris
+        # yang masih tersorot, lalu kode pemilihnya menetapkan temanya
+        # kembali pada putaran yang sama. Pembersihan dititipkan lewat
+        # hapus_kunci, karena keadaan kendali hanya boleh diubah sebelum
+        # kendalinya tergambar.
+        st.session_state.pop("tema_drill", None)
+        st.session_state["hapus_kunci"] = "tema_peta_pilih"
+        st.rerun()
+
+    kt = st.columns(3)
+    kt[0].html(TV.kartu("Putusan bertema ini", f"{len(isi):,}",
+                        f"dari {len(punya):,} putusan yang temanya terbaca"))
+    kt[1].html(TV.kartu(
+        "Dikabulkan",
+        f"{100 * int(menang_t.sum()) / max(len(dd_t), 1):.1f} %",
+        f"{int(menang_t.sum()):,} dari {len(dd_t):,} putusan beramar"))
+    pj_t = asli_t["kode_jenis_pajak"].dropna().astype(str).value_counts()
+    kt[2].html(TV.kartu(
+        "Jenis pajak berfrekuensi tertinggi",
+        label_kode(pj_t.index[0], kode_peta) if len(pj_t) else "-",
+        f"{int(pj_t.iloc[0]):,} putusan" if len(pj_t) else ""))
+
+    # Sepuluh perkara yang paling sering menyertai tema ini.
+    #
+    # Inilah yang menggantikan bagan seluruh tema ketika drill dibuka. Satu
+    # putusan lazim menyandang lebih dari satu tema, dan tema yang menyertai
+    # itulah yang menerangkan perkaranya: sengketa hubungan istimewa jarang
+    # berdiri sendiri, ia hampir selalu datang bersama koreksi peredaran
+    # usaha atau harga pokok penjualan. Tanpa sajian ini, pembaca tahu
+    # temanya tetapi tidak tahu perkaranya tentang apa.
+    st.html(f'<div class="tingkat">Sepuluh Perkara yang Menyertai '
+            f'{pilih_tema}</div>')
+    lain = gabung[gabung["doc_id"].isin(set(isi["doc_id"]))]
+    lain = lain[lain["Tema"] != pilih_tema]
+    if len(lain):
+        rk = (lain.groupby("Tema")["doc_id"].nunique()
+              .sort_values(ascending=False).head(10)
+              .rename_axis("Tema").reset_index(name="Putusan"))
+        # Tingkat dikabulkan dihitung pada irisan kedua tema, bukan pada
+        # tema penyertanya secara keseluruhan, sebab yang ditanyakan adalah
+        # nasib perkara yang memuat keduanya sekaligus.
+        kabul = []
+        for t_ in rk["Tema"]:
+            doc_t = set(lain[lain["Tema"] == t_]["doc_id"])
+            dd_ = beramar(punya[punya["doc_id"].isin(doc_t)])
+            kabul.append(round(100 * int(dd_["amar"].isin(AMAR_MENANG).sum())
+                               / max(len(dd_), 1), 1))
+        rk["Dikabulkan"] = kabul
+        rk["Ket"] = [f"{n:,}  ({v:.0f}% dikabulkan)" for n, v in
+                     zip(rk["Putusan"], rk["Dikabulkan"])]
+        bagan(batang_peringkat(
+            rk, "Tema", "Putusan",
+            f"Tema yang paling sering menyertai {pilih_tema}", "Ket"),
+            max(300, 38 * len(rk) + 110), None,
+            f"Panjang batang adalah banyaknya putusan yang menyandang "
+            f"{pilih_tema} sekaligus tema tersebut, dan angka dalam kurung "
+            "adalah bagian yang dimenangkan wajib pajak pada perkara "
+            "bertema ganda itu.")
+    else:
+        belum_ada(f"Putusan bertema {pilih_tema} pada lingkup ini tidak "
+                  "menyandang tema lain, sehingga tidak ada perkara "
+                  "penyerta yang dapat ditampilkan.")
+
+    st.html('<div class="tingkat">Rupa Putusannya</div>')
+    ra = (asli_t["amar_label"].value_counts()
+          .rename_axis("Amar").reset_index(name="Putusan"))
+    ra = ra[ra["Amar"] != "Tidak dikenali"]
+    if len(ra):
+        ra["Bagian"] = (100 * ra["Putusan"] / ra["Putusan"].sum()).round(1)
+        ra["Ket"] = [f"{n:,} · {v:.0f}%" for v, n in
+                     zip(ra["Bagian"], ra["Putusan"])]
+        bagan(batang_peringkat(ra, "Amar", "Putusan",
+                               f"Amar putusan pada tema {pilih_tema}", "Ket"),
+              max(240, 40 * len(ra) + 110), None,
+              "Sebaran amar pada tema ini saja, bukan pada seluruh arsip. "
+              "Amar yang tidak terbaca dari naskahnya sengaja tidak "
+              "dihitung, bukan dimasukkan sebagai ditolak.")
+    else:
+        belum_ada("Amar belum terbaca pada putusan bertema ini.")
+
+    st.html('<div class="tingkat">Sengketa yang Diajukan</div>')
+    ps = asli_t["pokok_sengketa"].dropna().astype(str).str.strip()
+    ps = ps[ps.str.len().between(40, 400)]
+    if len(ps):
+        # Kalimat pembuka baku dibuang supaya yang tersisa pokok perkaranya
+        # sendiri, bukan basa basi yang sama pada semua putusan.
+        ringkas = (ps.str.replace(
+            r"^bahwa\s+yang\s+menjadi\s+pokok\s+sengketa[^:]{0,80}"
+            r"(?:adalah|ini\s+adalah)\s*", "", regex=True, case=False)
+            .str.replace(r"\s+", " ", regex=True).str.strip(" .;:|-"))
+        ringkas = ringkas[ringkas.str.len() >= 25]
+        tampak = ringkas.head(12).tolist()
+        st.markdown(
+            f"Kutipan sengketa apa adanya dari naskah, {len(tampak)} contoh "
+            f"pertama dari {len(ringkas):,} putusan yang uraiannya terbaca:")
+        st.html("<ol class='pokok-daftar'>" + "".join(
+            f"<li>{sorot(x[:300], [])}</li>" for x in tampak) + "</ol>")
+    else:
+        belum_ada("Uraian sengketa belum terbaca pada putusan bertema ini.")
+
+    st.html('<div class="tingkat">Daftar Putusan</div>')
+    st.markdown(f"**{len(isi):,} putusan** bertema {pilih_tema}. Pilih salah "
+                "satu baris untuk membaca isi putusannya.")
+    isi, nav_tema = potong_halaman(
+        isi, f"temal_{abs(hash(pilih_tema)) & 0xffffff}")
+    pilih_baris = st.dataframe(
+        pd.DataFrame({
+            "Nomor putusan": isi["nomor_tampil"],
+            "Tanggal putusan": [
+                tampil_tanggal(u, tampil_tahun(th_)) for u, th_ in
+                zip(isi["tanggal_ucap"], isi["tahun_putusan"])],
+            "Jenis pajak": isi["kode_jenis_pajak"].map(
+                lambda k: label_kode(k, kode_peta)),
+            "Amar": isi["amar_label"]}),
+        width="stretch", hide_index=True, on_select="rerun",
+        selection_mode="single-row", key=f"tema_{pilih_tema}",
+        column_config={
+            "Tanggal putusan": st.column_config.TextColumn(
+                alignment="center")})
+    gambar_nav(nav_tema)
+    b = (pilih_baris.selection.rows
+         if pilih_baris and pilih_baris.selection else [])
+    if b:
+        buka_putusan(isi.iloc[b[0]]["doc_id"], f"tema_{pilih_tema}")
+
+
 def hal_tema() -> None:
     st.caption(
         "Apa yang sebenarnya dipersengketakan, dibaca dari uraian pokok "
@@ -5160,7 +5478,7 @@ def hal_tema() -> None:
                        & (gabung["amar"] != "pembetulan")].copy()
     beramar_t["menang"] = beramar_t["amar"].isin(AMAR_MENANG)
 
-    t1, t2, t3 = st.tabs(["Peta tema", "Tren tema", "Telusuri per tema"])
+    t1, t2 = st.tabs(["Peta tema", "Tren tema"])
 
     with t1:
         g = (beramar_t.groupby("Tema")
@@ -5190,25 +5508,67 @@ def hal_tema() -> None:
             "itu adalah tempat pedoman paling perlu dibenahi; bagi wajib "
             "pajak, itu tema yang secara historis paling sering berhasil "
             "dilawan.")
-        tabel_bernavigasi(g, "tema_peta",
-                          kolom_persen=("Dikabulkan", "Batas bawah",
-                                        "Batas atas"))
+        # Tabel tema dapat diklik, dan drill turun langsung dari sini.
+        #
+        # Sebelumnya rincian tema berada pada tab tersendiri dengan daftar
+        # pilihan, sehingga pembaca yang melihat sebuah tema menarik pada
+        # tabel harus berpindah tab lalu mencari nama tema itu sekali lagi.
+        # Dua langkah untuk satu maksud, dan langkah keduanya justru
+        # menuntut pembaca mengingat apa yang baru saja dilihatnya.
+        g_hal, nav_tema_peta = potong_halaman(g, "tema_peta")
+        pilih_tema_baris = st.dataframe(
+            g_hal, width="stretch", hide_index=True, on_select="rerun",
+            selection_mode="single-row", key="tema_peta_pilih",
+            column_config={
+                # Pemisah ribuan dikembalikan. Tabel bawaan Streamlit
+                # mencetak bilangan apa adanya, sehingga 10.516 putusan
+                # terbaca sebagai 10516 dan besarannya sukar ditangkap
+                # sekali pandang.
+                "Putusan": st.column_config.NumberColumn(
+                    "Putusan", format="localized"),
+                "Dikabulkan": st.column_config.ProgressColumn(
+                    "Dikabulkan", format="%.1f%%", min_value=0,
+                    max_value=100),
+                "Batas bawah": st.column_config.NumberColumn(
+                    "Batas bawah", format="%.1f%%"),
+                "Batas atas": st.column_config.NumberColumn(
+                    "Batas atas", format="%.1f%%")})
+        gambar_nav(nav_tema_peta)
+        _sel = (pilih_tema_baris.selection.rows
+                if pilih_tema_baris and pilih_tema_baris.selection else [])
+        if _sel:
+            st.session_state["tema_drill"] = str(
+                g_hal.iloc[_sel[0]]["Tema"])
         st.caption("Diurutkan dari tema yang paling sering muncul. Satu "
                    "putusan dapat menyandang lebih dari satu tema.")
 
-        atas = g.head(10).sort_values("Putusan")
-        fig = px.bar(atas, x="Putusan", y="Tema", orientation="h",
-                     text=[f"{int(n):,}  ({v:.0f}% dikabulkan)"
-                           for n, v in zip(atas["Putusan"],
-                                           atas["Dikabulkan"])],
-                     title="Sepuluh tema tersering")
-        fig.update_xaxes(title="", showticklabels=False, showgrid=False,
-                         zeroline=False)
-        fig.update_yaxes(title="")
-        bagan(fig, max(300, 38 * len(atas) + 110), None,
-              "Panjang batang adalah banyaknya putusan bertema itu, dan "
-              "angka dalam kurung adalah bagian yang dimenangkan wajib "
-              "pajak.")
+        # Bagan seluruh tema hanya digambar ketika belum ada tema yang
+        # dipilih.
+        #
+        # Ketika sebuah tema sudah dipilih, bagan ini justru membingungkan:
+        # pembaca memilih Hubungan istimewa lalu melihat bagan di bawahnya
+        # bicara tentang Sanksi administrasi, dan tidak ada yang menerangkan
+        # bahwa keduanya memang tidak berhubungan. Sesudah tema dipilih,
+        # seluruh isi halaman di bawahnya wajib mengikuti tema itu.
+        if not st.session_state.get("tema_drill"):
+            atas = g.head(10).sort_values("Putusan")
+            fig = px.bar(atas, x="Putusan", y="Tema", orientation="h",
+                         text=[f"{int(n):,}  ({v:.0f}% dikabulkan)"
+                               for n, v in zip(atas["Putusan"],
+                                               atas["Dikabulkan"])],
+                         title="Sepuluh tema berfrekuensi tinggi")
+            fig.update_xaxes(title="", showticklabels=False, showgrid=False,
+                             zeroline=False)
+            fig.update_yaxes(title="")
+            bagan(fig, max(300, 38 * len(atas) + 110), None,
+                  "Panjang batang adalah banyaknya putusan bertema itu, dan "
+                  "angka dalam kurung adalah bagian yang dimenangkan wajib "
+                  "pajak.")
+        else:
+            st.info(f"Tema **{st.session_state['tema_drill']}** sedang "
+                    "dibuka, sehingga sajian di bawah mengikuti tema itu "
+                    "saja. Tutup rinciannya untuk kembali melihat "
+                    "perbandingan seluruh tema.")
 
         unduh_laporan(
             "Tema Sengketa",
@@ -5224,7 +5584,8 @@ def hal_tema() -> None:
 
     with t2:
         st.markdown(
-            "Bagan ini mengikuti tiga tema tersering dari tahun ke tahun. "
+            "Bagan ini mengikuti tiga tema berfrekuensi tertinggi dari tahun "
+            "ke tahun. "
             "Tema yang naik berarti persoalannya makin sering sampai ke "
             "pengadilan, dan itu isyarat paling dini bahwa ada aturan atau "
             "praktik yang menimbulkan tafsir berbeda secara meluas.")
@@ -5243,7 +5604,7 @@ def hal_tema() -> None:
         else:
             fig = px.line(tt, x="Tahun", y="Putusan", color="Tema",
                           markers=True,
-                          title="Tiga tema tersering menurut tahun putusan")
+                          title="Tiga tema berfrekuensi tertinggi menurut tahun putusan")
             fig.update_layout(
                 legend=dict(orientation="h", yanchor="top", y=-0.14,
                             xanchor="left", x=0),
@@ -5256,36 +5617,13 @@ def hal_tema() -> None:
                   "tersedia, jadi yang layak dibandingkan adalah bentuk "
                   "pergerakan antar tema, bukan tinggi mutlaknya.")
 
-    with t3:
-        pilih_tema = st.selectbox(
-            "Pilih tema yang ingin ditelusuri",
-            sorted(gabung["Tema"].unique()), key="tema_pilih")
-        isi = (gabung[gabung["Tema"] == pilih_tema]
-               .drop_duplicates("doc_id")
-               .sort_values("tahun_putusan", ascending=False))
-        st.markdown(f"**{len(isi):,} putusan** bertema {pilih_tema}. Pilih "
-                    "salah satu baris untuk membaca isi putusannya.")
-        isi, nav_tema = potong_halaman(
-            isi, f"temal_{abs(hash(pilih_tema)) & 0xffffff}")
-        pilih_baris = st.dataframe(
-            pd.DataFrame({
-                "Nomor putusan": isi["nomor_tampil"],
-                "Tanggal putusan": [
-                    tampil_tanggal(u, tampil_tahun(th_)) for u, th_ in
-                    zip(isi["tanggal_ucap"], isi["tahun_putusan"])],
-                "Jenis pajak": isi["kode_jenis_pajak"].map(
-                    lambda k: label_kode(k, kode_peta)),
-                "Amar": isi["amar_label"]}),
-            width="stretch", hide_index=True, on_select="rerun",
-            selection_mode="single-row", key=f"tema_{pilih_tema}",
-            column_config={
-                "Tanggal putusan": st.column_config.TextColumn(
-                    alignment="center")})
-        gambar_nav(nav_tema)
-        b = (pilih_baris.selection.rows
-             if pilih_baris and pilih_baris.selection else [])
-        if b:
-            buka_putusan(isi.iloc[b[0]]["doc_id"], f"tema_{pilih_tema}")
+    # Rincian tema digambar di luar kedua tab, supaya tetap terlihat pada tab
+    # mana pun pembaca berada setelah memilihnya, dan supaya lebar penuhnya
+    # tidak terkurung di dalam tab.
+    _tema = st.session_state.get("tema_drill")
+    if _tema and _tema in set(gabung["Tema"]):
+        _tema_rincian(_tema, gabung, punya)
+
 
 
 # ---------------------------------------------------------------------------
@@ -5354,9 +5692,9 @@ def hal_banding() -> None:
             "Sepuluh persen terlama": (
                 float(j.quantile(0.9)) if len(j) else 0,
                 f"{j.quantile(0.9):,.0f} hari" if len(j) else "-"),
-            "Jenis pajak tersering": (
+            "Jenis pajak berfrekuensi tertinggi": (
                 0, label_kode(pajak.index[0], kode_peta) if len(pajak) else "-"),
-            "Koreksi tersering": (0, kor.index[0] if len(kor) else "-"),
+            "Koreksi berfrekuensi tertinggi": (0, kor.index[0] if len(kor) else "-"),
             "Wilson bawah": (0, ""), "Wilson atas": (0, ""),
         }
 
@@ -5395,7 +5733,8 @@ def hal_banding() -> None:
                  "Kabul sebagian dari yang dikabulkan",
                  "Gugur sebelum pokok sengketa",
                  "Median jeda musyawarah ke ucap", "Sepuluh persen terlama",
-                 "Jenis pajak tersering", "Koreksi tersering"):
+                 "Jenis pajak berfrekuensi tertinggi",
+                 "Koreksi berfrekuensi tertinggi"):
         va, vb = ua[nama], ub[nama]
         if isinstance(va[0], (int, float)) and va[0] and vb[0]:
             selisih = f"{va[0] - vb[0]:+,.1f}"

@@ -1036,6 +1036,32 @@ def gaya(gelap: bool) -> str:
      terbaca sebagai ajakan berpindah, bukan sebagai bagian dari sajian di
      atasnya, dan alasan berpindahnya dicetak lebih kecil daripada nama
      halamannya karena yang harus menonjol tujuannya, bukan alasannya. */
+  /* Daftar kutipan pokok sengketa pada drill tematik. Tiap butir berasal
+     dari naskah yang berbeda, jadi jaraknya dilebarkan supaya tidak terbaca
+     sebagai satu paragraf yang menyambung. */
+  ol.pokok-daftar, ul.pokok-daftar {{
+    margin: 6px 0 4px 0; padding-left: 20px;
+    font-size: 13px; line-height: 1.65; color: {p["tinta"]};
+  }}
+  ol.pokok-daftar li, ul.pokok-daftar li {{
+    margin-bottom: 9px; padding-left: 4px;
+  }}
+  ol.pokok-daftar li::marker {{ font-weight: 700; color: {p["seri"][0]}; }}
+
+  /* Isi tiap bab pada anatomi sengketa. Dibuat serapat naskah hukum, dengan
+     lebar baris terbatas supaya mata tidak kehilangan baris pada kalimat
+     panjang khas risalah yang kerap melampaui seratus kata. */
+  .anatomi-isi {{
+    font-size: 13.5px; line-height: 1.75; color: {p["tinta"]};
+    text-align: left; max-width: 78ch; hyphens: none;
+    background: {p["bidang"]}; padding: 12px 14px; border-radius: 9px;
+    border-left: 3px solid {p["seri"][0]};
+  }}
+  .anatomi-isi mark {{
+    background: {lembut(p["awas"], .55)}; color: {p["tinta"]};
+    padding: 0 2px; border-radius: 3px;
+  }}
+
   /* Pintu pencarian di Beranda. Dibuat menonjol karena bagi wajib pajak
      inilah pekerjaan pertama, bukan pelengkap di ujung bilah samping. */
   .cari-beranda-judul {{
