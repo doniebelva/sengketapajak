@@ -2,3 +2,15 @@ streamlit==1.58.0
 pandas==3.0.3
 plotly==6.8.0
 numpy==2.4.6
+
+# tema_viz 44b958481f67
+# Baris di atas bukan paket, melainkan sidik berkas tema.
+#
+# Streamlit Community Cloud memuat ulang berkas utama pada tiap
+# penerbitan, tetapi modul yang diimpornya tetap yang lama selama wadah
+# masih dipakai ulang. Akibatnya dashboard yang memanggil fungsi baru di
+# tema_viz jatuh dengan AttributeError, dan itu sudah dua kali terjadi.
+# Berkas ini termasuk yang memicu pembangunan ulang wadah, jadi sidik
+# tema ditumpangkan di sini: begitu tema berubah, berkas ini ikut
+# berubah, dan wadahnya dibangun ulang tanpa siapa pun perlu ingat.
+
