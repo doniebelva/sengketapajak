@@ -146,6 +146,16 @@ def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
 
     raw = r["nomor_putusan_raw"]
     utuh = raw.notna() & (raw.fillna("").astype(str).str.strip() != "")
+
+    # Putusan yang kedua saksinya berbeda tidak boleh menampilkan nomor
+    # mentah dari teks, sebab nomor itulah yang justru diragukan. Pada
+    # keadaan itu yang ditampilkan rangkaian dari nama berkas, yang sudah
+    # dipakai penguraian sebagai identitas. Penguraian lama belum mengenal
+    # ruas ini, jadi ketiadaannya diperlakukan sebagai tidak ada bentrok.
+    if "nomor_bentrok" in r:
+        bentrok = r["nomor_bentrok"].notna() & (
+            r["nomor_bentrok"].fillna("").astype(str).str.strip() != "")
+        utuh = utuh & ~bentrok
     return raw.where(utuh, s)
 
 
@@ -155,10 +165,49 @@ def kolom_nomor_tampil(r: pd.DataFrame) -> pd.Series:
 # setiap gerakan pengguna dan seluruh dashboard terasa berat. Pesan
 # pemuatannya ditulis sendiri, karena pesan bawaan menampilkan nama fungsi
 # dalam bahasa Inggris yang tidak berarti bagi pemakai.
+# Kolom yang tidak pernah dirujuk halaman mana pun, sehingga tidak ikut
+# dimuat ke memori. Kutipan amar sendirian memakan seperlima muatan, 4,6 MB
+# dari 24 MB, padahal nol rujukan. Isinya tetap tersimpan di basis data dan
+# tetap dapat dibaca per dokumen bila kelak dibutuhkan.
+KOLOM_TAK_DIPAKAI = ("amar_kutipan", "amar_semua", "nama_berkas")
+
+# Kolom yang nilainya berulang ulang disimpan sebagai kategori, bukan sebagai
+# untai lepas per baris. Nama hakim, panitera, dan unit penerbit hanya
+# beberapa ribu nilai berbeda untuk puluhan ribu baris, sehingga menyimpan
+# untainya sekali lalu menunjuknya dengan angka jauh lebih hemat. Nomor
+# putusan dan nomor sengketa sengaja tidak masuk daftar, karena hampir setiap
+# barisnya berbeda dan kategori justru menambah beban di situ.
+KOLOM_KATEGORI = (
+    "sumber_teks", "pola_nomor", "jenis_naskah", "kode_jenis_pajak",
+    "kode_majelis", "jenis_perkara", "instansi_terbanding", "unit_penerbit",
+    "nama_terbanding", "jenis_pajak_teks", "tahun_pajak", "jenis_koreksi",
+    "amar", "amar_sumber", "nilai_label", "jenis_ketetapan", "pola_nama",
+    "sumber_nomor", "hakim_ketua", "hakim_anggota", "panitera",
+    "tanggal_ucap", "tanggal_musyawarah", "masa_pajak", "letak_nomor",
+)
+
+# Nilai pengganti yang dipakai halaman ketika ruasnya kosong. Kategori menolak
+# nilai yang belum terdaftar, sehingga penggantinya didaftarkan sejak awal,
+# supaya pemanggilan fillna di halaman mana pun tidak menjatuhkan aplikasi.
+PENGGANTI_KOSONG = ("", "-", "tidak dikenali", "Tidak dikenali")
+
+
+def _hemat(s: pd.Series) -> pd.Series:
+    k = s.astype("category")
+    kurang = [v for v in PENGGANTI_KOSONG if v not in k.cat.categories]
+    return k.cat.add_categories(kurang) if kurang else k
+
+
 @st.cache_resource(show_spinner="Memuat data putusan...")
 def _muat_putusan(usia: float) -> pd.DataFrame:
     with sambung() as c:
-        df = pd.read_sql_query("SELECT * FROM putusan", c)
+        ada = [r[1] for r in c.execute("PRAGMA table_info(putusan)")]
+        pakai = [k for k in ada if k not in KOLOM_TAK_DIPAKAI]
+        df = pd.read_sql_query(
+            "SELECT " + ", ".join(pakai) + " FROM putusan", c)
+    for k in KOLOM_KATEGORI:
+        if k in df:
+            df[k] = _hemat(df[k])
     for k, peta in (("amar", LABEL_AMAR),
                     ("instansi_terbanding", LABEL_INSTANSI),
                     ("jenis_perkara", LABEL_PERKARA)):
@@ -429,30 +478,34 @@ def cari_teks(kueri: str, batas: int) -> pd.DataFrame:
 # dibatasi ketat supaya pembacaan beruntun tidak menumpuk di memori.
 @st.cache_data(ttl=120, max_entries=6,
                show_spinner="Membuka isi putusan...")
-def muat_isi(doc_id: int) -> tuple[str, str]:
+def muat_isi(doc_id: int) -> tuple[str, str, str]:
+    """
+    Naskah putusan, berkas aslinya, dan sebab bila naskahnya tidak ada.
+
+    Sebab dibedakan karena tindakan pembacanya berbeda. Naskah yang belum
+    ada memang harus ditunggu, sedangkan naskah yang tidak ikut dibawa di
+    dalam paket dapat diambil sekarang juga dari peladen Sekretariat. Dahulu
+    keduanya berbunyi sama, yaitu menunggu OCR, dan itu keliru pada peladen.
+    """
     with sambung() as c:
         b = c.execute(
-            """SELECT t.text_path, d.path FROM texts t
+            """SELECT t.text_path, d.path, t.n_chars FROM texts t
                JOIN docs d ON d.doc_id = t.doc_id WHERE t.doc_id = ?""",
             (doc_id,)).fetchone()
     if not b:
-        return "", ""
+        return "", "", "belum ada"
     try:
         with open(b[0], encoding="utf-8") as fh:
-            return fh.read(), (b[1] or "")
+            return fh.read(), (b[1] or ""), ""
     except (OSError, TypeError):
         pass
-    # Cadangan untuk paket rilis: pada peladen UAT tidak ada folder teks,
-    # tetapi isi penuh setiap dokumen sudah ada di indeks pencarian.
-    try:
-        with sambung() as c:
-            r = c.execute("SELECT teks FROM putusan_fts WHERE doc_id = ?",
-                          (int(doc_id),)).fetchone()
-        if r and r[0]:
-            return r[0], (b[1] or "")
-    except (sqlite3.OperationalError, TypeError, ValueError):
-        pass
-    return "", (b[1] or "")
+    # Paket rilis tidak lagi membawa naskah penuh. Naskah itu sendirian
+    # menghabiskan tiga perempat ukuran paket, dan membawanya membuat
+    # penambahan data mentok pada batas cakram peladen, bukan pada memori.
+    # Yang dibawa hanya ruas yang dicari pemakai, dan naskah lengkapnya
+    # diambil langsung dari peladen Sekretariat lewat tautan di halaman ini.
+    return "", (b[1] or ""), ("tidak ikut paket" if (b[2] or 0) > 0
+                              else "belum ada")
 
 
 # ---------------------------------------------------------------------------
@@ -2175,6 +2228,25 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
                     f"**Tahun pajak**  \n{tampil(r['tahun_pajak'])}\n\n"
                     f"**Pengenal berkas**  \n{r['doc_id']}")
 
+    # Asal usul nomor disebut hanya ketika perlu diwaspadai, yaitu ketika
+    # naskahnya menyebut nomor lain, atau ketika nomornya dirangkai dari nama
+    # berkas karena naskahnya belum terbaca. Pada keadaan biasa keterangan
+    # ini tidak muncul, supaya tidak menambah keramaian tanpa guna.
+    _bentrok = tampil(r.get("nomor_bentrok"), "")
+    if _bentrok:
+        st.caption(
+            f"Nomor di atas diambil dari nama berkas yang dikirim "
+            f"Sekretariat. Naskah putusannya sendiri menyebut nomor "
+            f"**{_bentrok}**, dan selisih seperti ini hampir selalu berasal "
+            "dari salah baca angka pada dokumen pindaian. Keduanya "
+            "ditampilkan supaya dapat dicocokkan ke berkas aslinya.")
+    elif str(r.get("sumber_nomor") or "") == "berkas":
+        st.caption("Nomor di atas dirangkai dari nama berkas yang dikirim "
+                   "Sekretariat, karena naskah putusannya belum terbaca "
+                   "utuh. Bagian yang tidak diketahui tidak dikarang, "
+                   "sehingga nomornya dapat lebih pendek daripada nomor "
+                   "penuh.")
+
     st.markdown("**Majelis hakim**")
     ketua = tampil(r["hakim_ketua"], "")
     anggota_mentah = tampil(r["hakim_anggota"], "")
@@ -2195,9 +2267,20 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
         st.markdown("**Cuplikan yang cocok**")
         st.markdown(str(cuplikan[r["doc_id"]]).replace("\n", " "))
 
-    isi, berkas = muat_isi(int(r["doc_id"]))
+    isi, berkas, sebab = muat_isi(int(r["doc_id"]))
     if not isi:
-        st.warning("Teks belum tersedia. Kemungkinan masih menunggu OCR.")
+        if sebab == "tidak ikut paket":
+            st.info(
+                "Naskah lengkapnya tidak dibawa di dalam paket data "
+                "dashboard ini, melainkan diambil langsung dari peladen "
+                "Sekretariat. Seluruh keterangan di atas, beserta pencarian "
+                "pokok sengketa dan amar, tetap berjalan seperti biasa.")
+        else:
+            st.warning("Teks belum tersedia. Kemungkinan masih menunggu OCR.")
+        st.link_button(
+            "Buka berkas asli di situs Sekretariat",
+            URL_BERKAS_ASLI.format(id=int(r["doc_id"])),
+            icon=":material/open_in_new:", type="primary")
         return
     st.caption(f"{len(isi):,} karakter. Sumber teks {r['sumber_teks']}. "
                f"Berkas asli: {berkas}")
@@ -2343,8 +2426,12 @@ def hal_telusur() -> None:
         h = h[h["nama_pemohon"].fillna("").str.contains(
             q_wp.strip(), case=False, regex=False)]
     if q_hakim.strip():
-        gab = (h["hakim_ketua"].fillna("") + "|"
-               + h["hakim_anggota"].fillna("") + "|" + h["panitera"].fillna(""))
+        # Ketiga kolom ini disimpan sebagai kategori supaya hemat memori, dan
+        # kategori tidak dapat disambung langsung dengan tanda tambah, jadi
+        # dikembalikan dulu menjadi untai biasa sebelum dirangkai.
+        gab = (h["hakim_ketua"].astype(str).replace("nan", "") + "|"
+               + h["hakim_anggota"].astype(str).replace("nan", "") + "|"
+               + h["panitera"].astype(str).replace("nan", ""))
         h = h[gab.str.contains(q_hakim.strip(), case=False, regex=False)]
     if q_unit.strip():
         h = h[h["unit_penerbit"].fillna("").str.contains(
@@ -2430,8 +2517,13 @@ def hal_telusur() -> None:
 
     nilai_kel = titik_terpilih(ev)
     if nilai_kel is None:
-        belum_ada(f"{len(h):,} putusan terbagi ke dalam {len(kel)} kelompok "
-                f"menurut {dim_nama.lower()}. Pilih salah satu batang untuk menampilkan rinciannya.")
+        # Ini ajakan memilih, bukan pemberitahuan data kosong. Dahulu di sini
+        # dipakai belum_ada, yang selalu menambahkan kalimat bahwa datanya
+        # belum tersedia beserta saran melonggarkan penyaring, sehingga
+        # kotaknya membantah bagan berisi ratusan putusan tepat di atasnya.
+        st.info(f"{len(h):,} putusan terbagi ke dalam {len(kel)} kelompok "
+                f"menurut {dim_nama.lower()}. Pilih salah satu batang untuk "
+                "menampilkan rinciannya.")
         return
     if nilai_kel == LAINNYA:
         belum_ada("Kelompok gabungan ini berisi campuran kelompok kecil dan "
@@ -4542,6 +4634,45 @@ def hal_metode() -> None:
         st.caption("Nama disusun dari data yang terbaca, bukan dari tabel kode resmi. "
                    "Keyakinan di bawah delapan puluh persen ditandai tanda "
                    "tanya di seluruh halaman.")
+
+    if "sumber_nomor" in df:
+        st.html('<div class="tingkat">Asal Usul Nomor Putusan</div>')
+        jelas(
+            "Nomor putusan dibaca dari dua sumber yang berdiri sendiri, dan "
+            "keduanya saling menguji. Sumber pertama naskah putusannya, "
+            "sumber kedua nama berkas yang dikirim peladen Sekretariat.\n\n"
+            "Pada naskah, nomor dicari lebih dulu tepat pada kalimat yang "
+            "memperkenalkannya, misalnya Putusan Pengadilan Pajak Nomor. "
+            "Urutan itu penting: pencarian bebas yang didahulukan akan "
+            "menangkap nomor putusan lain yang dikutip di dalam "
+            "pertimbangan, dan kekeliruan seperti itu tidak menampakkan diri "
+            "sebagai kegagalan karena ruasnya tetap terisi.\n\n"
+            "Ketika kedua sumber berbeda, nama berkas yang dipakai sebagai "
+            "identitas, sebab selisihnya berpola rusak di sisi naskah, "
+            "misalnya angka yang terbaca meleset pada dokumen pindaian. "
+            "Nomor dari naskah tetap disimpan supaya selisihnya dapat "
+            "ditelusuri kembali, bukan dihapus.")
+        # Dikembalikan menjadi untai biasa lebih dulu. Kolom ini disimpan
+        # sebagai kategori demi hemat memori, dan kategori menolak nilai yang
+        # belum terdaftar, sehingga penggantian nama di bawah ini akan
+        # menjatuhkan halaman bila dikerjakan langsung pada kategorinya.
+        _asal = (df["sumber_nomor"].astype(str).replace("nan", "")
+                 .replace("", "tidak ada sama sekali")
+                 .replace({"teks": "naskah putusan",
+                           "berkas": "nama berkas",
+                           "teks+berkas": "naskah dan nama berkas",
+                           "berkas, teks berbeda":
+                               "nama berkas, naskah menyebut nomor lain"})
+                 .value_counts().rename_axis("Sumber").reset_index(name="Putusan"))
+        _asal["Persen"] = (100 * _asal["Putusan"] / max(len(df), 1)).round(1)
+        tabel_bernavigasi(_asal, "asal_nomor", kolom_persen=("Persen",))
+        _tanpa = int(df["nomor_sengketa"].isna().sum()
+                     + (df["nomor_sengketa"].fillna("").astype(str)
+                        .str.strip() == "").sum())
+        st.caption(
+            f"Putusan tanpa nomor sama sekali: {_tanpa:,} dari {len(df):,}."
+            if _tanpa else
+            f"Seluruh {len(df):,} putusan dalam lingkup ini memiliki nomor.")
 
     rs = muat_resmi()
     if not rs.empty:
