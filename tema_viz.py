@@ -88,6 +88,27 @@ GELAP = {
     "genting": "#d03b3b",
 }
 
+# Warna yang maknanya tetap, berlaku di seluruh halaman.
+#
+# Sebelum ini warna dibagikan menurut urutan deret pada tiap bagan, sehingga
+# warna yang sama berarti hal berbeda di halaman yang berbeda, dan bahkan di
+# halaman yang sama bisa bertukar ketika pemakai menukar unit di kiri dengan
+# yang di kanan. Pembaca yang sudah hafal biru berarti DJP mendadak keliru
+# membaca. Dengan makna yang tetap, unit dikenali tanpa membaca legenda.
+#
+# Kemenkeu memakai biru tua, bukan biru deret, karena ia gabungan DJP dan
+# DJBC dan tidak boleh tertukar dengan DJP saja.
+def warna_unit(gelap: bool = False) -> dict:
+    p = GELAP if gelap else TERANG
+    return {
+        "djp": p["seri"][0], "DJP": p["seri"][0],
+        "djbc": p["seri"][1], "DJBC": p["seri"][1],
+        "pemda": p["seri"][2], "Pemda": p["seri"][2],
+        "Kemenkeu": p["navy_terang"],
+        "Belum terbaca": p["sumbu"],
+    }
+
+
 SANS = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif'
 # Naskah putusan memakai Aptos, huruf baku dokumen pada lingkungan kerja ini.
 # Aptos tidak tersedia sebagai huruf web, jadi yang terpasang di perangkat
@@ -975,6 +996,36 @@ def gaya(gelap: bool) -> str:
   table.tabel tr:last-child td {{ border-bottom: none; }}
   table.tabel tr:hover td {{ background: {lembut(p["seri"][0], .09)}; }}
 
+  /* Batang tipis di dalam sel persentase.
+     Panjangnya sebanding dengan nilainya terhadap nilai terbesar di kolom
+     yang sama, sehingga urutan peringkat terbaca sekali pandang tanpa
+     membaca angkanya baris demi baris. Batangnya digambar sebagai lapisan
+     di belakang tulisan, bukan menggantikan angkanya, karena yang dituju
+     mempercepat perbandingan, bukan menghilangkan besaran sebenarnya.
+     Warnanya sangat pudar supaya tidak bersaing dengan angka di atasnya. */
+  table.tabel td.berbatang {{ position: relative; }}
+  table.tabel td.berbatang::before {{
+    content: ""; position: absolute; left: 0; top: 3px; bottom: 3px;
+    width: var(--isi, 0%); background: {lembut(p["seri"][0], .20)};
+    border-radius: 0 3px 3px 0; z-index: 0;
+  }}
+  table.tabel td.berbatang > span {{ position: relative; z-index: 1; }}
+
+  /* Kaki halaman berisi langkah lanjutan. Dipisahkan garis tipis supaya
+     terbaca sebagai ajakan berpindah, bukan sebagai bagian dari sajian di
+     atasnya, dan alasan berpindahnya dicetak lebih kecil daripada nama
+     halamannya karena yang harus menonjol tujuannya, bukan alasannya. */
+  .lanjut-judul {{
+    margin: 26px 0 10px 0; padding-top: 16px;
+    border-top: 1px solid {p["tepi"]};
+    font-size: 11px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: {p["tinta_2"]};
+  }}
+  .lanjut-sebab {{
+    font-size: 12.5px; color: {p["tinta_2"]}; line-height: 1.5;
+    margin-bottom: 7px; min-height: 38px;
+  }}
+
   /* Ragam tabel berkolom sama lebar, untuk tabel berkolom banyak yang harus
      tampil penuh selebar halaman tanpa geser mendatar. Lebarnya dibagi rata,
      kepala kolom boleh melipat menjadi dua baris, dan kolom pertama, yang
@@ -1305,10 +1356,33 @@ def tabel(df, kolom_kiri: tuple = (), kolom_persen: tuple = (),
         else:
             jenis[k] = "teks"
 
+    # Batas atas tiap kolom persentase, untuk menskalakan panjang batangnya.
+    #
+    # Yang dipakai nilai terbesar pada kolomnya, bukan seratus persen mati.
+    # Pada tabel yang seluruh nilainya berkisar tiga sampai delapan persen,
+    # batang berskala seratus akan tampak sama pendek semua dan tidak
+    # menerangkan apa apa. Skala relatif membuat urutannya terbaca, dan
+    # angkanya tetap tercetak di sel yang sama sehingga besaran sebenarnya
+    # tidak pernah hilang.
+    puncak = {}
+    for k in df.columns:
+        if jenis.get(k) != "persen":
+            continue
+        angka = [sebagai_angka(v) for v in df[k]]
+        angka = [x for x in angka if x is not None and x > 0]
+        puncak[k] = max(angka) if angka else 0
+
     def sel(k, v) -> str:
         if jenis[k] == "persen":
             a = sebagai_angka(v)
-            return f'<td>{a:,.2f}%</td>' if a is not None else f"<td>{v}</td>"
+            if a is None:
+                return f"<td>{v}</td>"
+            atas = puncak.get(k) or 0
+            if atas <= 0:
+                return f"<td>{a:,.2f}%</td>"
+            lebar = max(0.0, min(100.0, 100.0 * a / atas))
+            return (f'<td class="berbatang" style="--isi:{lebar:.1f}%">'
+                    f'<span>{a:,.2f}%</span></td>')
         if jenis[k] == "identitas":
             a = sebagai_angka(v)
             teks = f"{a:.0f}" if a is not None and float(a).is_integer() else v

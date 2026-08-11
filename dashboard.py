@@ -2172,6 +2172,111 @@ def jelas(teks: str, tampak: int = 1) -> None:
         st.markdown(NL2.join(alinea[tampak:]))
 
 
+# Langkah lanjutan yang wajar sesudah tiap halaman.
+#
+# Delapan belas halaman ini sebenarnya satu alur pemeriksaan, tetapi di layar
+# ia tampil sebagai delapan belas pintu sejajar tanpa urutan. Pembaca yang
+# baru tahu jenis ketetapan mana yang paling sering gugur wajar ingin melihat
+# unit penerbitnya, lalu pasal yang menentukan, lalu contoh putusannya, dan
+# selama ini ia harus menebak sendiri langkah itu lewat menu.
+#
+# Kalimat pada tiap tautan menyebut alasan berpindah, bukan sekadar nama
+# halaman, karena yang menolong pembaca bukan tahu ke mana ia bisa pergi
+# melainkan tahu untuk apa.
+LANJUTAN = {
+    "Ringkasan Eksekutif": [
+        ("Mutu Ketetapan", "melihat jenis ketetapan mana yang paling sering "
+                           "gugur di pengadilan"),
+        ("Nilai Sengketa", "melihat berapa rupiah yang berpindah lewat "
+                           "putusan"),
+    ],
+    "Mutu Ketetapan": [
+        ("Unit Penerbit Ketetapan", "melihat unit mana yang ketetapannya "
+                                    "paling sering dikoreksi"),
+        ("Pasal Penentu", "melihat dasar hukum yang paling menentukan "
+                          "kalah menang"),
+        ("Risalah Putusan", "membaca contoh putusannya satu per satu"),
+    ],
+    "Unit Penerbit Ketetapan": [
+        ("Tema Sengketa", "melihat pokok sengketa yang paling sering "
+                          "dipersoalkan"),
+        ("Mutu Ketetapan", "kembali ke gambaran mutu ketetapan secara "
+                           "keseluruhan"),
+    ],
+    "Pasal Penentu": [
+        ("Tema Sengketa", "melihat pokok sengketa di balik pasal itu"),
+        ("Risalah Putusan", "membaca putusan yang memakai pasal tersebut"),
+    ],
+    "Tema Sengketa": [
+        ("Sengketa Berulang", "melihat tema mana yang terus berulang "
+                              "tiap tahun"),
+        ("Pola Putusan Sejenis", "memperkirakan hasil perkara bertema sama"),
+    ],
+    "Sengketa Berulang": [
+        ("Mutu Ketetapan", "menelusuri sebabnya pada mutu ketetapan"),
+        ("Unit Penerbit Ketetapan", "melihat unit yang paling sering "
+                                    "menerbitkannya"),
+    ],
+    "Profil Hakim": [
+        ("Karakter Memutus", "melihat kecenderungan memutus tiap hakim"),
+        ("Konsistensi Putusan Hakim", "melihat seberapa seragam putusan "
+                                      "antar majelis"),
+    ],
+    "Karakter Memutus": [
+        ("Konsistensi Putusan Hakim", "menguji apakah perbedaan itu bertahan "
+                                      "setelah perkaranya disetarakan"),
+        ("Profil Hakim", "kembali ke rekapitulasi jumlah putusan per hakim"),
+    ],
+    "Konsistensi Putusan Hakim": [
+        ("Karakter Memutus", "melihat kecenderungan tiap hakim satu per satu"),
+        ("Pola Putusan Sejenis", "memperkirakan hasil perkara serupa"),
+    ],
+    "Nilai Sengketa": [
+        ("Mutu Ketetapan", "menelusuri sebab koreksi bernilai besar"),
+        ("Banding Unit", "membandingkan dua unit berdampingan"),
+    ],
+    "Banding Unit": [
+        ("Unit Penerbit Ketetapan", "turun ke unit penerbit di dalamnya"),
+        ("Durasi Penyelesaian Sengketa", "membandingkan lama penyelesaiannya"),
+    ],
+    "Pola Putusan Sejenis": [
+        ("Pilihan Upaya Hukum", "menimbang jalur mana yang sebaiknya "
+                                "ditempuh"),
+        ("Risalah Putusan", "membaca putusan yang menjadi dasar perkiraan"),
+    ],
+    "Pilihan Upaya Hukum": [
+        ("Durasi Penyelesaian Sengketa", "memperkirakan lama menunggu"),
+        ("Pola Putusan Sejenis", "melihat peluang menurut perkara serupa"),
+    ],
+    "Durasi Penyelesaian Sengketa": [
+        ("Profil Hakim", "melihat beban perkara tiap hakim"),
+        ("Pilihan Upaya Hukum", "menimbang jalur beserta tenggatnya"),
+    ],
+    "Risalah Putusan": [
+        ("Pola Putusan Sejenis", "memperkirakan hasil perkara serupa"),
+        ("Metodologi", "memeriksa batas keandalan datanya"),
+    ],
+}
+
+
+def langkah_berikutnya(halaman_ini: str) -> None:
+    """Tautan menuju langkah lanjutan, digambar di kaki halaman."""
+    daftar = [(t, s) for t, s in LANJUTAN.get(halaman_ini, [])
+              if t in daftar_hal or t in HALAMAN_SAH]
+    if not daftar:
+        return
+    st.html('<div class="lanjut-judul">Langkah berikutnya</div>')
+    kol = st.columns(len(daftar))
+    for kk, (tujuan, sebab) in zip(kol, daftar):
+        with kk:
+            st.html(f'<div class="lanjut-sebab">Untuk {sebab}.</div>')
+            if st.button(tujuan, key=f"lanjut-{TV.kunci_nav(tujuan)}",
+                         icon=":material/arrow_forward:", width="stretch"):
+                st.session_state["nav_tujuan"] = tujuan
+                st.session_state.pop("buka_doc", None)
+                st.rerun()
+
+
 def tombol_kembali(kunci_daftar: str, label: str) -> None:
     """
     Tombol pulang untuk drill di dalam halaman.
@@ -3782,9 +3887,12 @@ def _mutu_instansi() -> None:
         if len(t) < 3:
             continue
         ada_deret = True
+        _w = TV.warna_unit(GELAP).get(kode)
         fig.add_trace(go.Scatter(
             x=t["Tahun"], y=t["Dikabulkan"], mode="lines+markers",
             name=LABEL.get(kode, kode),
+            line=dict(color=_w) if _w else None,
+            marker=dict(color=_w) if _w else None,
             hovertemplate="%{x}: %{y:.1f} persen<extra></extra>"))
     if ada_deret:
         fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
@@ -4093,27 +4201,17 @@ def rapikan_unit(v) -> str:
     return s
 
 
-def hal_unit() -> None:
-    st.caption(
-        "Menelaah sengketa menurut unit penerbitnya, yaitu unit mana yang "
-         "ketetapannya paling sering disengketakan dan bagaimana hasilnya di "
-         "pengadilan. "
-        "Sumbernya arsip risalah yang sudah terurai, cakupan "
-        f"{cakupan:.1f} persen, sehingga angka per unit adalah taksiran "
-        "yang akan bergeser saat arsip bertambah. Selang keyakinan pada "
-        "tabel menunjukkan seberapa lebar ketidakpastiannya.")
-
+def _unit_siap(inst: str):
+    """Bingkai unit penerbit yang sudah disaring dan diringkas per unit."""
     du = beramar(d)
     du = du[du["unit_penerbit"].notna()].copy()
     if du.empty:
-        belum_ada("Belum terdapat unit penerbit yang terbaca pada lingkup ini.")
-        return
+        belum_ada("Belum terdapat unit penerbit yang terbaca pada lingkup "
+                  "ini.")
+        return None, None
     du["unit"] = du["unit_penerbit"].map(rapikan_unit)
     du = du[du["unit"] != ""]
     du["menang"] = du["amar"].isin(AMAR_MENANG)
-
-    inst = st.radio("Instansi", ["Semua", "DJP", "DJBC"], horizontal=True,
-                    key="unit_inst")
     if inst != "Semua":
         du = du[du["instansi_terbanding"] == inst.lower()]
 
@@ -4122,23 +4220,24 @@ def hal_unit() -> None:
     g = g[g["Putusan"] >= 15].copy()
     if g.empty:
         belum_ada("Belum terdapat unit dengan sedikitnya lima belas putusan "
-                "beramar pada pilihan ini. Penelaahan dapat ditunda sampai "
-                "cakupan arsip bertambah, atau "
-            "penyaring diperlonggar.")
-        return
+                  "beramar pada pilihan ini. Penelaahan dapat ditunda sampai "
+                  "cakupan arsip bertambah, atau penyaring diperlonggar.")
+        return None, None
     g["Dikabulkan"] = (100 * g["sum"] / g["Putusan"]).round(2)
     batas = [selang_wilson(int(m), int(n))
              for m, n in zip(g["sum"], g["Putusan"])]
     g["Batas bawah"] = [round(b[0], 2) for b in batas]
     g["Batas atas"] = [round(b[1], 2) for b in batas]
     g = g.drop(columns=["sum"])
+    return du, g
 
+
+def _unit_peringkat(g) -> None:
     k = st.columns(3)
     k[0].html(TV.kartu("Unit terhitung", f"{len(g):,}",
                        "dengan lima belas putusan beramar atau lebih"))
     k[1].html(TV.kartu("Paling banyak dilawan",
-                       str(g.sort_values('Putusan').iloc[-1]
-                           ['Unit penerbit']),
+                       str(g.sort_values('Putusan').iloc[-1]['Unit penerbit']),
                        f"{int(g['Putusan'].max()):,} putusan beramar"))
     tertinggi = g.sort_values("Dikabulkan").iloc[-1]
     k[2].html(TV.kartu("Tingkat koreksi tertinggi",
@@ -4155,32 +4254,160 @@ def hal_unit() -> None:
           "Panjang batang adalah banyaknya putusan di arsip, keterangan "
           "menunjukkan berapa persen yang berujung ketetapan dikoreksi. "
           "Jumlah sengketa yang banyak tidak dengan sendirinya menunjukkan "
-           "mutu yang rendah, karena unit besar memang lebih sering "
-           "disengketakan; yang layak ditelaah adalah tingkat koreksi yang "
-           "tinggi "
-          "pada jumlah perkara yang besar.")
+          "mutu yang rendah, karena unit besar memang lebih sering "
+          "disengketakan; yang layak ditelaah adalah tingkat koreksi yang "
+          "tinggi pada jumlah perkara yang besar.")
+    if len(g) > 12:
+        st.caption(f"Dua belas unit teratas yang ditampilkan, dari {len(g):,} "
+                   "unit terhitung. Selebihnya ada pada tab Rekapitulasi.")
 
-    st.html('<div class="tingkat">Rekapitulasi Seluruh Unit</div>')
+
+def _unit_rekap(g) -> None:
+    jelas(
+        "Tabel ini menjawab satu pertanyaan: **unit mana yang ketetapannya "
+        "paling sering gugur di pengadilan?** Diurutkan dari tingkat koreksi "
+        "tertinggi.\n\n"
+        "Kolom batas bawah dan batas atas adalah selang keyakinan. Bila "
+        "rentang dua unit saling tumpang tindih, perbedaan keduanya belum "
+        "berarti apa apa, sebesar apa pun selisih angka tengahnya. Unit "
+        "dengan sedikit perkara hampir selalu punya rentang lebar, dan itu "
+        "sebabnya peringkat teratas belum tentu unit yang paling bermasalah.")
     tabel_bernavigasi(
         g.sort_values(["Dikabulkan", "Putusan"], ascending=False),
         "unit_penerbit",
         kolom_persen=("Dikabulkan", "Batas bawah", "Batas atas"))
+
+
+def _unit_arah(du) -> None:
+    """Arah tingkat koreksi lima unit tersibuk dari tahun ke tahun."""
+    jelas(
+        "Peringkat sesaat tidak menerangkan apakah keadaan sedang membaik "
+        "atau memburuk. Bagan ini mengikuti tiga unit tersibuk dari tahun ke "
+        "tahun.\n\n"
+        "Garis yang menurun berarti ketetapannya makin jarang dikoreksi, dan "
+        "itu petunjuk pembinaan yang berhasil. Garis yang mendatar tinggi "
+        "selama bertahun tahun adalah yang paling layak ditelaah, karena "
+        "persoalannya bertahan meski perkaranya berganti.")
+    if "tahun_putusan" not in du:
+        belum_ada("Tahun putusan belum terbaca pada lingkup ini.")
+        return
+    # Tiga unit, bukan lima. Palet warna dashboard ini hanya menyediakan
+    # tiga rona yang tetap dapat dibedakan pembaca buta warna merah hijau;
+    # deret keempat dan seterusnya akan diwarnai ulang oleh Plotly di luar
+    # palet itu, dan justru menyesatkan.
+    sibuk = du["unit"].value_counts().head(3).index.tolist()
+    fig = go.Figure()
+    ada = False
+    for nama in sibuk:
+        s = du[(du["unit"] == nama) & du["tahun_putusan"].notna()]
+        t = (s.groupby(s["tahun_putusan"].astype(int))["menang"]
+             .agg(["size", "mean"]).reset_index())
+        t = t[t["size"] >= 5]
+        if len(t) < 3:
+            continue
+        ada = True
+        fig.add_trace(go.Scatter(
+            x=t["tahun_putusan"], y=(100 * t["mean"]).round(1),
+            mode="lines+markers", name=str(nama)[:34],
+            hovertemplate="%{x}: %{y:.1f} persen<extra></extra>"))
+    if not ada:
+        belum_ada("Belum cukup putusan per tahun untuk menggambar arahnya. "
+                  "Tiap titik menuntut sedikitnya lima putusan beramar.")
+        return
+    fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
+    fig.update_layout(
+        title="Tingkat dikabulkan menurut tahun, tiga unit tersibuk",
+        legend=dict(orientation="h", yanchor="top", y=-0.16,
+                    xanchor="left", x=0),
+        margin=dict(b=80))
+    fig.update_xaxes(showgrid=False, dtick=1, title="")
+    fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
+                     ticksuffix="%", range=[0, 100], title="")
+    bagan(fig, 420, None,
+          "Tiap titik dihitung dari sedikitnya lima putusan beramar pada "
+          "tahun tersebut, sehingga tahun yang perkaranya sedikit sengaja "
+          "tidak digambar daripada digambar dengan angka yang goyah.")
+
+
+def _unit_ketetapan(du) -> None:
+    """Jenis ketetapan apa yang paling sering gugur, per unit tersibuk."""
+    jelas(
+        "Mengetahui unit mana yang bermasalah belum menunjukkan apa yang "
+        "harus diperbaiki. Tabel ini memecah tiap unit menurut jenis "
+        "ketetapannya, sehingga terlihat pada produk mana kelemahannya "
+        "berada.\n\n"
+        "Satu unit dapat berkinerja baik pada satu jenis ketetapan dan buruk "
+        "pada jenis lain, dan pembinaan yang menyasar produknya jauh lebih "
+        "tepat daripada pembinaan yang menyasar unitnya secara umum.")
+    if "jenis_ketetapan" not in du:
+        belum_ada("Jenis ketetapan belum terbaca pada lingkup ini.")
+        return
+    s = du[du["jenis_ketetapan"].notna()].copy()
+    if s.empty:
+        belum_ada("Jenis ketetapan belum terbaca pada lingkup ini.")
+        return
+    sibuk = s["unit"].value_counts().head(8).index.tolist()
+    s = s[s["unit"].isin(sibuk)]
+    r = (s.groupby(["unit", "jenis_ketetapan"], observed=True)["menang"]
+         .agg(["size", "mean"]).reset_index())
+    r = r[r["size"] >= 10]
+    if r.empty:
+        belum_ada("Belum terdapat pasangan unit dan jenis ketetapan dengan "
+                  "sedikitnya sepuluh putusan beramar.")
+        return
+    r["Dikabulkan"] = (100 * r["mean"]).round(2)
+    r = (r.rename(columns={"unit": "Unit penerbit",
+                           "jenis_ketetapan": "Jenis ketetapan",
+                           "size": "Putusan"})
+         .drop(columns=["mean"])
+         .sort_values(["Dikabulkan", "Putusan"], ascending=False))
+    tabel_bernavigasi(r, "unit_ketetapan", kolom_persen=("Dikabulkan",))
+    puncak = r.iloc[0]
     st.caption(
-        "Diurutkan dari tingkat koreksi tertinggi. Bila rentang batas bawah "
-        "dan atas dua unit saling tumpang tindih, perbedaan keduanya belum "
-        "berarti apa apa.")
+        f"Pasangan dengan tingkat koreksi tertinggi: "
+        f"{puncak['Jenis ketetapan']} yang diterbitkan "
+        f"{puncak['Unit penerbit']}, {puncak['Dikabulkan']:.0f} persen dari "
+        f"{int(puncak['Putusan']):,} putusan. Hanya pasangan dengan "
+        "sedikitnya sepuluh putusan beramar yang dihitung.")
+
+
+def hal_unit() -> None:
+    st.caption(
+        "Menelaah sengketa menurut unit penerbitnya, yaitu unit mana yang "
+        "ketetapannya paling sering disengketakan, pada produk apa "
+        "kelemahannya, dan ke arah mana keadaannya bergerak. Sumbernya arsip "
+        f"risalah yang sudah terurai, cakupan {cakupan:.1f} persen, sehingga "
+        "angka per unit adalah taksiran yang akan bergeser saat arsip "
+        "bertambah.")
+
+    inst = st.radio("Instansi", ["Semua", "DJP", "DJBC"], horizontal=True,
+                    key="unit_inst")
+    du, g = _unit_siap(inst)
+    if g is None:
+        return
+
+    t1, t2, t3, t4 = st.tabs(["Peringkat unit", "Jenis ketetapan per unit",
+                              "Arah dari tahun ke tahun", "Rekapitulasi"])
+    with t1:
+        _unit_peringkat(g)
+    with t2:
+        _unit_ketetapan(du)
+    with t3:
+        _unit_arah(du)
+    with t4:
+        _unit_rekap(g)
 
     st.html(TV.catatan_siap(
         "Tindakan yang disarankan dari halaman ini.",
         "Sajian ini merupakan alat pembinaan, bukan penilaian kinerja. Unit "
-        "dengan tingkat koreksi "
-        "tinggi pada banyak perkara adalah prioritas telaah: sepuluh "
-        "putusannya dapat dibaca melalui halaman Risalah "
-            "Putusan untuk mengenali apakah polanya berupa koreksi yang "
-            "lemah, penanganan keberatan yang tergesa, atau sengketa berulang "
-            "dari wajib pajak yang sama, dan temuannya dibawa ke pembinaan "
-            "teknis unit tersebut. Peringkat ini akan bergeser saat arsip "
-        "bertambah, sehingga belum layak dikutip sebagai angka final."))
+        "dengan tingkat koreksi tinggi pada banyak perkara adalah prioritas "
+        "telaah, dan tab jenis ketetapan menunjukkan pada produk mana telaah "
+        "itu sebaiknya dimulai. Sepuluh putusannya dapat dibaca melalui "
+        "halaman Risalah Putusan untuk mengenali apakah polanya berupa "
+        "koreksi yang lemah, penanganan keberatan yang tergesa, atau "
+        "sengketa berulang dari wajib pajak yang sama, dan temuannya dibawa "
+        "ke pembinaan teknis unit tersebut. Peringkat ini akan bergeser saat "
+        "arsip bertambah, sehingga belum layak dikutip sebagai angka final."))
 
 
 # ---------------------------------------------------------------------------
@@ -5112,8 +5339,14 @@ def hal_banding() -> None:
         if len(t) < 3:
             continue
         ada = True
+        # Warna mengikuti unitnya, bukan urutan kemunculannya. Tanpa itu,
+        # menukar unit di kiri dengan yang di kanan akan menukar warnanya
+        # pula, dan pembaca yang sudah hafal biru berarti DJP jadi keliru.
+        _w = TV.warna_unit(GELAP).get(nama)
         fig.add_trace(go.Scatter(
             x=t["Tahun"], y=t["Dikabulkan"], mode="lines+markers", name=nama,
+            line=dict(color=_w) if _w else None,
+            marker=dict(color=_w) if _w else None,
             hovertemplate="%{x}: %{y:.1f} persen<extra></extra>"))
     if ada:
         fig.add_hline(y=50, line_dash="dot", line_color=P["sumbu"])
@@ -5769,6 +6002,12 @@ elif halaman == "Nilai Sengketa":
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
 }[halaman]()
+
+# Digambar sekali di sini, bukan disalin ke dalam delapan belas fungsi
+# halaman. Letaknya sesudah penyalur supaya selalu berada di kaki apa pun
+# yang baru saja digambar, dan supaya menambah halaman baru tidak menuntut
+# siapa pun ingat menempelkannya lagi.
+langkah_berikutnya(halaman)
 
 _t = keadaan_tarikan()
 if _t["menit"] is None:
