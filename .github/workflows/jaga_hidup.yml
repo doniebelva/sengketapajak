@@ -1,0 +1,67 @@
+# Menjaga dashboard di Streamlit Community Cloud tetap terbangun.
+#
+# Peladen gratisan menidurkan aplikasi yang lama tidak diakses. Aplikasi yang
+# tertidur tidak hilang, tetapi pengunjung pertama sesudahnya harus menunggu
+# wadahnya dinyalakan, mengunduh paket data, lalu memuat ulang seluruh
+# singgahan. Bagi pemakai yang membuka tautan dari surat undangan rapat,
+# menunggu selama itu terasa seperti aplikasinya rusak.
+#
+# Penjaga ini sengaja ditaruh di GitHub, bukan di komputer pengembang.
+# Penjaga yang hidup di satu komputer ikut berhenti begitu komputernya
+# dimatikan, tertidur, atau kehilangan jaringan, yaitu justru pada malam
+# hari dan akhir pekan ketika aplikasinya paling lama tidak dikunjungi.
+#
+# Dua hal yang perlu diketahui tentang penjadwal GitHub. Waktunya dapat
+# meleset beberapa menit ketika peladen mereka sibuk, dan itu tidak
+# mengganggu keperluan ini. Serta, penjadwal pada repositori publik
+# dinonaktifkan sendiri oleh GitHub bila repositorinya tidak berkegiatan
+# selama enam puluh hari; selama pengembangan masih berjalan hal itu tidak
+# akan terjadi, dan bila kelak berhenti, menyalakannya kembali cukup satu
+# klik pada tab Actions.
+
+name: Jaga dashboard tetap terbangun
+
+on:
+  schedule:
+    # Setiap tiga puluh menit. Selang yang lebih rapat tidak menambah manfaat,
+    # karena yang dibutuhkan hanya bukti bahwa aplikasinya masih dikunjungi.
+    - cron: "*/30 * * * *"
+  # Dapat pula dijalankan sendiri dari tab Actions, untuk membangunkan
+  # aplikasi sebelum rapat tanpa menunggu putaran berikutnya.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jaga-hidup
+  cancel-in-progress: false
+
+jobs:
+  bangunkan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Minta halaman depan dashboard
+        run: |
+          set -u
+          ALAMAT="https://sengketapajak.streamlit.app/"
+          # Wadah yang benar benar tertidur memerlukan waktu untuk dinyalakan,
+          # jadi tenggatnya dilonggarkan dan percobaannya diulang. Kegagalan
+          # sesaat pada jaringan tidak boleh menjatuhkan seluruh alur kerja,
+          # sebab alur yang gagal berulang kali akan dimatikan GitHub.
+          for percobaan in 1 2 3; do
+            KODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+                        --max-time 120 --retry 2 --retry-delay 5 \
+                        "$ALAMAT" || echo "000")
+            echo "Percobaan $percobaan: kode $KODE"
+            if [ "$KODE" = "200" ]; then
+              echo "Dashboard terbangun."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "Dashboard belum menjawab 200 setelah tiga percobaan."
+          echo "Ini dicatat sebagai peringatan, bukan kegagalan, karena"
+          echo "pembangunan wadah yang tertidur memang dapat melebihi tenggat."
+          exit 0

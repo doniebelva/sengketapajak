@@ -883,15 +883,43 @@ def anatomi_sengketa(teks: str) -> list:
     return hasil
 
 
+@st.cache_data(ttl=300, max_entries=32, show_spinner=False)
+def anatomi_tersimpan(doc_id: int) -> list:
+    """
+    Bab anatomi yang dibawa di dalam paket, untuk peladen tanpa naskah.
+
+    Paket rilis sengaja tidak lagi memuat naskah utuh, sebab naskah itu
+    menghabiskan tiga perempat ukurannya. Tanpa cadangan ini, anatomi
+    sengketa tidak pernah tergambar di peladen sama sekali, padahal justru
+    bagian itulah yang menjawab mengapa majelis memutus begitu. Yang dibawa
+    dua bab saja, pokok sengketa dan pertimbangan majelis, masing masing
+    dipotong.
+    """
+    try:
+        with sambung() as c:
+            baris = c.execute(
+                "SELECT bab, isi, dipotong FROM anatomi WHERE doc_id = ?",
+                (int(doc_id),)).fetchall()
+    except (sqlite3.OperationalError, TypeError, ValueError):
+        return []
+    urut = {n: i for i, (n, _, _) in enumerate(BAB_ANATOMI)}
+    guna = {n: g for n, _, g in BAB_ANATOMI}
+    hasil = [{"nama": b_, "guna": guna.get(b_, ""), "isi": t_,
+              "dipotong": bool(p_)} for b_, t_, p_ in baris if t_]
+    return sorted(hasil, key=lambda x: urut.get(x["nama"], 99))
+
+
 def hal_anatomi(r, isi: str, istilah: list) -> None:
     """Sajian anatomi sengketa pada halaman detail putusan."""
-    bagian = anatomi_sengketa(isi)
+    bagian = (anatomi_sengketa(isi) if isi
+              else anatomi_tersimpan(int(r["doc_id"])))
     if not bagian:
-        st.info(
-            "Naskah putusan ini tidak mengikuti pola bab yang baku, sehingga "
-            "belum dapat dipecah menjadi pokok sengketa, dalil para pihak, "
-            "dan pertimbangan majelis. Naskah utuhnya tetap dapat dibaca di "
-            "bawah.")
+        if isi:
+            st.info(
+                "Naskah putusan ini tidak mengikuti pola bab yang baku, "
+                "sehingga belum dapat dipecah menjadi pokok sengketa, dalil "
+                "para pihak, dan pertimbangan majelis. Naskah utuhnya tetap "
+                "dapat dibaca di bawah.")
         return
 
     ada = {b["nama"] for b in bagian}
@@ -912,10 +940,14 @@ def hal_anatomi(r, isi: str, istilah: list) -> None:
             if b["dipotong"]:
                 st.caption("Bagian ini dipotong karena panjang. Selebihnya "
                            "ada pada naskah utuh di bawah.")
-    if kurang:
+    if kurang and isi:
         st.caption("Bab yang penandanya tidak ditemukan pada naskah ini: "
                    + ", ".join(kurang).lower()
                    + ". Bagian itu tidak dikarang, melainkan dilewati.")
+    elif not isi:
+        st.caption("Dua bab inti yang dibawa di dalam paket data dashboard. "
+                   "Dalil kedua pihak dan amar selengkapnya ada pada berkas "
+                   "asli, yang dapat dibuka lewat tombol di bawah.")
 
 
 def sorot(teks: str, istilah: list[str]) -> str:
@@ -2604,6 +2636,9 @@ def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
 
     isi, berkas, sebab = muat_isi(int(r["doc_id"]))
     if not isi:
+        # Anatomi tetap digambar walau naskah utuhnya tidak dibawa paket,
+        # karena bab intinya dititipkan tersendiri di dalam paket itu.
+        hal_anatomi(r, "", [])
         if sebab == "tidak ikut paket":
             st.info(
                 "Naskah lengkapnya tidak dibawa di dalam paket data "
