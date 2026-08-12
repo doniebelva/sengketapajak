@@ -3496,6 +3496,26 @@ def hal_berulang() -> None:
 
     n_samar = int((d["nama_disamarkan"] == 1).sum())
     dn = d[(d["nama_disamarkan"] == 0) & d["nama_pemohon_norm"].notna()]
+
+    # Nama yang sebenarnya bukan entitas dikeluarkan dari pengelompokan.
+    #
+    # Kata lawan adalah penghubung hukum yang berarti melawan, dan penguraian
+    # sempat menangkapnya sebagai nama wajib pajak dari kalimat baku
+    # "disebut sebagai Pemohon Banding: Lawan DIREKTUR JENDERAL BEA DAN
+    # CUKAI". Akibatnya wajib pajak dengan sengketa terbanyak di seluruh
+    # arsip adalah sebuah kata sambung.
+    #
+    # Penguraiannya sudah dibetulkan, tetapi nama tersimpan di basis data dan
+    # baru berubah setelah seluruh arsip diurai ulang. Sampai saat itu, yang
+    # dapat dikerjakan halaman ini adalah menolak mengelompokkannya, sebab
+    # menampilkan entitas palsu di puncak peringkat lebih merugikan daripada
+    # kehilangan hitungannya sementara. Yang tidak boleh dilakukan adalah
+    # membuangnya diam diam, jadi jumlahnya disebut pada catatan cakupan.
+    BUKAN_ENTITAS = {"lawan", "melawan", "terbanding", "tergugat",
+                     "pemohon banding", "penggugat"}
+    tak_sah = dn["nama_pemohon_norm"].astype(str).str.strip().str.lower()
+    n_tak_sah = int(tak_sah.isin(BUKAN_ENTITAS).sum())
+    dn = dn[~tak_sah.isin(BUKAN_ENTITAS).values]
     if dn.empty:
         belum_ada("Belum terdapat nama pemohon yang terbaca pada lingkup ini.")
         return
@@ -3504,8 +3524,15 @@ def hal_berulang() -> None:
         f"Sebanyak {n_samar:,} putusan menggunakan nama samaran era lama seperti "
         "XXX dan AAA, sebagaimana dilakukan Sekretariat pada risalah lama, "
         "dan dikeluarkan dari analisis ini karena tidak dapat dikenali "
-        f"sebagai entitas. Analisis berjalan atas {len(dn):,} putusan yang "
-        "namanya terbaca utuh."))
+        "sebagai entitas."
+        + (f" Sebanyak {n_tak_sah:,} putusan lagi dikeluarkan karena nama "
+           "pemohonnya terbaca sebagai kata penghubung kalimat, bukan nama "
+           "badan, misalnya kata lawan pada kalimat disebut sebagai Pemohon "
+           "Banding: Lawan Direktur Jenderal. Penguraiannya sudah dibetulkan "
+           "dan nama sebenarnya akan muncul setelah arsip diurai ulang."
+           if n_tak_sah else "")
+        + f" Analisis berjalan atas {len(dn):,} putusan yang namanya terbaca "
+          "utuh."))
 
     vc = dn["nama_pemohon_norm"].value_counts()
     ulang_pangsa = 100 * int(vc[vc >= 2].sum()) / len(dn)
