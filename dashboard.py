@@ -1247,7 +1247,7 @@ def ledak_koreksi(df_: pd.DataFrame) -> pd.DataFrame:
     k = (df_[["doc_id", "kode_jenis_pajak", "jenis_koreksi", "amar",
               "tahun_putusan"]]
          .dropna(subset=["jenis_koreksi"])
-         .assign(k=lambda x: x["jenis_koreksi"].str.split("|")).explode("k"))
+         .assign(k=lambda x: x["jenis_koreksi"].astype(str).str.split("|")).explode("k"))
     k["Jenis koreksi"] = k["k"].map(lambda x: LABEL_KOREKSI.get(x, x))
     k["menang"] = k["amar"].isin(AMAR_MENANG)
     return k
@@ -2846,7 +2846,7 @@ def hal_telusur() -> None:
 
     if dim == "jenis_koreksi":
         sumber = (h[["doc_id", "jenis_koreksi"]].dropna()
-                  .assign(nilai=lambda x: x["jenis_koreksi"].str.split("|"))
+                  .assign(nilai=lambda x: x["jenis_koreksi"].astype(str).str.split("|"))
                   .explode("nilai"))
         sumber["nilai"] = sumber["nilai"].map(lambda x: LABEL_KOREKSI.get(x, x))
     else:
@@ -3549,7 +3549,7 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
     for nama, n in vc2.head(15).items():
         grp = dn[dn["nama_pemohon_norm"] == nama]
         ga = dd[dd["nama_pemohon_norm"] == nama]
-        kor = (grp["jenis_koreksi"].dropna().str.split("|").explode()
+        kor = (grp["jenis_koreksi"].dropna().astype(str).str.split("|").explode()
                .map(lambda x: LABEL_KOREKSI.get(x, x)).value_counts())
         urutan.append(nama)
         baris.append({
@@ -4780,7 +4780,7 @@ def hal_hakim() -> None:
         s["hakim"] = s["hakim_ketua"]
     else:
         s = dh[dh["hakim_anggota"].notna()].copy()
-        s = s.assign(hakim=s["hakim_anggota"].str.split("|")).explode("hakim")
+        s = s.assign(hakim=s["hakim_anggota"].astype(str).str.split("|")).explode("hakim")
         s["hakim"] = s["hakim"].str.strip()
         # Pemecahan anggota menggandakan label indeks, satu per anggota,
         # dan crosstab menolak indeks kembar. Indeksnya ditata ulang.
@@ -5768,7 +5768,7 @@ def hal_banding() -> None:
         dd = beramar(x)
         menang = dd["amar"].isin(AMAR_MENANG)
         j = jeda_hari(x)
-        kor = (x["jenis_koreksi"].dropna().str.split("|").explode()
+        kor = (x["jenis_koreksi"].dropna().astype(str).str.split("|").explode()
                .map(lambda v: LABEL_KOREKSI.get(v, v)).value_counts())
         pajak = x["kode_jenis_pajak"].dropna().astype(str).value_counts()
         return {
@@ -5882,7 +5882,7 @@ def hal_banding() -> None:
         with kolom:
             st.html(f'<div class="banding-judul">{nama}<span>'
                     f'{len(bingkai):,} putusan</span></div>')
-            kor = (bingkai["jenis_koreksi"].dropna().str.split("|").explode()
+            kor = (bingkai["jenis_koreksi"].dropna().astype(str).str.split("|").explode()
                    .map(lambda v: LABEL_KOREKSI.get(v, v)).value_counts()
                    .head(8))
             if kor.empty:
