@@ -3619,6 +3619,76 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
         "tidak terus dikirim ke pengadilan."))
 
 
+@st.cache_data(ttl=600, max_entries=8,
+               show_spinner="Menghitung pola sengketa berulang...")
+def _ulang_ringkas(dn: pd.DataFrame, dd: pd.DataFrame,
+                   nama_ulang: tuple) -> pd.DataFrame:
+    """
+    Ringkasan per wajib pajak berulang, dihitung secara vektor.
+
+    Bentuk lama menyusun ringkasan ini di dalam perulangan, dan tiap putaran
+    menyaring seluruh bingkai dua kali untuk mencari baris satu wajib pajak.
+    Dengan ribuan wajib pajak berulang dan puluhan ribu baris, halaman ini
+    memerlukan lima belas detik untuk tergambar, sementara halaman lain
+    kurang dari satu detik. Bagi pemakai yang menekan menunya, lima belas
+    detik tanpa tanda apa pun tidak terbaca sebagai lambat, melainkan
+    sebagai menunya tidak berfungsi.
+
+    Semua yang diperlukan kini dihitung sekali jalan dengan pengelompokan:
+    jumlah putusan beramar, amar terbanyak beserta bagiannya, jenis koreksi
+    terbanyak, rentang tahun, dan nama tampilannya.
+    """
+    pilih = set(nama_ulang)
+    dda = dd[dd["nama_pemohon_norm"].isin(pilih)]
+    dna = dn[dn["nama_pemohon_norm"].isin(pilih)]
+    if dda.empty:
+        return pd.DataFrame()
+
+    # Amar terbanyak per wajib pajak, beserta jumlahnya.
+    ca = (dda.groupby(["nama_pemohon_norm", "amar"], observed=True)
+          .size().reset_index(name="n")
+          .sort_values("n", ascending=False)
+          .drop_duplicates("nama_pemohon_norm")
+          .set_index("nama_pemohon_norm"))
+    n_amar = dda.groupby("nama_pemohon_norm", observed=True).size()
+
+    # Jenis koreksi terbanyak. Satu putusan dapat memuat beberapa kode, jadi
+    # kodenya dipecah lebih dulu, dan itu tetap satu operasi menyeluruh.
+    kx = dna[["nama_pemohon_norm", "jenis_koreksi"]].dropna()
+    if len(kx):
+        kx = kx.assign(k=kx["jenis_koreksi"].astype(str).str.split("|"))
+        kx = kx.explode("k")
+        kx["k"] = kx["k"].map(lambda x: LABEL_KOREKSI.get(x, x))
+        kc = (kx.groupby(["nama_pemohon_norm", "k"], observed=True)
+              .size().reset_index(name="n")
+              .sort_values("n", ascending=False)
+              .drop_duplicates("nama_pemohon_norm")
+              .set_index("nama_pemohon_norm")["k"])
+    else:
+        kc = pd.Series(dtype="object")
+
+    info = dna.groupby("nama_pemohon_norm", observed=True).agg(
+        nama=("nama_pemohon", "first"),
+        th_min=("tahun_putusan", "min"),
+        th_max=("tahun_putusan", "max"))
+
+    urut = [x for x in nama_ulang if x in n_amar.index and n_amar[x] >= 2]
+    if not urut:
+        return pd.DataFrame()
+    return pd.DataFrame({
+        "Wajib pajak": [str(info["nama"].get(x, x))[:38] for x in urut],
+        "Sengketa beramar": [int(n_amar[x]) for x in urut],
+        "Hasil terbanyak": [LABEL_AMAR.get(ca["amar"].get(x),
+                                           ca["amar"].get(x)) for x in urut],
+        "Keseragaman": [round(100 * int(ca["n"].get(x, 0))
+                              / max(int(n_amar[x]), 1), 1) for x in urut],
+        "Pokok terbanyak": [kc.get(x, "-") for x in urut],
+        "Rentang tahun": [f"{tampil_tahun(info['th_min'].get(x))} sampai "
+                          f"{tampil_tahun(info['th_max'].get(x))}"
+                          for x in urut],
+    })
+
+
 def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
     """
     Wajib pajak yang sengketanya selalu berakhir sama.
@@ -3638,31 +3708,22 @@ def _ulang_dini(dn: pd.DataFrame, dd: pd.DataFrame, vc2: pd.Series) -> None:
         belum_ada("Belum terdapat putusan beramar pada lingkup ini.")
         return
 
-    baris = []
-    for nama in vc2.index:
-        ga = dd[dd["nama_pemohon_norm"] == nama]
-        if len(ga) < 2:
-            continue
-        hitung = ga["amar"].value_counts()
-        seragam = 100 * int(hitung.iloc[0]) / len(ga)
-        grp = dn[dn["nama_pemohon_norm"] == nama]
-        kor = (grp["jenis_koreksi"].dropna().str.split("|").explode()
-               .map(lambda x: LABEL_KOREKSI.get(x, x)).value_counts())
-        baris.append({
-            "Wajib pajak": str(grp["nama_pemohon"].iloc[0])[:38],
-            "Sengketa beramar": len(ga),
-            "Hasil terbanyak": LABEL_AMAR.get(hitung.index[0], hitung.index[0]),
-            "Keseragaman": round(seragam, 1),
-            "Pokok terbanyak": kor.index[0] if len(kor) else "-",
-            "Rentang tahun": f"{tampil_tahun(grp['tahun_putusan'].min())}"
-                             f" sampai "
-                             f"{tampil_tahun(grp['tahun_putusan'].max())}"})
+    # Dikelompokkan sekali, bukan disaring ulang untuk tiap wajib pajak.
+    #
+    # Bentuk lama menyaring seluruh bingkai dua kali pada setiap putaran,
+    # sekali pada bingkai beramar dan sekali pada bingkai penuh. Dengan
+    # ribuan wajib pajak berulang dan puluhan ribu baris, itu puluhan juta
+    # perbandingan, dan halaman ini memerlukan lima belas detik untuk
+    # tergambar sementara halaman lain kurang dari satu detik. Bagi pemakai
+    # yang menekan menunya, lima belas detik tanpa tanda apa pun tidak
+    # terbaca sebagai lambat melainkan sebagai menunya tidak berfungsi.
+    tb = _ulang_ringkas(dn, dd, tuple(vc2.index))
+    baris = len(tb) > 0
     if not baris:
         belum_ada("Belum terdapat wajib pajak dengan dua putusan beramar atau "
                 "lebih pada lingkup ini.")
         return
 
-    tb = pd.DataFrame(baris)
     # Yang benar benar dapat ditindaklanjuti adalah yang hasilnya sama sekali
     # tidak pernah berbeda, dan yang perkaranya sudah cukup banyak sehingga
     # keseragaman itu bukan kebetulan dua kali berturut turut.
@@ -6475,7 +6536,18 @@ elif halaman == "Nilai Sengketa":
 # Penyalur dan kaki
 # ---------------------------------------------------------------------------
 
-{
+# Tiap halaman digambar di dalam penunjuk kesibukan bernama.
+#
+# Penanda bawaan Streamlit berupa tulisan kecil di pojok layar, dan pemakai
+# yang baru menekan menu tidak melihatnya. Halaman yang menghitung beberapa
+# detik lalu tampak diam sama sekali tidak terbaca sebagai sedang bekerja,
+# melainkan sebagai menu yang tidak berfungsi. Pemakai melaporkan hal itu
+# persis pada halaman Sengketa Berulang, yang dahulu memerlukan lima belas
+# detik. Perhitungannya sudah dipercepat, tetapi penunjuk ini tetap
+# diperlukan, sebab arsipnya akan terus tumbuh dan halaman yang hari ini
+# sedetik dapat menjadi beberapa detik pada cakupan penuh.
+with st.spinner(f"Menyiapkan halaman {halaman}...", show_time=True):
+    {
     "Beranda": hal_beranda,
     "Ringkasan Eksekutif": hal_ikhtisar,
     "Nilai Sengketa": hal_nilai,
@@ -6494,7 +6566,7 @@ elif halaman == "Nilai Sengketa":
     "Banding Unit": hal_banding,
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
-}[halaman]()
+    }[halaman]()
 
 # Digambar sekali di sini, bukan disalin ke dalam delapan belas fungsi
 # halaman. Letaknya sesudah penyalur supaya selalu berada di kaki apa pun
