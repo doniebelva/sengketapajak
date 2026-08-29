@@ -1036,6 +1036,42 @@ def gaya(gelap: bool) -> str:
      terbaca sebagai ajakan berpindah, bukan sebagai bagian dari sajian di
      atasnya, dan alasan berpindahnya dicetak lebih kecil daripada nama
      halamannya karena yang harus menonjol tujuannya, bukan alasannya. */
+  /* Kartu baris kedua dibuat lebih kecil daripada baris pertama.
+     Ringkasan Eksekutif memuat sepuluh kartu berukuran sama persis, dan mata
+     tidak punya petunjuk mana yang utama. Empat kartu pertama adalah angka
+     yang paling sering dikutip, sedangkan baris berikutnya penopang, jadi
+     tingkatannya dinyatakan lewat ukuran, bukan lewat urutan saja. */
+  div[class*="st-key-kartu-kedua"] .kpi {{
+    padding: 12px 14px;
+  }}
+  div[class*="st-key-kartu-kedua"] .kpi-nilai {{
+    font-size: 21px;
+  }}
+  div[class*="st-key-kartu-kedua"] .kpi-label {{
+    font-size: 9.5px;
+  }}
+  div[class*="st-key-kartu-kedua"] .kpi-ket {{
+    font-size: 11px;
+  }}
+
+  /* Kalimat temuan di atas bagan.
+     Tiga puluh tujuh bagan pada dashboard ini punya judul dan keterangan
+     panjang di bawahnya, tetapi tidak satu pun menyebutkan apa yang harus
+     dilihat. Pembaca dibiarkan menyimpulkan sendiri, dan yang tergesa
+     menyimpulkan keliru. Satu kalimat yang dihitung dari data yang sedang
+     tampil mengubah bagan dari sajian menjadi temuan, dan menghemat waktu
+     lebih banyak daripada seluruh keterangan di bawahnya.
+     Dicetak sebagai pita bergaris kiri, bukan tulisan biasa, supaya terbaca
+     sebagai simpulan dan bukan sebagai judul kedua. */
+  .temuan-bagan {{
+    margin: 10px 0 6px 0; padding: 9px 14px;
+    border-left: 3px solid {p["seri"][0]};
+    background: {lembut(p["seri"][0], .07)};
+    border-radius: 0 8px 8px 0;
+    font-size: 13.5px; line-height: 1.6; color: {p["tinta"]};
+  }}
+  .temuan-bagan b {{ font-weight: 680; }}
+
   /* Tanda bahwa sesuatu dapat diklik.
      Sebelum ini tidak ada tanda apa pun: bagan dan tabel tampak sebagai
      gambar, sehingga pemakai tidak pernah mencoba menekannya, dan seluruh

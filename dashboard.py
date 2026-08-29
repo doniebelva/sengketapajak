@@ -1893,7 +1893,12 @@ def _ikhtisar_ringkas() -> None:
         th0, th1 = int(rs["tahun_ucap"].min()), int(rs["tahun_ucap"].max())
         m0 = rs[rs["tahun_ucap"] == th0]["amar"].isin(AMAR_MENANG)
         m1 = rs[rs["tahun_ucap"] == th1]["amar"].isin(AMAR_MENANG)
-        k2 = st.columns(3)
+        # Baris kedua sengaja dibuat lebih kecil. Sepuluh kartu berukuran
+        # sama membuat mata tidak tahu mana yang utama, padahal empat kartu
+        # baris pertama adalah angka yang paling sering dikutip dan baris ini
+        # penopangnya.
+        wadah_kedua = st.container(key="kartu-kedua")
+        k2 = wadah_kedua.columns(3)
         k2[0].html(TV.kartu("Dikoreksi pengadilan",
                             f"Rp {kor / 1e12:,.1f} T",
                             f"nilai resmi {th0} sampai {th1}, rincian pada "
@@ -2563,6 +2568,48 @@ def buka_putusan(doc_id, kunci_daftar: str | None = None) -> None:
     if kunci_daftar:
         st.session_state["hapus_kunci"] = kunci_daftar
     st.rerun()
+
+
+def temuan(kalimat: str) -> None:
+    """
+    Satu kalimat simpulan di atas bagan, dihitung dari data yang tampil.
+
+    Bagan pada dashboard ini punya judul dan keterangan panjang, tetapi tidak
+    satu pun menyebutkan apa yang harus dilihat, sehingga pembaca dibiarkan
+    menyimpulkan sendiri dan yang tergesa menyimpulkan keliru.
+
+    Kalimatnya wajib dihitung dari bingkai yang sedang tampil, bukan ditulis
+    tetap. Simpulan yang ditulis tetap akan terus berbunyi sama ketika
+    pemakai mengganti unit analisis atau rentang tahun, dan pada saat itu ia
+    berubah dari menolong menjadi berbohong.
+    """
+    if kalimat:
+        st.html(f'<div class="temuan-bagan">{kalimat}</div>')
+
+
+def temuan_peringkat(g, kolom_nama: str, kolom_nilai: str,
+                     satuan: str = "persen", n_kolom: str | None = None,
+                     apa: str = "") -> str:
+    """Simpulan baku untuk bagan peringkat: yang tertinggi, dan jaraknya."""
+    if g is None or len(g) == 0:
+        return ""
+    d_ = g.sort_values(kolom_nilai, ascending=False)
+    a_ = d_.iloc[0]
+    kal = (f"<b>{a_[kolom_nama]}</b> tertinggi, "
+           f"{a_[kolom_nilai]:,.1f} {satuan}")
+    if n_kolom is not None and n_kolom in d_:
+        kal += f" dari {int(a_[n_kolom]):,} putusan"
+    if len(d_) > 1:
+        b_ = d_.iloc[-1]
+        selisih = float(a_[kolom_nilai]) - float(b_[kolom_nilai])
+        # Selisih antar persentase disebut poin, bukan persen, sebab selisih
+        # dua persentase memang bukan persentase. Menyebutnya persen membuat
+        # pembaca mengira 38 persen lebih tinggi secara nisbi, padahal yang
+        # dimaksud jarak 38 poin.
+        satuan_beda = "poin" if "persen" in satuan else satuan
+        kal += (f", terpaut {selisih:,.1f} {satuan_beda} dari "
+                f"<b>{b_[kolom_nama]}</b> yang terendah")
+    return kal + (f". {apa}" if apa else ".")
 
 
 def daftar_putusan_drill(s, judul: str, kunci: str, sebab: str = "") -> None:
@@ -3690,6 +3737,13 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
             "Dikabulkan": round(100 * ga["menang"].mean(), 2)
             if len(ga) else 0.0})
     st.html('<div class="tingkat">Lima Belas Wajib Pajak Teratas</div>')
+    if len(vc2):
+        temuan(
+            f"<b>{int(vc2.iloc[0]):,} sengketa</b> berasal dari satu wajib "
+            f"pajak saja, dan {int((vc2 >= 3).sum()):,} wajib pajak "
+            "bersengketa tiga kali atau lebih. Perkara yang berulang dengan "
+            "pokok serupa menandakan persoalan yang tidak selesai di tingkat "
+            "keberatan, bukan sekadar wajib pajak yang gemar berperkara.")
     st.caption("Pilih salah satu baris untuk menampilkan daftar sengketa "
                 "wajib pajak tersebut.")
     tampil15, nav15 = potong_halaman(pd.DataFrame(baris), "wp_teratas_nav")
@@ -3963,6 +4017,10 @@ def _mutu_jenis_ketetapan() -> None:
         "separuh ketetapan jenis tersebut gagal dipertahankan. Itu petunjuk "
         "bahwa persoalannya ada pada mutu ketetapannya, bukan pada wajib "
         "pajak yang gemar berperkara.")
+    temuan(temuan_peringkat(
+        g, "Jenis ketetapan", "Dikabulkan", "persen dikabulkan", "Putusan",
+        "Jenis dengan tingkat tertinggi itulah tempat pedoman penerbitan "
+        "paling perlu dibenahi."))
     fig = batang_peringkat(g, "Jenis ketetapan", "Dikabulkan",
                            "Tingkat dikabulkan menurut jenis ketetapan", "Ket")
     fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
@@ -4716,6 +4774,15 @@ def _unit_peringkat(g, du) -> None:
     atas = g.sort_values("Putusan", ascending=False).head(12).copy()
     atas["Ket"] = [f"{n:,} · {v:.0f}% dikabulkan" for v, n in
                    zip(atas["Dikabulkan"], atas["Putusan"])]
+    _rawan = g.sort_values("Dikabulkan", ascending=False).iloc[0]
+    temuan(
+        f"<b>{atas.iloc[0]['Unit penerbit']}</b> paling banyak disengketakan, "
+        f"{int(atas.iloc[0]['Putusan']):,} putusan. Tetapi yang tingkat "
+        f"koreksinya tertinggi <b>{_rawan['Unit penerbit']}</b>, "
+        f"{_rawan['Dikabulkan']:.0f} persen dari "
+        f"{int(_rawan['Putusan']):,} putusan. Banyak perkara belum tentu "
+        "bermutu rendah; yang layak ditelaah adalah tingkat koreksi tinggi "
+        "pada perkara yang banyak.")
     bagan_drill(
       batang_peringkat(atas, "Unit penerbit", "Putusan",
                        "Unit dengan sengketa terbanyak di arsip", "Ket"),
@@ -4954,6 +5021,11 @@ def hal_hakim() -> None:
 
     atas = (per_hakim.sort_values(ascending=False).head(15)
             .rename_axis("Hakim").reset_index(name="Putusan"))
+    temuan(
+        f"<b>{atas.iloc[0]['Hakim']}</b> mengucapkan putusan terbanyak, "
+        f"{int(atas.iloc[0]['Putusan']):,}, sedangkan median seluruh hakim "
+        f"{per_hakim.median():.0f} putusan. Sebaran ini mengikuti cakupan "
+        "arsip yang terkumpul, bukan beban kerja sesungguhnya.")
     bagan_drill(
       batang_peringkat(atas, "Hakim", "Putusan",
                        "Lima belas hakim dengan putusan terbanyak"),
@@ -5797,6 +5869,15 @@ def hal_tema() -> None:
         # seluruh isi halaman di bawahnya wajib mengikuti tema itu.
         if not st.session_state.get("tema_drill"):
             atas = g.head(10).sort_values("Putusan")
+            _sering = g.iloc[0]
+            _menang = g.sort_values("Dikabulkan", ascending=False).iloc[0]
+            temuan(
+                f"Tema paling sering muncul <b>{_sering['Tema']}</b>, "
+                f"{int(_sering['Putusan']):,} putusan. Yang paling sering "
+                f"dimenangkan wajib pajak <b>{_menang['Tema']}</b>, "
+                f"{_menang['Dikabulkan']:.0f} persen dari "
+                f"{int(_menang['Putusan']):,} putusan. Bagi fiskus, tema "
+                "kedua itulah tempat pedoman paling perlu dibenahi.")
             fig = px.bar(atas, x="Putusan", y="Tema", orientation="h",
                          text=[f"{int(n):,}  ({v:.0f}% dikabulkan)"
                                for n, v in zip(atas["Putusan"],
