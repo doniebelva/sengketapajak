@@ -2565,6 +2565,101 @@ def buka_putusan(doc_id, kunci_daftar: str | None = None) -> None:
     st.rerun()
 
 
+def daftar_putusan_drill(s, judul: str, kunci: str, sebab: str = "") -> None:
+    """
+    Daftar putusan di balik satu titik bagan, dengan jalan pulang.
+
+    Dipakai seluruh bagan yang dapat diklik, supaya bentuk drill di seluruh
+    dashboard sama: remah jejak yang menyebutkan dari mana, tombol tutup,
+    daftar sepuluh baris yang dapat diklik, lalu isi putusannya.
+    """
+    if s is None or s.empty:
+        belum_ada(f"Tidak ada putusan pada {judul} dalam lingkup ini.")
+        return
+    st.html(f'<div class="jejak">{st.session_state.get("nav", "")}'
+            f'<i>›</i><b>{judul}</b></div>')
+    if st.button("Tutup rincian", icon=":material/close:",
+                 key=f"tutup_{kunci}"):
+        st.session_state["hapus_kunci"] = kunci
+        st.rerun()
+    if sebab:
+        st.caption(sebab)
+
+    dd_ = beramar(s)
+    menang_ = dd_["amar"].isin(AMAR_MENANG)
+    k = st.columns(3)
+    k[0].html(TV.kartu("Putusan", f"{len(s):,}", judul[:46]))
+    k[1].html(TV.kartu(
+        "Dikabulkan",
+        f"{100 * int(menang_.sum()) / max(len(dd_), 1):.1f} %",
+        f"{int(menang_.sum()):,} dari {len(dd_):,} putusan beramar"))
+    th_ = s["tahun_putusan"].dropna()
+    k[2].html(TV.kartu(
+        "Rentang tahun",
+        f"{tampil_tahun(th_.min())} sampai {tampil_tahun(th_.max())}"
+        if len(th_) else "-", "menurut tahun putusan"))
+
+    st.markdown(f"**{len(s):,} putusan**. Pilih salah satu baris untuk "
+                "membaca isi putusannya.")
+    isi_, nav_ = potong_halaman(
+        s.sort_values("tahun_putusan", ascending=False), f"dr_{kunci}")
+    pilih = st.dataframe(
+        pd.DataFrame({
+            "Nomor putusan": isi_["nomor_tampil"],
+            "Tanggal putusan": [
+                tampil_tanggal(u, tampil_tahun(t_)) for u, t_ in
+                zip(isi_["tanggal_ucap"], isi_["tahun_putusan"])],
+            "Jenis pajak": isi_["kode_jenis_pajak"].map(
+                lambda x: label_kode(x, kode_peta)),
+            "Amar": isi_["amar_label"]}),
+        width="stretch", hide_index=True, on_select="rerun",
+        selection_mode="single-row", key=kunci,
+        column_config={"Tanggal putusan": st.column_config.TextColumn(
+            alignment="center")})
+    gambar_nav(nav_)
+    b_ = pilih.selection.rows if pilih and pilih.selection else []
+    if b_:
+        buka_putusan(isi_.iloc[b_[0]]["doc_id"], kunci)
+
+
+def bagan_drill(fig, tinggi, catatan, kunci: str, sumber, kolom: str,
+                nama_dimensi: str, peta_balik: dict | None = None,
+                sebab: str = "") -> None:
+    """
+    Bagan yang menjadi pintu, bukan gambar mati.
+
+    Dari 37 bagan pada dashboard ini, hanya satu yang dapat diklik. Sisanya
+    berhenti sebagai gambar: pembaca melihat bahwa SKPKB paling sering gugur,
+    lalu tidak punya cara apa pun untuk membaca putusannya tanpa berpindah
+    halaman dan menyaring ulang dari awal. Padahal mesin pemilihannya sudah
+    ada sejak lama, hanya tidak pernah dipasangkan.
+
+    Penolong ini menyatukan bentuknya supaya seluruh bagan berperilaku sama,
+    dan supaya menambah bagan baru yang dapat diklik hanya menuntut satu
+    baris, bukan menyalin dua puluh baris drill.
+
+    Label yang tampil pada bagan kerap berbeda dari nilai yang tersimpan,
+    misalnya "19 · Bea Masuk" untuk kode 19, sehingga pemetaan baliknya
+    diberikan pemanggil ketika keduanya memang berbeda.
+    """
+    ev = bagan(fig, tinggi, None, catatan, kunci=kunci)
+    pilih = titik_terpilih(ev)
+    if pilih is None:
+        # Ajakan ditulis sebagai unsur bergaya, bukan keterangan kecil biasa,
+        # karena inilah satu satunya tanda bahwa bagannya hidup. Keterangan
+        # yang tercetak redup di bawah bagan terbukti tidak pernah terbaca.
+        st.html('<div class="ajakan-klik">Pilih salah satu batang untuk '
+                f'membaca putusan di baliknya, menurut '
+                f'{nama_dimensi.lower()}.</div>')
+        return
+    nilai = (peta_balik or {}).get(str(pilih), pilih)
+    if kolom not in sumber:
+        belum_ada(f"Ruas {kolom} tidak tersedia pada lingkup ini.")
+        return
+    s = sumber[sumber[kolom].astype(str) == str(nilai)]
+    daftar_putusan_drill(s, f"{nama_dimensi} {pilih}", kunci, sebab)
+
+
 def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:
     """Tingkat paling dalam: identitas perkara, majelis, isi putusan yang
     disusun seperti naskah aslinya, dan tombol unduh."""
@@ -3019,9 +3114,12 @@ def hal_belajar() -> None:
     t = (ss["amar_label"].value_counts()
          .rename_axis("Amar").reset_index(name="Putusan"))
     t["Ket"] = [f"{n:,} ({100 * n / len(ss):.0f}%)" for n in t["Putusan"]]
-    bagan(batang_peringkat(t, "Amar", "Putusan",
-                           "Bagaimana perkara serupa diputus", "Ket"),
-          max(240, 42 * len(t) + 110))
+    bagan_drill(
+        batang_peringkat(t, "Amar", "Putusan",
+                         "Bagaimana perkara serupa diputus", "Ket"),
+        max(240, 42 * len(t) + 110), None,
+        "dr_belajar_amar", ss, "amar_label", "Amar",
+        sebab="Perkara serupa yang berakhir dengan amar tersebut.")
 
     st.html('<div class="tingkat">Argumen Hukum pada Putusan yang Dikabulkan</div>')
     dh = muat_dasar_hukum()
@@ -3315,11 +3413,14 @@ def _konsistensi_majelis() -> None:
     fig.update_xaxes(title="", showticklabels=False, showgrid=False,
                      zeroline=False, range=[0, tepi + 30])
     fig.update_yaxes(title="")
-    bagan(fig, max(280, 34 * len(u) + 120), None,
-          "Majelis dengan batang terpendek dan terpanjang itulah yang "
-          "paling layak dibaca putusannya berdampingan: perbedaan "
-          "penafsiran yang melatarinya adalah bahan pedoman yang paling "
-          "konkret.")
+    bagan_drill(
+        fig, max(280, 34 * len(u) + 120),
+        "Majelis dengan batang terpendek dan terpanjang itulah yang "
+        "paling layak dibaca putusannya berdampingan: perbedaan "
+        "penafsiran yang melatarinya adalah bahan pedoman yang paling "
+        "konkret.",
+        "dr_majelis", d, "kode_majelis", "Majelis",
+        sebab="Putusan yang diucapkan majelis tersebut.")
 
     tabel_bernavigasi(
         g[["Majelis", "Putusan", "Dikabulkan", "Batas bawah", "Batas atas"]],
@@ -3865,9 +3966,13 @@ def _mutu_jenis_ketetapan() -> None:
     fig = batang_peringkat(g, "Jenis ketetapan", "Dikabulkan",
                            "Tingkat dikabulkan menurut jenis ketetapan", "Ket")
     fig.update_xaxes(ticksuffix="%", range=[0, 118], dtick=20)
-    bagan(fig, max(240, 44 * len(g) + 110), None,
-          "SPTNP dan SPKTNP adalah penetapan kepabeanan, sedangkan SKPKB dan "
-          "STP adalah penetapan pajak.")
+    bagan_drill(
+      fig, max(240, 44 * len(g) + 110),
+      "SPTNP dan SPKTNP adalah penetapan kepabeanan, sedangkan SKPKB dan "
+      "STP adalah penetapan pajak.",
+      "dr_mutu_ketetapan", kj, "jenis_ketetapan", "Jenis ketetapan",
+      sebab="Putusan yang ketetapannya berjenis ini, pada lingkup yang "
+            "sedang aktif.")
 
     unduh_laporan(
         "Mutu Ketetapan menurut Jenis",
@@ -4233,10 +4338,14 @@ def _mutu_instansi() -> None:
     fig.update_xaxes(title="", showticklabels=False, showgrid=False,
                      zeroline=False, range=[0, tepi + 32])
     fig.update_yaxes(title="")
-    bagan(fig, max(240, 60 * len(g) + 110), None,
-          "Garis melintang pada ujung tiap batang adalah selang keyakinan. "
-          "Batang yang selangnya saling bersinggungan belum dapat dinyatakan "
-          "berbeda satu sama lain.")
+    bagan_drill(
+      fig, max(240, 60 * len(g) + 110),
+      "Garis melintang pada ujung tiap batang adalah selang keyakinan. "
+      "Batang yang selangnya saling bersinggungan belum dapat dinyatakan "
+      "berbeda satu sama lain.",
+      "dr_mutu_instansi", d, "instansi_terbanding_label", "Instansi",
+      sebab="Putusan pada instansi tersebut, pada lingkup yang sedang "
+            "aktif.")
 
     st.html('<div class="tingkat">Tren Hasil Putusan Tiap Instansi</div>')
     fig = go.Figure()
@@ -4591,7 +4700,7 @@ def _unit_siap(inst: str):
     return du, g
 
 
-def _unit_peringkat(g) -> None:
+def _unit_peringkat(g, du) -> None:
     k = st.columns(3)
     k[0].html(TV.kartu("Unit terhitung", f"{len(g):,}",
                        "dengan lima belas putusan beramar atau lebih"))
@@ -4607,15 +4716,18 @@ def _unit_peringkat(g) -> None:
     atas = g.sort_values("Putusan", ascending=False).head(12).copy()
     atas["Ket"] = [f"{n:,} · {v:.0f}% dikabulkan" for v, n in
                    zip(atas["Dikabulkan"], atas["Putusan"])]
-    bagan(batang_peringkat(atas, "Unit penerbit", "Putusan",
-                           "Unit dengan sengketa terbanyak di arsip", "Ket"),
-          max(300, 34 * len(atas) + 120), None,
-          "Panjang batang adalah banyaknya putusan di arsip, keterangan "
+    bagan_drill(
+      batang_peringkat(atas, "Unit penerbit", "Putusan",
+                       "Unit dengan sengketa terbanyak di arsip", "Ket"),
+      max(300, 34 * len(atas) + 120),
+      ("Panjang batang adalah banyaknya putusan di arsip, keterangan "
           "menunjukkan berapa persen yang berujung ketetapan dikoreksi. "
           "Jumlah sengketa yang banyak tidak dengan sendirinya menunjukkan "
           "mutu yang rendah, karena unit besar memang lebih sering "
           "disengketakan; yang layak ditelaah adalah tingkat koreksi yang "
-          "tinggi pada jumlah perkara yang besar.")
+          "tinggi pada jumlah perkara yang besar."),
+      "dr_unit", du, "unit", "Unit penerbit",
+      sebab="Putusan yang ketetapannya diterbitkan unit tersebut.")
     if len(g) > 12:
         st.caption(f"Dua belas unit teratas yang ditampilkan, dari {len(g):,} "
                    "unit terhitung. Selebihnya ada pada tab Rekapitulasi.")
@@ -4748,7 +4860,7 @@ def hal_unit() -> None:
     t1, t2, t3, t4 = st.tabs(["Peringkat unit", "Jenis ketetapan per unit",
                               "Arah dari tahun ke tahun", "Rekapitulasi"])
     with t1:
-        _unit_peringkat(g)
+        _unit_peringkat(g, du)
     with t2:
         _unit_ketetapan(du)
     with t3:
@@ -4842,12 +4954,18 @@ def hal_hakim() -> None:
 
     atas = (per_hakim.sort_values(ascending=False).head(15)
             .rename_axis("Hakim").reset_index(name="Putusan"))
-    bagan(batang_peringkat(atas, "Hakim", "Putusan",
-                           "Lima belas hakim dengan putusan terbanyak"),
-          max(280, 34 * len(atas) + 120), None,
-          "Jumlah putusan mencerminkan sebaran perkara pada arsip yang "
-          f"sudah terkumpul, dengan cakupan {cakupan:.1f} persen), bukan beban "
-          "kerja sesungguhnya.")
+    bagan_drill(
+      batang_peringkat(atas, "Hakim", "Putusan",
+                       "Lima belas hakim dengan putusan terbanyak"),
+      max(280, 34 * len(atas) + 120),
+      "Jumlah putusan mencerminkan sebaran perkara pada arsip yang "
+      f"sudah terkumpul, dengan cakupan {cakupan:.1f} persen, bukan beban "
+      "kerja sesungguhnya.",
+      "dr_hakim", s, "hakim", "Hakim",
+      sebab="Putusan yang diucapkan bersama hakim tersebut pada peran yang "
+            "sedang dipilih. Pada peran hakim anggota, satu putusan dapat "
+            "muncul untuk beberapa hakim sekaligus, sebagaimana susunan "
+            "majelisnya.")
 
     st.html('<div class="tingkat">Rincian menurut Kategori Amar</div>')
     URUT_AMAR = [LABEL_AMAR[a] for a in
@@ -5512,12 +5630,16 @@ def _tema_rincian(pilih_tema: str, gabung, punya) -> None:
         ra["Bagian"] = (100 * ra["Putusan"] / ra["Putusan"].sum()).round(1)
         ra["Ket"] = [f"{n:,} · {v:.0f}%" for v, n in
                      zip(ra["Bagian"], ra["Putusan"])]
-        bagan(batang_peringkat(ra, "Amar", "Putusan",
-                               f"Amar putusan pada tema {pilih_tema}", "Ket"),
-              max(240, 40 * len(ra) + 110), None,
-              "Sebaran amar pada tema ini saja, bukan pada seluruh arsip. "
-              "Amar yang tidak terbaca dari naskahnya sengaja tidak "
-              "dihitung, bukan dimasukkan sebagai ditolak.")
+        bagan_drill(
+            batang_peringkat(ra, "Amar", "Putusan",
+                             f"Amar putusan pada tema {pilih_tema}", "Ket"),
+            max(240, 40 * len(ra) + 110),
+            "Sebaran amar pada tema ini saja, bukan pada seluruh arsip. "
+            "Amar yang tidak terbaca dari naskahnya sengaja tidak "
+            "dihitung, bukan dimasukkan sebagai ditolak.",
+            "dr_tema_amar", asli_t, "amar_label", "Amar",
+            sebab=f"Putusan bertema {pilih_tema} yang berakhir dengan amar "
+                  "tersebut.")
     else:
         belum_ada("Amar belum terbaca pada putusan bertema ini.")
 

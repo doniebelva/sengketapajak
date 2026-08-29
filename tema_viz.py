@@ -1036,6 +1036,41 @@ def gaya(gelap: bool) -> str:
      terbaca sebagai ajakan berpindah, bukan sebagai bagian dari sajian di
      atasnya, dan alasan berpindahnya dicetak lebih kecil daripada nama
      halamannya karena yang harus menonjol tujuannya, bukan alasannya. */
+  /* Tanda bahwa sesuatu dapat diklik.
+     Sebelum ini tidak ada tanda apa pun: bagan dan tabel tampak sebagai
+     gambar, sehingga pemakai tidak pernah mencoba menekannya, dan seluruh
+     kemampuan drill yang sudah dibangun tidak pernah ditemukan. Kursor
+     berubah, baris menyala saat disentuh, dan bagan yang dapat diklik
+     diberi tepi tipis yang menegas ketika didekati. */
+  div[data-testid="stPlotlyChart"]:has(+ div .ajakan-klik),
+  div[data-testid="stPlotlyChart"] {{
+    border-radius: 12px; transition: box-shadow .15s ease;
+  }}
+  div[data-testid="stPlotlyChart"] .cursor-pointer,
+  div[data-testid="stPlotlyChart"] .points path {{ cursor: pointer; }}
+
+  /* Ajakan memilih di bawah bagan yang dapat diklik. Dicetak kecil dan
+     berwarna aksen supaya terbaca sebagai tawaran, bukan sebagai catatan
+     kaki yang boleh dilewati. */
+  .ajakan-klik {{
+    display: inline-flex; align-items: center; gap: 6px;
+    margin: 2px 0 6px 0; font-size: 12.5px; font-weight: 600;
+    color: {p["seri"][0]};
+  }}
+  .ajakan-klik::before {{
+    content: "◉"; font-size: 10px; opacity: .85;
+  }}
+
+  /* Baris tabel yang dapat diklik. Streamlit menggambar tabelnya di atas
+     kanvas, sehingga yang dapat disentuh gaya hanyalah wadahnya; tepi yang
+     menegas saat didekati sudah cukup memberi tahu bahwa ia hidup. */
+  div[data-testid="stDataFrame"] {{
+    border-radius: 10px; transition: box-shadow .15s ease;
+  }}
+  div[data-testid="stDataFrame"]:hover {{
+    box-shadow: 0 0 0 2px {lembut(p["seri"][0], .35)};
+  }}
+
   /* Daftar kutipan pokok sengketa pada drill tematik. Tiap butir berasal
      dari naskah yang berbeda, jadi jaraknya dilebarkan supaya tidak terbaca
      sebagai satu paragraf yang menyambung. */
