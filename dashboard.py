@@ -2587,6 +2587,26 @@ def temuan(kalimat: str) -> None:
         st.html(f'<div class="temuan-bagan">{kalimat}</div>')
 
 
+def potongan_jujur(n_tampil: int, n_semua: int, satuan: str,
+                   ke_mana: str = "") -> None:
+    """
+    Menyebutkan berapa yang tidak tampak pada bagan yang dipotong.
+
+    Bagan peringkat pada dashboard ini memotong pada sepuluh sampai lima
+    belas teratas, dan pemotongan itu wajar. Yang tidak wajar adalah
+    membiarkan pembaca menyangka bahwa yang tampak itulah seluruh populasi.
+    Perbedaan antara lima belas hakim dan lima belas dari dua ratus empat
+    puluh dua hakim mengubah seluruh tafsiran, dan tanpa disebut, pembaca
+    tidak punya cara mengetahuinya.
+    """
+    if n_semua <= n_tampil:
+        return
+    sisa = n_semua - n_tampil
+    st.caption(f"Menampilkan {n_tampil:,} teratas dari {n_semua:,} {satuan}. "
+               f"Sebanyak {sisa:,} lainnya tidak tampak pada bagan ini"
+               + (f", dan dapat dilihat {ke_mana}." if ke_mana else "."))
+
+
 def temuan_peringkat(g, kolom_nama: str, kolom_nilai: str,
                      satuan: str = "persen", n_kolom: str | None = None,
                      apa: str = "") -> str:
@@ -5038,6 +5058,8 @@ def hal_hakim() -> None:
             "sedang dipilih. Pada peran hakim anggota, satu putusan dapat "
             "muncul untuk beberapa hakim sekaligus, sebagaimana susunan "
             "majelisnya.")
+    potongan_jujur(len(atas), len(per_hakim), "hakim terhitung",
+                   "pada tabel rekapitulasi di bawah")
 
     st.html('<div class="tingkat">Rincian menurut Kategori Amar</div>')
     URUT_AMAR = [LABEL_AMAR[a] for a in
@@ -5890,6 +5912,8 @@ def hal_tema() -> None:
                   "Panjang batang adalah banyaknya putusan bertema itu, dan "
                   "angka dalam kurung adalah bagian yang dimenangkan wajib "
                   "pajak.")
+            potongan_jujur(len(atas), len(g), "tema terhitung",
+                           "pada tabel di atas")
         else:
             st.info(f"Tema **{st.session_state['tema_drill']}** sedang "
                     "dibuka, sehingga sajian di bawah mengikuti tema itu "
@@ -6353,6 +6377,17 @@ def _karakter_peta(prof: pd.DataFrame) -> None:
 
     t = prof.copy()
     t["Ketat formal"] = t["Gugur formal"].round(1)
+    _sd = float(t["Selisih dari harapan"].std() or 0)
+    _jauh = t.reindex(t["Selisih dari harapan"].abs()
+                      .sort_values(ascending=False).index).iloc[0]
+    temuan(
+        f"Sebaran selisih dari harapan {_sd:.1f} poin, dan yang paling "
+        f"menyimpang <b>{_jauh['Hakim']}</b> pada "
+        f"{_jauh['Selisih dari harapan']:+.1f} poin dari "
+        f"{int(_jauh['Putusan']):,} putusan. Yang layak dibaca bukan posisi "
+        "satu hakim, melainkan seberapa lebar sebarannya: sebaran yang lebar "
+        "berarti hasil perkara ikut bergantung pada majelis mana yang "
+        "kebagian memeriksanya.")
     fig = px.scatter(
         t, x="Selisih dari harapan", y="Kabul sebagian",
         size="Putusan", color="Ketat formal",
@@ -6366,6 +6401,24 @@ def _karakter_peta(prof: pd.DataFrame) -> None:
                       "kabul sebagian %{y:.1f} persen<br>"
                       "gugur formal %{marker.color:.1f} persen"
                       "<extra></extra>")
+    # Nama ditulis pada titik terluar saja.
+    #
+    # Peta ini memuat puluhan titik tanpa satu pun nama tertulis, sehingga
+    # pembaca harus menyentuh titiknya satu per satu untuk tahu siapa yang
+    # berada di ujung. Padahal yang dicari pembaca justru yang di ujung.
+    # Menuliskan seluruh nama akan menumpuk dan tidak terbaca, jadi yang
+    # diberi nama hanya lima terjauh dari nol, yaitu yang paling menyimpang
+    # dari harapan kelompoknya ke arah mana pun.
+    ujung = t.reindex(t["Selisih dari harapan"].abs()
+                      .sort_values(ascending=False).index).head(5)
+    for _, br in ujung.iterrows():
+        fig.add_annotation(
+            x=br["Selisih dari harapan"], y=br["Kabul sebagian"],
+            text=str(br["Hakim"])[:22], showarrow=True, arrowhead=0,
+            arrowwidth=1, arrowcolor=P["sumbu"], ax=0, ay=-22,
+            font=dict(size=10.5, color=P["tinta"]),
+            bgcolor=TV.lembut(P["permukaan"], .85), borderpad=2)
+
     fig.add_vline(x=0, line_dash="dot", line_color=P["sumbu"])
     fig.add_hline(y=float(t["Kabul sebagian"].median()), line_dash="dot",
                   line_color=P["sumbu"])
