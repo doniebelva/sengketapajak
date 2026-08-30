@@ -6476,7 +6476,13 @@ def _karakter_ragam(prof: pd.DataFrame) -> None:
     fig.update_xaxes(showgrid=False, title="Poin persen dari harapan")
     fig.update_yaxes(showgrid=True, gridcolor=P["garis_bantu"],
                      title="Jumlah hakim")
-    fig.update_layout(margin=dict(b=64))
+    # Jatah kanan diberikan supaya angka sumbu terluar tidak menyembul.
+    #
+    # Sumbu mendatar histogram ini berakhir tepat di tepi kartu, dan angka
+    # terakhirnya, yang ditulis rata tengah pada garis tiknya, menjorok
+    # keluar sampai terpenggal beberapa piksel. Halaman ini tidak pernah
+    # masuk daftar potret, sehingga tidak ada yang melihatnya selama ini.
+    fig.update_layout(margin=dict(b=64, r=34))
     bagan(fig, 340, None,
           "Sebaran yang melebar jauh dari nol berarti perkara setara dapat "
           "berakhir berbeda tergantung majelis yang memeriksanya. Ini bahan "
@@ -6677,7 +6683,8 @@ def hal_istilah() -> None:
         ("Pokok sengketa", "Inti yang dipersoalkan, ditulis pada bagian awal "
                            "risalah."),
     ], columns=["Istilah", "Artinya"])
-    st.html(TV.tabel(ist, kolom_kiri=("Istilah", "Artinya"), kelas="rata"))
+    st.html(TV.tabel(ist, kolom_kiri=("Istilah", "Artinya"),
+                     kelas="uraian"))
 
     st.html('<div class="tingkat">Cara Membaca Angka di Sini</div>')
     jelas(

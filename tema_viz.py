@@ -1200,6 +1200,26 @@ def gaya(gelap: bool) -> str:
     width: 11%; white-space: nowrap;
   }}
 
+  /* Ragam uraian: tabel dua lajur berisi kata dan penjelasannya.
+     Ragam rata di atas dibuat untuk tabel peringkat berangka, dan dipakai
+     di sini hasilnya kacau. Lajur kedua di sana diberi lebar sebelas persen
+     serta dilarang melipat, sebab isinya rentang tahun, sehingga kalimat
+     penjelasan terpotong di tepi kanan. Lajur pertamanya diberi jatah dua
+     puluh empat persen, sehingga di antara kata pendek seperti Amar dan
+     penjelasannya menganga ruang kosong selebar seperempat halaman. Dan
+     seluruh lajur teksnya dirata tengah, yang membuat kalimat panjang tidak
+     punya tepi kiri yang sama untuk diikuti mata. */
+  table.tabel.uraian {{ table-layout: fixed; }}
+  table.tabel.uraian th,
+  table.tabel.uraian td {{
+    text-align: left; vertical-align: top; white-space: normal;
+    overflow-wrap: break-word; padding: 9px 12px; line-height: 1.55;
+  }}
+  table.tabel.uraian th:first-child,
+  table.tabel.uraian td:first-child {{
+    width: 26%; font-weight: 600;
+  }}
+
   /* --- Panel lipat ------------------------------------------------------ */
   div[data-testid="stExpander"] {{
     border: none !important; border-top: 1px solid {p["tepi"]} !important;
@@ -1480,6 +1500,18 @@ def tabel(df, kolom_kiri: tuple = (), kolom_persen: tuple = (),
     tidak dapat disentuh dari gaya halaman sama sekali. Itu sebabnya tabel
     informasi dibuat sendiri di sini.
     """
+    # Penjaga ragam rata hanya untuk tabel berlajur banyak.
+    #
+    # Ragam rata dibuat untuk tabel peringkat: lajur keduanya diberi lebar
+    # sebelas persen dan dilarang melipat, sebab isinya rentang tahun. Pada
+    # tabel dua lajur berisi kalimat, lajur kedua itu justru lajur uraiannya,
+    # sehingga penjelasan terpotong di tepi kanan sedangkan di tengah tabel
+    # menganga ruang kosong. Ini pernah lolos ke live pada tabel istilah.
+    # Dijaga di sini, bukan hanya diperiksa alat uji, supaya kekeliruan yang
+    # sama tidak dapat terulang pada tabel yang dibuat kemudian.
+    if kelas == "rata" and len(df.columns) < 3:
+        kelas = "uraian"
+
     def sebagai_angka(nilai):
         if isinstance(nilai, (int, float)) and not isinstance(nilai, bool):
             return float(nilai)
@@ -1671,6 +1703,7 @@ _IKON_NAV = {
     "Pilihan Upaya Hukum": "%3Cpath d='M12 21V3'/%3E%3Cpath d='M12 5h6l2 2-2 2h-6'/%3E%3Cpath d='M12 12H6l-2 2 2 2h6'/%3E",
     "Pasal Penentu": "%3Cpath d='M12 3v18M4 21h16'/%3E%3Cpath d='M5 7l-2.5 5a3 3 0 0 0 5 0zM19 7l-2.5 5a3 3 0 0 0 5 0z'/%3E%3Cpath d='M6 7h12'/%3E",
     "Unit Penerbit Ketetapan": "%3Cpath d='M3 21h18'/%3E%3Cpath d='M5 21V4l8-2v19'/%3E%3Cpath d='M13 21h6V9l-6-2'/%3E%3Cpath d='M8 8h.01M8 12h.01M8 16h.01'/%3E",
+    "Istilah Sederhana": "%3Cpath d='M3 5.5h6a3 3 0 0 1 3 3V20a2.5 2.5 0 0 0-2.5-2.5H3z'/%3E%3Cpath d='M21 5.5h-6a3 3 0 0 0-3 3V20a2.5 2.5 0 0 1 2.5-2.5H21z'/%3E",
     "Profil Hakim": "%3Cpath d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='12' cy='7' r='4'/%3E",
     "Durasi Penyelesaian Sengketa": "%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M15 9l-2 5-5 2 2-5z'/%3E",
     "Karakter Memutus": "%3Ccircle cx='7' cy='16' r='2.4'/%3E%3Ccircle cx='13' cy='9' r='2.4'/%3E%3Ccircle cx='18.5' cy='14' r='2'/%3E%3Cpath d='M3 21h18'/%3E",
