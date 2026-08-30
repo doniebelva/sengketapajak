@@ -2,7 +2,7 @@
 """
 dashboard.py
 
-Dashboard Analitik Sengketa Pajak.
+Belajar Analitik Sengketa Pajak.
 Analitik risalah putusan Pengadilan Pajak.
 
 Dibangun dari rancangan_dashboard_insight.md. Delapan halaman disusun menurut
@@ -1178,10 +1178,10 @@ def unduh_laporan(judul: str, ringkas: list, tabel_df: pd.DataFrame | None,
       td, th {{ padding: 4pt 8pt; border-bottom: 1pt solid #ccc;
                 text-align: left; font-size: 10.5pt; }}
       .catatan {{ margin-top: 14pt; padding: 8pt 10pt;
-                  border-left: 3pt solid #1e3a6e; background: #f2f5fa;
+                  border-left: 3pt solid #0a4442; background: #eef4f3;
                   font-size: 10pt; }}
     </style></head><body>
-      <h1>Dashboard Analitik Sengketa Pajak</h1>
+      <h1>Belajar Analitik Sengketa Pajak</h1>
       <h2>{judul}</h2>
       <p class="sumber">Disusun otomatis pada {kini} dari arsip risalah
       putusan Pengadilan Pajak, sumber setpp.kemenkeu.go.id/risalah.
@@ -1316,8 +1316,15 @@ def jeda_hari(df_: pd.DataFrame) -> pd.Series:
 # Tema dan kerangka
 # ---------------------------------------------------------------------------
 
-st.set_page_config(page_title="Dashboard Analitik Sengketa Pajak",
-                   page_icon="🔷", layout="wide",
+# Judul dan ikon pada bilah alamat.
+#
+# Wajah pertama situs ini bukan halamannya, melainkan judul tab peramban,
+# sebab itulah yang tersimpan ketika pembaca menandainya dan yang terbaca
+# ketika ia membuka belasan tab sekaligus. Belah ketupat biru sebelumnya
+# tidak menerangkan apa pun; buku terbuka menyatakan bahwa ini bahan belajar,
+# bukan papan pemantau maupun terbitan resmi.
+st.set_page_config(page_title="Belajar Analitik Sengketa Pajak",
+                   page_icon="📖", layout="wide",
                    initial_sidebar_state="expanded")
 
 
@@ -1407,9 +1414,17 @@ def cap_penguraian() -> str | None:
 
 _cap_tarik = keadaan_tarikan().get("terakhir")
 _cap_urai = cap_penguraian()
-st.html(TV.kop("Dashboard Analitik Sengketa Pajak",
-               "Analitik Risalah Putusan Pengadilan Pajak · Sumber data: "
-               "https://setpp.kemenkeu.go.id/risalah",
+# Judul menyebut belajar, bukan dashboard.
+#
+# Kata dashboard menjanjikan alat pemantau bagi orang yang sudah paham
+# urusannya, sedangkan sasaran situs ini justru yang belum. Sub judulnya
+# menyatakan dua hal yang wajib diketahui pembaca sejak detik pertama:
+# datanya terbuka dan dari mana asalnya, dan situs ini bukan terbitan resmi
+# lembaga mana pun.
+st.html(TV.kop("Belajar Analitik Sengketa Pajak",
+               "Belajar membaca putusan Pengadilan Pajak dari risalah yang "
+               "terbuka untuk umum · Bukan terbitan resmi · Sumber data: "
+               "setpp.kemenkeu.go.id/risalah",
                ((f"Data diolah<br><b>{_cap_urai}</b>"
                  if _cap_urai else
                  f"Arsip ditarik hingga<br><b>{_cap_tarik}</b>")
@@ -1645,18 +1660,26 @@ st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # Proyeksi untuk yang prediktif, dan Rekomendasi untuk yang preskriptif.
 # Dengan begitu nama kelompok di menu dan penanda di kepala halaman saling
 # menerangkan, bukan menjadi dua peristilahan yang harus dihafal terpisah.
+# Judul kelompok ditulis sebagai tahap belajar, bukan sebagai nama rubrik.
+#
+# Ikhtisar, Potret Keadaan, dan Telaah Sebab adalah istilah orang yang sudah
+# tahu apa yang dicarinya. Pembaca yang baru datang tidak tahu ia sedang
+# butuh potret atau telaah; yang ia tahu hanyalah pertanyaannya sendiri.
+# Judul di bawah ini ditulis sebagai pertanyaan itu, urut dari yang paling
+# awal ditanyakan sampai yang paling akhir.
 KELOMPOK_MENU = [
-    ("Ikhtisar", ["Beranda", "Ringkasan Eksekutif"]),
-    ("Potret Keadaan", ["Nilai Sengketa", "Risalah Putusan",
-                        "Profil Hakim"]),
-    ("Telaah Sebab", ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
-                      "Unit Penerbit Ketetapan", "Sengketa Berulang",
-                      "Konsistensi Putusan Hakim", "Karakter Memutus",
-                      "Banding Unit"]),
-    ("Proyeksi", ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
-    ("Rekomendasi", ["Pilihan Upaya Hukum"]),
-    ("Panduan dan Metode", ["Istilah Sederhana", "Panduan Analisis",
-                            "Metodologi"]),
+    ("Mulai dari sini", ["Beranda", "Ringkasan Eksekutif"]),
+    ("Apa yang selama ini terjadi", ["Nilai Sengketa", "Risalah Putusan",
+                                     "Profil Hakim"]),
+    ("Mengapa perkara menang atau kalah",
+     ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
+      "Unit Penerbit Ketetapan", "Sengketa Berulang",
+      "Konsistensi Putusan Hakim", "Karakter Memutus", "Banding Unit"]),
+    ("Memperkirakan perkara serupa",
+     ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
+    ("Menimbang langkah", ["Pilihan Upaya Hukum"]),
+    ("Bekal dan cara membaca", ["Istilah Sederhana", "Panduan Analisis",
+                                "Metodologi"]),
 ]
 
 with bagian_menu, st.container(key="menu-nav"):

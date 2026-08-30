@@ -3,7 +3,7 @@
 tema_viz.py
 
 Palet, tema bagan, gaya halaman, dan potongan kerangka untuk
-Dashboard Analitik Sengketa Pajak.
+Belajar Analitik Sengketa Pajak.
 
 Ditulis ulang dari spesifikasi_redesign_dashboard.md. Seluruh keputusan warna
 dan tata letak berasal dari dokumen itu, dan tidak boleh diubah di sini tanpa
@@ -52,11 +52,20 @@ ASET = os.path.join(os.path.dirname(os.path.abspath(__file__)), "aset")
 
 TERANG = {
     "seri": ["#2f6cc0", "#b8890a", "#1f7a4d"],
-    # Ujung terang gradasi kop, biru royal khas Kemenkeu. Tulisan putih di
-    # atasnya berkontras sekitar sembilan banding satu, jauh di atas ambang.
+    # Warna kop dan penanda pilihan, keluarga hijau kebiruan.
+    #
+    # Sebelumnya biru royal dan navy, yaitu warna Kementerian Keuangan, dan
+    # bersama lambangnya membuat situs ini terbaca sebagai terbitan resmi
+    # padahal bukan. Warna resmi milik lembaganya, bukan milik siapa pun yang
+    # mengolah datanya. Tulisan putih di atas warna paling terang di sini
+    # berkontras sekitar tujuh setengah banding satu, jauh di atas ambang.
+    "kop_terang": "#0c5f58",
+    "kop": "#0a4442",
+    "kop_2": "#07302f",
+    # Biru tua di bawah ini bukan lagi warna tampilan, melainkan warna data,
+    # yaitu penanda unit gabungan pada bagan. Dibiarkan biru supaya sekeluarga
+    # dengan warna DJP dan berbeda jelas dari emas DJBC.
     "navy_terang": "#0f4c8f",
-    "navy": "#1e3a6e",
-    "navy_2": "#142a52",
     "permukaan": "#ffffff",
     "bidang": "#eef1f5",
     "tinta": "#0b0b0b",
@@ -72,9 +81,10 @@ TERANG = {
 
 GELAP = {
     "seri": ["#4a8ae0", "#ad8110", "#2f9c68"],
+    "kop_terang": "#0a4a45",
+    "kop": "#082f2f",
+    "kop_2": "#051f20",
     "navy_terang": "#0d3a6e",
-    "navy": "#16243f",
-    "navy_2": "#0c1a30",
     "permukaan": "#1c1f26",
     "bidang": "#12141a",
     "tinta": "#ffffff",
@@ -367,13 +377,12 @@ def gaya(gelap: bool) -> str:
     position: fixed; top: 0; left: 0; right: 0; z-index: 1000000;
     display: flex; align-items: center; gap: 16px;
     height: {TINGGI_KOP}px; padding: 0 {SISI};
-    /* Gradasi biru Kemenkeu: biru royal di sisi logo turun ke navy dalam di
-       sisi kanan. Gradasi lama memakai dua navy yang nyaris sama sehingga
-       tampak polos; tiga perhentian ini memberi kedalaman tanpa mengurangi
-       kontras tulisan putih, yang pada titik paling terang pun masih jauh
-       di atas ambang keterbacaan. */
-    background: linear-gradient(115deg, {p["navy_terang"]} 0%,
-                                {p["navy"]} 48%, {p["navy_2"]} 100%);
+    /* Gradasi hijau kebiruan, dari yang paling terang di sisi judul turun ke
+       yang paling dalam di sisi kanan. Tiga perhentian memberi kedalaman
+       tanpa mengurangi kontras tulisan putih, yang pada titik paling terang
+       pun masih jauh di atas ambang keterbacaan. */
+    background: linear-gradient(115deg, {p["kop_terang"]} 0%,
+                                {p["kop"]} 48%, {p["kop_2"]} 100%);
     box-shadow: 0 1px 6px rgba(0,0,0,.22);
   }}
   .kop img {{ height: 40px; width: auto; }}
@@ -524,7 +533,7 @@ def gaya(gelap: bool) -> str:
   }}
   .kh-dim {{ color: {p["tinta_2"]}; background: {p["bidang"]};
              border: 1px solid {p["tepi"]}; }}
-  .kh-lingkup {{ color: #fff; background: {p["navy"]}; }}
+  .kh-lingkup {{ color: #fff; background: {p["kop"]}; }}
 
   /* Judul sisi pada mode banding. Dua sisi yang tampil bersebelahan harus
      dapat dibedakan sekali pandang, dan tanpa judul bergaris pemisah
@@ -534,7 +543,7 @@ def gaya(gelap: bool) -> str:
     gap: 10px; margin: 4px 0 12px;
     padding: 9px 13px; border-radius: 10px;
     background: {p["bidang"]}; border: 1px solid {p["tepi"]};
-    border-left: 3px solid {p["navy"]};
+    border-left: 3px solid {p["kop"]};
     font-size: 13.5px; font-weight: 680; color: {p["tinta"]};
   }}
   .banding-judul span {{
@@ -544,12 +553,12 @@ def gaya(gelap: bool) -> str:
 
   /* --- Pemilih unit analisis -------------------------------------------- */
   /* Daftar jatuh di puncak bilah samping. Karena inilah pilihan analisis
-     utama dashboard, tampilannya ditegaskan: berlatar navy Kemenkeu dengan
+     utama dashboard, tampilannya ditegaskan: berlatar warna kop dengan
      tulisan putih, sehingga unit yang sedang dibaca terlihat sekali pandang
      tanpa perlu membuka daftarnya. */
   .st-key-lingkup_instansi div[data-baseweb="select"] > div {{
-    background: {p["navy"]} !important;
-    border-color: {p["navy"]} !important;
+    background: {p["kop"]} !important;
+    border-color: {p["kop"]} !important;
     border-radius: 10px !important;
     min-height: 40px !important;
   }}
@@ -654,7 +663,7 @@ def gaya(gelap: bool) -> str:
                    white-space: nowrap; }}
   .kaki .kanan {{ justify-self: end; white-space: nowrap; }}
   .kaki .pisah {{ color: {p["sumbu"]}; }}
-  .kaki .purwarupa {{
+  .kaki .mandiri {{
     display: inline-block; padding: 2px 9px; border-radius: 999px;
     font-size: 9.5px; font-weight: 700; letter-spacing: .06em;
     text-transform: uppercase; color: {p["tinta_2"]};
@@ -1329,7 +1338,14 @@ def gaya(gelap: bool) -> str:
 # Potongan kerangka
 # ---------------------------------------------------------------------------
 
-BERKAS_LOGO = ["kemenkeu.png"]
+# Tidak ada lambang resmi di kop.
+#
+# Sebelumnya lambang Kementerian Keuangan terpasang di sisi kiri, dan itu
+# keliru arah. Situs ini mengolah dokumen terbuka milik publik, tetapi bukan
+# terbitan lembaga mana pun, dan lambang resmi di kepala halaman menyatakan
+# sebaliknya kepada tiap pembaca yang datang. Kalau kelak ada lambang, yang
+# pantas dipasang adalah lambang penyusunnya sendiri.
+BERKAS_LOGO: list[str] = []
 
 # Bilah judul dan kaki dipindahkan menjadi anak langsung akar dokumen.
 # Position fixed hanya terpaku ke jendela selama tidak ada wadah induk yang
@@ -1414,8 +1430,8 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
     nyala = "berjalan" if aktif else "berhenti"
     return (
         '<div class="kaki">'
-        f'<span class="kiri">&copy; 2026 Dikembangkan oleh <b>{nama}</b>'
-        '<span class="purwarupa">Purwarupa</span></span>'
+        f'<span class="kiri">&copy; 2026 Disusun oleh <b>{nama}</b>'
+        '<span class="mandiri">Bukan terbitan resmi</span></span>'
         f'<span class="tengah">{status_data}<span class="pisah"> · </span>'
         f'<span class="titik" style="background:{warna}"></span>'
         f'Penarikan <b>{nyala}</b>, {status_tarik}</span>'
