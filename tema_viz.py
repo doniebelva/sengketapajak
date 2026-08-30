@@ -1589,7 +1589,8 @@ def kepala_halaman(judul: str, dimensi: str | None,
     return (f'<div class="kepala-hal"><h3>{judul}</h3>{label}</div>')
 
 
-def keterangan_waktu(rentang: str, diperbarui: str | None) -> str:
+def keterangan_waktu(rentang: str, diperbarui: str | None,
+                     diolah: str | None = None) -> str:
     """
     Keterangan kapan, dipasang tepat di atas deret kartu angka.
 
@@ -1599,8 +1600,16 @@ def keterangan_waktu(rentang: str, diperbarui: str | None) -> str:
     disebut, yaitu rentang tahun putusan yang sedang diamati, dan tanggal
     arsipnya terakhir diperbarui.
     """
-    ekor = (f'<span class="pisah">·</span>arsip diperbarui '
+    # Dua tanggal, bukan satu, karena artinya berbeda dan pembaca pernah
+    # salah membacanya. Yang satu tanggal berkas terakhir ditarik dari
+    # peladen Sekretariat, yang satu lagi tanggal arsipnya terakhir diolah
+    # ulang. Ketika hanya tanggal tarikan yang tampil, arsip yang baru
+    # diolah kemarin terbaca seolah berhenti diurus tiga minggu lalu.
+    ekor = (f'<span class="pisah">·</span>berkas terakhir ditarik '
             f'<b>{diperbarui}</b>' if diperbarui else "")
+    if diolah:
+        ekor += (f'<span class="pisah">·</span>terakhir diolah '
+                 f'<b>{diolah}</b>')
     return ('<div class="kapan">Angka pada halaman ini mencakup putusan '
             f'tahun <b>{rentang}</b>{ekor}</div>')
 

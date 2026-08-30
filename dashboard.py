@@ -1463,7 +1463,30 @@ DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
 # halaman lain. Tanpa ini, semua peran mendarat di Ringkasan Eksekutif yang
 # sama, dan menit pertama pemakaian habis untuk menebak nebak menu. Modul
 # Semua sengaja tanpa Beranda, karena isinya memang untuk penjelajahan bebas.
+# Urutannya menentukan modul bawaan, dan yang bawaan adalah wajib pajak.
+#
+# Sebelumnya yang terbuka lebih dulu adalah modul Semua, yang menyajikan
+# seluruh halaman lengkap dengan nama hakim. Itu masuk akal ketika dashboard
+# ini dipakai kalangan sendiri, dan berhenti masuk akal begitu sasarannya
+# bergeser menjadi wajib pajak kebanyakan. Pengunjung yang baru datang tidak
+# tahu ada saklar modul, tidak tahu bedanya, dan tidak akan mencarinya, jadi
+# apa pun yang terbuka pertama itulah yang dianggapnya isi situs ini.
 MODUL = {
+    # Istilah Sederhana ditaruh paling depan pada modul ini. Wajib pajak
+    # kebanyakan datang tanpa latar hukum, dan tanpa arti kata banding,
+    # gugatan, dan amar, seluruh halaman lain akan salah dibacanya.
+    #
+    # Halaman hakim ikut disajikan di sini, tetapi tanpa nama. Bagaimana
+    # hakim memutus sengketa pajak adalah pengetahuan yang berhak diketahui
+    # publik, dan menutupnya sama saja menutup sebagian cara kerja pengadilan
+    # dari orang yang perkaranya sedang diperiksa di sana. Yang tidak perlu
+    # diketahui publik hanya identitas orangnya, sebab itu tidak menambah
+    # pengetahuan apa pun sedangkan dampaknya pada orang tersebut nyata.
+    "Wajib pajak": ["Beranda", "Istilah Sederhana", "Ringkasan Eksekutif",
+                    "Pola Putusan Sejenis", "Pilihan Upaya Hukum",
+                    "Risalah Putusan", "Profil Hakim", "Karakter Memutus",
+                    "Konsistensi Putusan Hakim",
+                    "Panduan Analisis", "Metodologi"],
     "Semua": HALAMAN,
     "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
                  "Risalah Putusan", "Konsistensi Putusan Hakim",
@@ -1477,21 +1500,6 @@ MODUL = {
                "Pasal Penentu", "Unit Penerbit Ketetapan",
                "Konsistensi Putusan Hakim", "Karakter Memutus",
                "Banding Unit", "Risalah Putusan", "Panduan Analisis", "Metodologi"],
-    # Istilah Sederhana ditaruh paling depan pada modul ini. Wajib pajak
-    # kebanyakan datang tanpa latar hukum, dan tanpa arti kata banding,
-    # gugatan, dan amar, seluruh halaman lain akan salah dibacanya.
-    # Halaman hakim ikut disajikan pada modul umum, tetapi tanpa nama.
-    #
-    # Bagaimana hakim memutus sengketa pajak adalah pengetahuan yang berhak
-    # diketahui publik, dan menyembunyikannya sama saja menyembunyikan
-    # sebagian cara kerja pengadilan. Yang tidak perlu diketahui publik hanya
-    # identitas orangnya, sebab itu tidak menambah pengetahuan apa pun
-    # sedangkan dampaknya pada orang tersebut nyata.
-    "Wajib pajak": ["Beranda", "Istilah Sederhana", "Ringkasan Eksekutif",
-                    "Pola Putusan Sejenis", "Pilihan Upaya Hukum",
-                    "Risalah Putusan", "Profil Hakim", "Karakter Memutus",
-                    "Konsistensi Putusan Hakim",
-                    "Panduan Analisis", "Metodologi"],
 }
 # Nama halaman yang sah untuk tautan dan perpindahan, termasuk Beranda yang
 # tidak berada pada daftar induk karena isinya bergantung modul.
@@ -1938,7 +1946,7 @@ def _ikhtisar_ringkas() -> None:
     # kapan. Dua duanya disebut, karena keduanya berbeda: rentang tahun
     # putusan yang diamati, dan saat arsipnya terakhir diperbarui.
     st.html(TV.keterangan_waktu(
-        rentang_tahun(d), keadaan_tarikan().get("terakhir")))
+        rentang_tahun(d), keadaan_tarikan().get("terakhir"), _cap_urai))
 
     # Pembanding tahun sebelumnya dihitung untuk ruas yang memang dapat
     # dibandingkan antar tahun. Jumlah putusan terurai sengaja tidak diberi
@@ -2610,8 +2618,14 @@ LANJUTAN = {
 
 def langkah_berikutnya(halaman_ini: str) -> None:
     """Tautan menuju langkah lanjutan, digambar di kaki halaman."""
+    # Hanya halaman yang ada pada modul yang sedang aktif.
+    #
+    # Saringan sebelumnya menerima seluruh halaman sah, sehingga sebenarnya
+    # tidak menyaring apa pun, dan modul yang sengaja dikuratori tetap
+    # menawarkan langkah menuju halaman yang tidak ada di menunya. Pembaca
+    # yang mengikutinya sampai di halaman yang tidak dapat ditemukannya lagi.
     daftar = [(t, s) for t, s in LANJUTAN.get(halaman_ini, [])
-              if t in daftar_hal or t in HALAMAN_SAH]
+              if t in daftar_hal]
     if not daftar:
         return
     st.html('<div class="lanjut-judul">Langkah berikutnya</div>')
