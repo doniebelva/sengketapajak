@@ -1240,6 +1240,109 @@ def gaya(gelap: bool) -> str:
     width: 26%; font-weight: 600;
   }}
 
+  /* --- Halaman muka ----------------------------------------------------- */
+  /* Halaman depan yang langsung membuka deretan kartu angka terbaca sebagai
+     aplikasi pemantau, dan pembaca yang belum tahu ini situs apa tidak
+     pernah diberi tahu. Bagian di bawah ini menyediakan tiga hal yang selalu
+     ada pada halaman muka situs: satu kalimat yang menyatakan gunanya, pintu
+     masuk menurut kebutuhan pembaca, dan keterangan isinya. */
+  .muka {{
+    display: flex; align-items: stretch; gap: 26px;
+    padding: 26px 28px 24px; border-radius: 18px; margin: 2px 0 20px;
+    background: linear-gradient(150deg, {lembut(p["kop_terang"], .10)} 0%,
+                                {lembut(p["kop_terang"], .03)} 58%,
+                                {p["permukaan"]} 100%);
+    border: 1px solid {lembut(p["kop_terang"], .22)};
+  }}
+  .muka-judul {{
+    font-size: 27px; font-weight: 700; color: {p["tinta"]};
+    line-height: 1.22; letter-spacing: -.014em; margin: 0 0 10px;
+    max-width: 44ch;
+  }}
+  .muka-sub {{
+    font-size: 14px; color: {p["tinta_2"]}; line-height: 1.62;
+    max-width: 76ch; margin: 0;
+  }}
+  .muka-tanda {{
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-bottom: 13px; padding: 4px 11px; border-radius: 999px;
+    background: {lembut(p["kop_terang"], .14)};
+    border: 1px solid {lembut(p["kop_terang"], .3)};
+    font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: {p["tinta"]};
+  }}
+  /* Pintu masuk menurut kebutuhan pembaca. Bentuknya tombol Streamlit, sebab
+     hanya tombol yang dapat memanggil perpindahan halaman, tetapi gayanya
+     dibuat sebagai kartu supaya terbaca sebagai pilihan jalan, bukan sebagai
+     daftar perintah. */
+  div[class*="st-key-beranda-"] button {{
+    height: 100%; min-height: 78px; text-align: left !important;
+    justify-content: flex-start !important; align-items: flex-start !important;
+    padding: 15px 17px !important; border-radius: 14px !important;
+    border: 1px solid {p["tepi"]} !important;
+    background: {p["permukaan"]} !important;
+    transition: box-shadow .18s ease, transform .18s ease,
+                border-color .18s ease;
+  }}
+  div[class*="st-key-beranda-"] button:hover {{
+    border-color: {lembut(p["kop_terang"], .45)} !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.10);
+    transform: translateY(-1px);
+  }}
+  div[class*="st-key-beranda-"] button p {{
+    font-size: 13.5px !important; font-weight: 560 !important;
+    line-height: 1.5 !important; color: {p["tinta"]} !important;
+    white-space: normal !important; text-align: left !important;
+  }}
+  /* Keterangan isi situs, tiga alinea pendek berdampingan. */
+  .muka-isi {{
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin: 6px 0 4px;
+  }}
+  .muka-isi > div {{
+    padding: 15px 17px; border-radius: 14px;
+    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
+  }}
+  .muka-isi b {{
+    display: block; font-size: 12.5px; font-weight: 700; color: {p["tinta"]};
+    margin-bottom: 6px;
+  }}
+  .muka-isi span {{
+    font-size: 12px; color: {p["tinta_2"]}; line-height: 1.6;
+  }}
+  /* Potret penyusun di sisi kanan panel muka.
+     Situs yang mengajarkan sesuatu lebih dipercaya ketika jelas siapa yang
+     menyusunnya, dan wajah mengerjakan itu jauh lebih cepat daripada satu
+     alinea riwayat. Gambarnya dipotong menjadi kotak bersudut bulat supaya
+     tingginya mengikuti panel, bukan panelnya yang memanjang mengikuti
+     potret. */
+  .muka-teks {{ flex: 1 1 auto; min-width: 0; }}
+  .muka-potret {{
+    flex: 0 0 168px; display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+  }}
+  .muka-potret img {{
+    width: 168px; height: 186px; object-fit: cover; object-position: 50% 18%;
+    border-radius: 16px; display: block;
+    border: 1px solid {lembut(p["kop_terang"], .3)};
+    box-shadow: 0 6px 18px rgba(0,0,0,.14);
+  }}
+  .muka-potret .nama {{
+    margin-top: 9px; font-size: 12px; font-weight: 700; color: {p["tinta"]};
+    text-align: center; line-height: 1.35;
+  }}
+  .muka-potret .peran {{
+    font-size: 11px; color: {p["tinta_2"]}; text-align: center;
+    line-height: 1.45; margin-top: 2px;
+  }}
+  @media (max-width: 900px) {{
+    .muka-isi {{ grid-template-columns: 1fr; }}
+    .muka-judul {{ font-size: 22px; }}
+    .muka {{ flex-direction: column-reverse; align-items: flex-start; }}
+    .muka-potret {{ flex-direction: row; align-items: center; gap: 12px; }}
+    .muka-potret img {{ width: 84px; height: 92px; }}
+  }}
+
   /* --- Panel lipat ------------------------------------------------------ */
   div[data-testid="stExpander"] {{
     border: none !important; border-top: 1px solid {p["tepi"]} !important;
@@ -1357,6 +1460,7 @@ def gaya(gelap: bool) -> str:
 # sebaliknya kepada tiap pembaca yang datang. Kalau kelak ada lambang, yang
 # pantas dipasang adalah lambang penyusunnya sendiri.
 BERKAS_LOGO: list[str] = []
+BERKAS_POTRET = "muka-penyusun.webp"
 
 # Bilah judul dan kaki dipindahkan menjadi anak langsung akar dokumen.
 # Position fixed hanya terpaku ke jendela selama tidak ada wadah induk yang
@@ -1417,6 +1521,22 @@ def logo_tersedia() -> list[str]:
                 keluar.append("data:image/png;base64,"
                               + base64.b64encode(fh.read()).decode("ascii"))
     return keluar
+
+
+def potret_penyusun() -> str:
+    """Potret penyusun sebagai data tertanam, kosong bila berkasnya tidak ada.
+
+    Ditanam langsung ke dalam halaman, bukan ditautkan sebagai berkas, sebab
+    Streamlit tidak menyajikan berkas statis dari folder aset, dan gambar
+    sembilan belas kilobita masih jauh lebih murah daripada satu permintaan
+    jaringan tambahan pada tiap muat halaman.
+    """
+    jalur = os.path.join(ASET, BERKAS_POTRET)
+    if not os.path.exists(jalur):
+        return ""
+    with open(jalur, "rb") as fh:
+        return ("data:image/webp;base64,"
+                + base64.b64encode(fh.read()).decode("ascii"))
 
 
 def kop(judul: str, sub: str, kanan: str) -> str:

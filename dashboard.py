@@ -1502,7 +1502,14 @@ MODUL = {
                     "Risalah Putusan", "Profil Hakim", "Karakter Memutus",
                     "Konsistensi Putusan Hakim",
                     "Panduan Analisis", "Metodologi"],
-    "Semua": HALAMAN,
+    # Beranda ikut disertakan di sini.
+    #
+    # Sebelumnya modul Semua berisi HALAMAN apa adanya, dan HALAMAN tidak
+    # memuat Beranda karena halaman itu bukan sajian angka. Akibatnya pembaca
+    # yang pindah ke modul Semua kehilangan halaman muka sama sekali, tanpa
+    # satu pun jalan kembali ke sana selain berganti modul. Tidak ada yang
+    # menangkapnya karena Beranda memang tidak pernah ikut diuji.
+    "Semua": ["Beranda"] + HALAMAN,
     "Pimpinan": ["Beranda", "Ringkasan Eksekutif", "Nilai Sengketa",
                  "Risalah Putusan", "Konsistensi Putusan Hakim",
                  "Sengketa Berulang", "Tema Sengketa", "Profil Hakim",
@@ -6898,6 +6905,52 @@ def _beranda_cari() -> None:
             st.rerun()
 
 
+def muka_kepala(tanda: str, judul: str, kalimat: str) -> None:
+    """
+    Kepala halaman muka: satu penanda, satu judul, satu alinea.
+
+    Sebelumnya halaman ini dibuka subjudul bernama Beranda Wajib Pajak dan
+    satu baris keterangan kecil. Itu nama ruangan, bukan pernyataan guna, dan
+    pembaca yang baru sampai tidak pernah diberi tahu situs ini untuk apa dan
+    dari mana angkanya. Halaman muka situs selalu menjawab dua hal itu lebih
+    dulu, sebelum menyodorkan angka apa pun.
+    """
+    foto = TV.potret_penyusun()
+    potret = (
+        '<div class="muka-potret">'
+        f'<img src="{foto}" alt="Potret penyusun situs">'
+        '<div class="nama">Donny Maha Putra</div>'
+        '<div class="peran">Dosen dan peneliti</div>'
+        '</div>') if foto else ""
+    st.html(
+        '<div class="muka">'
+        '<div class="muka-teks">'
+        f'<div class="muka-tanda">{tanda}</div>'
+        f'<div class="muka-judul">{judul}</div>'
+        f'<p class="muka-sub">{kalimat}</p>'
+        '</div>'
+        f'{potret}'
+        '</div>')
+
+
+def muka_isi() -> None:
+    """Tiga alinea pendek yang menerangkan isi situs dan batasnya."""
+    n_hal = len([h for h in daftar_hal if h != "Beranda"])
+    st.html(
+        '<div class="muka-isi">'
+        f'<div><b>{len(d):,} putusan dibaca ulang</b><span>Risalah putusan '
+        'Pengadilan Pajak yang diterbitkan Sekretariat, diurai satu per satu '
+        'menjadi angka yang dapat dibandingkan.</span></div>'
+        f'<div><b>{n_hal} halaman telaah</b><span>Dari pola putusan perkara '
+        'sejenis, lama penyelesaian, sampai cara majelis memutus. Tiap angka '
+        'dapat diklik sampai ke putusan aslinya.</span></div>'
+        '<div><b>Bukan nasihat hukum</b><span>Yang disajikan adalah apa yang '
+        'sudah terjadi pada perkara orang lain, bukan ramalan atas perkara '
+        'siapa pun. Untuk perkara sendiri, tanyakan kepada yang membaca '
+        'berkasnya langsung.</span></div>'
+        '</div>')
+
+
 def _beranda_tanya(daftar: list) -> None:
     """
     Daftar pertanyaan yang tiap barisnya membawa ke halaman jawabannya.
@@ -6906,12 +6959,24 @@ def _beranda_tanya(daftar: list) -> None:
     sehingga tujuan yang tidak tersedia pada modul terpilih otomatis
     memulangkan modul ke Semua lebih dulu.
     """
-    st.html('<div class="tingkat">Pertanyaan yang Dapat Dijawab</div>')
-    for tanya, tujuan in daftar:
-        if st.button(tanya, key=f"beranda-{TV.kunci_nav(tujuan)}-{hash(tanya) & 0xffff}",
-                     width="stretch"):
-            st.session_state["nav_tujuan"] = tujuan
-            st.rerun()
+    st.html('<div class="tingkat">Mulai dari Pertanyaan Anda</div>')
+    # Digambar berdampingan dua lajur, bukan menurun satu lajur.
+    #
+    # Empat tombol selebar halaman yang tersusun menurun terbaca sebagai
+    # daftar perintah aplikasi, dan pembaca menyapunya dari atas ke bawah
+    # seolah harus mengerjakan semuanya berurutan. Berdampingan, keempatnya
+    # terbaca sebagai empat pintu yang setara, dan pembaca memilih satu.
+    for i in range(0, len(daftar), 2):
+        kol = st.columns(2)
+        for kk, (tanya, tujuan) in zip(kol, daftar[i:i + 2]):
+            with kk:
+                if st.button(
+                        tanya,
+                        key=f"beranda-{TV.kunci_nav(tujuan)}-"
+                            f"{hash(tanya) & 0xffff}",
+                        width="stretch"):
+                    st.session_state["nav_tujuan"] = tujuan
+                    st.rerun()
 
 
 def hal_beranda() -> None:
@@ -6930,9 +6995,12 @@ def hal_beranda() -> None:
     p_gugur = 100 * len(gugur) / max(int(d["amar"].notna().sum()), 1)
 
     if modul == "Pimpinan":
-        st.subheader("Beranda Pimpinan")
-        st.caption("Keadaan sengketa dalam satu pandangan, untuk pengambilan "
-                   "kebijakan.")
+        muka_kepala(
+            "Untuk pimpinan",
+            "Keadaan sengketa pajak dalam satu pandangan",
+            "Seluruh angka di sini dihitung dari risalah putusan Pengadilan "
+            "Pajak yang terbuka untuk umum, bukan dari laporan internal, "
+            "sehingga dapat dikutip apa adanya beserta sumbernya.")
         rs = resmi_lingkup()
         ada = (rs[rs["mata_uang"] == "Rupiah"]
                .dropna(subset=["nilai_awal", "nilai_akhir"])
@@ -6969,9 +7037,12 @@ def hal_beranda() -> None:
         ])
 
     elif modul == "Fiskus":
-        st.subheader("Beranda Fiskus")
-        st.caption("Titik masuk pembenahan mutu ketetapan, dari koreksi yang "
-                   "paling sering gugur sampai pasal yang menentukannya.")
+        muka_kepala(
+            "Untuk pemeriksa",
+            "Ketetapan yang bertahan di pengadilan, dan yang tidak",
+            "Titik masuk pembenahan mutu ketetapan, mulai dari jenis koreksi "
+            "yang paling sering gugur sampai pasal yang paling menentukan "
+            "hasil perkaranya.")
         k = st.columns(3)
         k[0].html(TV.kartu("Ketetapan yang disengketakan berujung dikoreksi",
                            f"{tingkat:.1f} %",
@@ -7006,9 +7077,13 @@ def hal_beranda() -> None:
         ])
 
     else:
-        st.subheader("Beranda Wajib Pajak")
-        st.caption("Bekal sebelum memutuskan mengajukan upaya hukum: peluang "
-                   "historisnya, lamanya, dan jebakan yang paling merugikan.")
+        muka_kepala(
+            "Terbuka untuk umum",
+            "Belajar membaca putusan sengketa pajak",
+            "Ribuan perkara pajak sudah pernah diputus, dan seluruh "
+            "risalahnya terbuka untuk siapa saja. Situs ini membaca ulang "
+            "arsip itu dengan bahasa sehari hari, supaya Anda tahu apa yang "
+            "sudah pernah terjadi sebelum memutuskan langkah sendiri.")
         # Pencarian didahulukan pada modul ini, sebelum satu angka pun
         # disajikan. Wajib pajak datang membawa perkaranya sendiri, dan
         # pertanyaan pertamanya bukan berapa persen yang dikabulkan
@@ -7037,6 +7112,8 @@ def hal_beranda() -> None:
             ("Apa yang membuat perkara gugur tanpa pernah diperiksa?",
              "Mutu Ketetapan"),
         ])
+        st.html('<div class="tingkat">Apa Isi Situs Ini</div>')
+        muka_isi()
 
 
 # ---------------------------------------------------------------------------
