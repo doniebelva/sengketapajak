@@ -1581,10 +1581,17 @@ kode_peta = peta_kode()
 # putusan yang instansinya belum terbaca, lalu empat kluster analisis:
 # Kemenkeu sebagai gabungan DJP dan DJBC, DJP sendiri, DJBC sendiri, dan
 # pemerintah daerah.
+# Lingkup Belum terbaca tidak lagi ditawarkan.
+#
+# Isinya putusan yang unit penerbitnya gagal dikenali penguraian, yaitu
+# keterangan mutu data, bukan lingkup analisis yang bermakna bagi pembaca.
+# Menawarkannya sebagai pilihan sejajar DJP dan DJBC membuatnya tampak
+# sebagai instansi tersendiri. Putusan itu tidak dibuang: seluruhnya tetap
+# ikut terhitung pada lingkup Semua, dan berapa banyaknya tetap dilaporkan
+# pada halaman Metodologi.
 LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
                     "DJP": ("djp",), "DJBC": ("djbc",),
-                    "Pemda": ("pemda",),
-                    "Belum terbaca": ("__kosong__",)}
+                    "Pemda": ("pemda",)}
 # Bentuknya daftar jatuh, bukan deret pil. Lima pilihan tidak muat pada
 # satu baris bilah samping, dan pilihan terakhirnya melipat sendiri menjadi
 # baris penuh yang tampak seperti salah susun. Daftar jatuh selalu setinggi

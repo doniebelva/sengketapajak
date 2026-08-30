@@ -59,9 +59,9 @@ TERANG = {
     # padahal bukan. Warna resmi milik lembaganya, bukan milik siapa pun yang
     # mengolah datanya. Tulisan putih di atas warna paling terang di sini
     # berkontras sekitar tujuh setengah banding satu, jauh di atas ambang.
-    "kop_terang": "#0c5f58",
-    "kop": "#0a4442",
-    "kop_2": "#07302f",
+    "kop_terang": "#087274",
+    "kop": "#06585b",
+    "kop_2": "#04403f",
     # Biru tua di bawah ini bukan lagi warna tampilan, melainkan warna data,
     # yaitu penanda unit gabungan pada bagan. Dibiarkan biru supaya sekeluarga
     # dengan warna DJP dan berbeda jelas dari emas DJBC.
@@ -81,9 +81,9 @@ TERANG = {
 
 GELAP = {
     "seri": ["#4a8ae0", "#ad8110", "#2f9c68"],
-    "kop_terang": "#0a4a45",
-    "kop": "#082f2f",
-    "kop_2": "#051f20",
+    "kop_terang": "#076063",
+    "kop": "#054749",
+    "kop_2": "#033335",
     "navy_terang": "#0d3a6e",
     "permukaan": "#1c1f26",
     "bidang": "#12141a",
@@ -389,7 +389,13 @@ def gaya(gelap: bool) -> str:
   .kop-garis {{ width: 1px; height: 36px; background: rgba(255,255,255,.24); }}
   .kop-judul {{ font-size: 19px; font-weight: 600; color: #fff;
                 line-height: 1.25; letter-spacing: .005em; }}
-  .kop-sub {{ font-size: 12px; color: rgba(255,255,255,.80); margin-top: 3px; }}
+  /* Sub judul memakai putih 92 persen, bukan 80 persen.
+     Toska yang benar benar segar itu terang, dan tulisan putih tipis di
+     atasnya jatuh ke bawah ambang keterbacaan. Menebalkan tulisannya
+     sedikit membuat warna kop boleh lebih hidup tanpa mengorbankan
+     pembacanya: rasio kontrasnya naik dari 4,28 menjadi 5,12. */
+  .kop-sub {{ font-size: 12px; color: rgba(255,255,255,.92); margin-top: 3px;
+              letter-spacing: .002em; }}
   .kop-kanan {{ margin-left: auto; text-align: right;
                 font-size: 11.5px; color: rgba(255,255,255,.84);
                 line-height: 1.45;
@@ -663,12 +669,6 @@ def gaya(gelap: bool) -> str:
                    white-space: nowrap; }}
   .kaki .kanan {{ justify-self: end; white-space: nowrap; }}
   .kaki .pisah {{ color: {p["sumbu"]}; }}
-  .kaki .mandiri {{
-    display: inline-block; padding: 2px 9px; border-radius: 999px;
-    font-size: 9.5px; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; color: {p["tinta_2"]};
-    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
-  }}
   .titik {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%;
             margin-right: 6px; vertical-align: -1px; }}
   @media (max-width: 1150px) {{
@@ -889,36 +889,44 @@ def gaya(gelap: bool) -> str:
      permintaan pemilik; identitas kartu cukup dari bayangan yang sedikit
      terangkat, tanpa hiasan berwarna. */
   .kpi {{
-    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
-    border-radius: 12px; padding: 15px 17px 14px;
+    /* Permukaan diberi gradasi sangat tipis ke arah warna kop, sehingga
+       kartu terasa sekeluarga dengan kepala halaman tanpa menjadi kartu
+       berwarna. Selisihnya hanya beberapa persen, cukup untuk memberi
+       kedalaman pada latar abu halaman, tidak cukup untuk mengganggu
+       pembacaan angkanya. */
+    background: linear-gradient(168deg, {lembut(p["kop_terang"], .045)} 0%,
+                                {p["permukaan"]} 46%);
+    border: 1px solid {p["tepi"]};
+    border-radius: 14px; padding: 15px 17px 14px;
     height: 100%; min-height: 116px;
     display: flex; flex-direction: column; justify-content: flex-start;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
-    transition: box-shadow .18s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    transition: box-shadow .18s ease, transform .18s ease,
+                border-color .18s ease;
   }}
-  .kpi:hover {{ box-shadow: 0 4px 14px rgba(0,0,0,.10); }}
-  /* Bingkai warna tipis pada kartu angka, berputar tiga warna deret bagan:
-     biru, emas, hijau. Warnanya dilembutkan supaya terasa sebagai aksen,
-     bukan hiasan ramai, dan bagan maupun tabel sengaja tetap berbingkai
-     netral supaya kartunya yang menonjol. Putarannya per kolom dalam satu
-     baris kartu, sehingga kartu bersebelahan tidak pernah sewarna. */
-  div[data-testid="stHorizontalBlock"]
-    > div[data-testid="stColumn"]:nth-of-type(3n+1) .kpi {{
-    border-color: {lembut(p["seri"][0], .55)};
+  .kpi:hover {{
+    box-shadow: 0 6px 18px rgba(0,0,0,.10);
+    border-color: {lembut(p["kop_terang"], .38)};
+    transform: translateY(-1px);
   }}
-  div[data-testid="stHorizontalBlock"]
-    > div[data-testid="stColumn"]:nth-of-type(3n+2) .kpi {{
-    border-color: {lembut(p["seri"][1], .55)};
-  }}
-  div[data-testid="stHorizontalBlock"]
-    > div[data-testid="stColumn"]:nth-of-type(3n) .kpi {{
-    border-color: {lembut(p["seri"][2], .55)};
-  }}
+  /* Bingkai warna berputar tiga warna deret bagan sudah dicabut.
+     Putarannya dihitung per tiga kolom, sedangkan baris kartu utama berisi
+     empat kartu, sehingga kartu pertama dan keempat selalu sewarna dan
+     urutannya patah di tengah baris. Yang lebih buruk, warna itu tidak
+     menyatakan apa apa: pembaca wajar menyangka biru dan emas membedakan
+     jenis angka, padahal hanya membedakan urutan kolom. Warna yang tidak
+     berarti apa apa tetapi tampak berarti lebih menyesatkan daripada tidak
+     ada warna sama sekali. */
   .kpi-ket {{ margin-top: auto; }}
   .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
                 text-transform: uppercase; color: {p["tinta_2"]}; }}
-  .kpi-nilai {{ font-size: 27px; font-weight: 650; color: {p["tinta"]};
-                line-height: 1.15; margin-top: 6px;
+  /* Angka memakai lebar digit seragam. Tanpa itu angka satu jauh lebih
+     sempit daripada angka lain, sehingga deretan kartu bersebelahan tampak
+     bergeser geser dan sulit dibandingkan sekilas. */
+  .kpi-nilai {{ font-size: 28px; font-weight: 680; color: {p["tinta"]};
+                line-height: 1.15; margin-top: 7px;
+                font-variant-numeric: tabular-nums;
+                letter-spacing: -.012em;
                 overflow-wrap: anywhere; }}
   /* Nilai berupa nama, bukan angka, kerap jauh lebih panjang daripada
      ruang kartunya. Ukurannya diturunkan menurut panjang tulisan supaya
@@ -933,10 +941,13 @@ def gaya(gelap: bool) -> str:
      buruk bagi pihak lain: tingkat dikabulkan yang naik menguntungkan wajib
      pajak dan merugikan fiskus. Yang diberikan hanya penunjuk arah. */
   .kpi-banding {{
-    font-size: 11.5px; font-weight: 600; color: {p["tinta_2"]};
-    margin-top: 5px;
+    display: inline-flex; align-items: center; align-self: flex-start;
+    padding: 3px 9px; border-radius: 999px;
+    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
+    font-size: 11px; font-weight: 600; color: {p["tinta_2"]};
+    margin-top: 8px;
   }}
-  .kpi-arah {{ margin-right: 4px; font-size: 10px; }}
+  .kpi-arah {{ margin-right: 5px; font-size: 9.5px; }}
 
   /* Penanda ruas yang kelengkapannya rendah, menempel pada kartunya sendiri.
      Peringatan di kepala halaman mudah tertinggal ketika pembaca menyalin
@@ -1430,8 +1441,7 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
     nyala = "berjalan" if aktif else "berhenti"
     return (
         '<div class="kaki">'
-        f'<span class="kiri">&copy; 2026 Disusun oleh <b>{nama}</b>'
-        '<span class="mandiri">Bukan terbitan resmi</span></span>'
+        f'<span class="kiri">&copy; 2026 Dikembangkan oleh <b>{nama}</b></span>'
         f'<span class="tengah">{status_data}<span class="pisah"> · </span>'
         f'<span class="titik" style="background:{warna}"></span>'
         f'Penarikan <b>{nyala}</b>, {status_tarik}</span>'
