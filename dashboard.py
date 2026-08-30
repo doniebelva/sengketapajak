@@ -22,6 +22,7 @@ Menjalankan:
 
 from __future__ import annotations
 
+import hashlib
 import math
 import os
 import re
@@ -679,7 +680,8 @@ def _selisih_satu(a: str, b: str) -> bool:
     return True
 
 
-def bakukan_hakim(seri: pd.Series) -> tuple[pd.Series, pd.Series]:
+def bakukan_hakim(seri: pd.Series,
+                  samar: bool | None = None) -> tuple[pd.Series, pd.Series]:
     """Kembalikan kunci baku sejajar masukan, dan peta kunci ke nama tampilan.
 
     Varian yang kuncinya persis sama langsung menyatu. Varian yang kuncinya
@@ -710,7 +712,53 @@ def bakukan_hakim(seri: pd.Series) -> tuple[pd.Series, pd.Series]:
                 .agg(lambda x: _rapi_kapital(
                     nama_tanpa_gelar(x.value_counts().index[0])
                     or str(x.value_counts().index[0]))))
+    # Penyamaran dikerjakan di sini, bukan di tiap halaman.
+    #
+    # Percobaan pertama menyamarkan nama pada halaman yang kelihatan
+    # menyebutnya, dan hasilnya nama tetap bocor di tabel rekapitulasi serta
+    # di seluruh halaman konsistensi. Selama penyamaran dikerjakan di tempat
+    # nama ditampilkan, tiap sajian baru menambah satu tempat yang mudah
+    # terlupa. Karena seluruh halaman mengambil nama tampilannya dari fungsi
+    # ini, cukup satu tempat yang perlu benar.
+    if samar is None:
+        samar = samarkan_hakim()
+    if samar:
+        peta_s = peta_samaran_hakim()
+        tampilan = pd.Series(
+            [peta_s.get(k, "Hakim lainnya") for k in tampilan.index],
+            index=tampilan.index)
     return kunci_final, tampilan
+
+
+_SAMARAN: dict[str, str] = {}
+
+
+def peta_samaran_hakim() -> dict[str, str]:
+    """Penanda berurut untuk tiap hakim, sama di seluruh halaman.
+
+    Nomornya sengaja tidak mengikuti banyaknya putusan maupun abjad, sebab
+    urutan semacam itu dengan sendirinya membocorkan siapa yang dimaksud
+    kepada pembaca yang memegang daftar hakim. Urutannya diambil dari sidik
+    ringkas nama, sehingga tetap sama tiap kali halaman dibuka dan tetap sama
+    antarhalaman, tetapi tidak menyiratkan apa pun tentang orangnya.
+
+    Perlu dinyatakan terus terang: ini penyajian, bukan kerahasiaan. Risalah
+    putusan itu sendiri terbuka dan menyebut susunan majelisnya, dan siapa pun
+    yang mau menelusuri tetap dapat menemukannya. Yang dihindari di sini hanya
+    satu, yaitu dashboard ini berubah menjadi papan peringkat hakim
+    perorangan bagi pembaca umum.
+    """
+    if _SAMARAN:
+        return _SAMARAN
+    bagian = [d["hakim_ketua"].astype(str)]
+    if "hakim_anggota" in d.columns:
+        bagian.append(
+            d["hakim_anggota"].astype(str).str.split("|").explode())
+    kunci, _ = bakukan_hakim(pd.concat(bagian, ignore_index=True), samar=False)
+    unik = [k for k in dict.fromkeys(kunci.dropna()) if k]
+    unik.sort(key=lambda k: hashlib.sha1(k.encode("utf-8")).hexdigest())
+    _SAMARAN.update({k: f"Hakim {i + 1:02d}" for i, k in enumerate(unik)})
+    return _SAMARAN
 
 
 def _rapi_kapital(nama: str) -> str:
@@ -1330,12 +1378,42 @@ cakupan = 100 * corong["unduh"] / max(1, ID_MAKS)
 # unduhan terakhir yang terbawa di dalam paket data, sehingga otomatis
 # berganti setiap paket baru terpasang, dan menjawab pertanyaan pertama
 # pembaca angka: data ini per kapan.
-_cap_data = keadaan_tarikan().get("cap")
+# Dua cap waktu yang berbeda, dan label yang menyebutnya apa adanya.
+#
+# Cap penarikan menjawab sampai kapan arsipnya terkumpul, sedangkan cap
+# penguraian menjawab kapan angka yang tampil dihitung. Keduanya sempat
+# disatukan di bawah label pembaruan data, dan itu menyesatkan: dashboard
+# menampilkan tanggal penarikan terakhir padahal datasetnya baru diolah ulang
+# hari itu juga, sehingga pembaca menyangka angkanya basi berminggu minggu.
+@st.cache_data(ttl=300, show_spinner=False)
+def cap_penguraian() -> str | None:
+    try:
+        with sambung() as c:
+            r = c.execute(
+                "SELECT nilai FROM meta WHERE kunci='diurai_pada'").fetchone()
+    except sqlite3.OperationalError:
+        return None
+    if not r or not r[0]:
+        return None
+    import datetime as _dt
+    try:
+        t = _dt.datetime.fromisoformat(r[0])
+    except ValueError:
+        return None
+    wib = (t + _dt.timedelta(hours=7) if t.tzinfo is None
+           else t.astimezone(_dt.timezone(_dt.timedelta(hours=7))))
+    return wib.strftime("%d-%m-%Y")
+
+
+_cap_tarik = keadaan_tarikan().get("terakhir")
+_cap_urai = cap_penguraian()
 st.html(TV.kop("Dashboard Analitik Sengketa Pajak",
                "Analitik Risalah Putusan Pengadilan Pajak · Sumber data: "
                "https://setpp.kemenkeu.go.id/risalah",
-               (f"Pembaruan data terakhir<br><b>{_cap_data} WIB</b>"
-                if _cap_data else "")))
+               ((f"Data diolah<br><b>{_cap_urai}</b>"
+                 if _cap_urai else
+                 f"Arsip ditarik hingga<br><b>{_cap_tarik}</b>")
+                if (_cap_urai or _cap_tarik) else "")))
 
 with st.container(key="tema"):
     pilih_tema = st.segmented_control(
@@ -1362,7 +1440,7 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pasal Penentu", "Unit Penerbit Ketetapan",
            "Profil Hakim", "Karakter Memutus", "Banding Unit",
            "Durasi Penyelesaian Sengketa",
-           "Panduan Analisis", "Metodologi"]
+           "Istilah Sederhana", "Panduan Analisis", "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
            "Pilihan Upaya Hukum": "Preskriptif",
@@ -1399,8 +1477,20 @@ MODUL = {
                "Pasal Penentu", "Unit Penerbit Ketetapan",
                "Konsistensi Putusan Hakim", "Karakter Memutus",
                "Banding Unit", "Risalah Putusan", "Panduan Analisis", "Metodologi"],
-    "Wajib pajak": ["Beranda", "Ringkasan Eksekutif", "Pola Putusan Sejenis",
-                    "Pilihan Upaya Hukum", "Risalah Putusan",
+    # Istilah Sederhana ditaruh paling depan pada modul ini. Wajib pajak
+    # kebanyakan datang tanpa latar hukum, dan tanpa arti kata banding,
+    # gugatan, dan amar, seluruh halaman lain akan salah dibacanya.
+    # Halaman hakim ikut disajikan pada modul umum, tetapi tanpa nama.
+    #
+    # Bagaimana hakim memutus sengketa pajak adalah pengetahuan yang berhak
+    # diketahui publik, dan menyembunyikannya sama saja menyembunyikan
+    # sebagian cara kerja pengadilan. Yang tidak perlu diketahui publik hanya
+    # identitas orangnya, sebab itu tidak menambah pengetahuan apa pun
+    # sedangkan dampaknya pada orang tersebut nyata.
+    "Wajib pajak": ["Beranda", "Istilah Sederhana", "Ringkasan Eksekutif",
+                    "Pola Putusan Sejenis", "Pilihan Upaya Hukum",
+                    "Risalah Putusan", "Profil Hakim", "Karakter Memutus",
+                    "Konsistensi Putusan Hakim",
                     "Panduan Analisis", "Metodologi"],
 }
 # Nama halaman yang sah untuk tautan dan perpindahan, termasuk Beranda yang
@@ -1557,7 +1647,8 @@ KELOMPOK_MENU = [
                       "Banding Unit"]),
     ("Proyeksi", ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
     ("Rekomendasi", ["Pilihan Upaya Hukum"]),
-    ("Panduan dan Metode", ["Panduan Analisis", "Metodologi"]),
+    ("Panduan dan Metode", ["Istilah Sederhana", "Panduan Analisis",
+                            "Metodologi"]),
 ]
 
 with bagian_menu, st.container(key="menu-nav"):
@@ -2568,6 +2659,26 @@ def buka_putusan(doc_id, kunci_daftar: str | None = None) -> None:
     if kunci_daftar:
         st.session_state["hapus_kunci"] = kunci_daftar
     st.rerun()
+
+
+def samarkan_hakim() -> bool:
+    """
+    Apakah nama hakim disamarkan pada modul yang sedang aktif.
+
+    Sajian tingkat hakim sah dan berguna, tetapi maknanya berubah menurut
+    siapa yang membacanya. Bagi pembina di dalam lembaga, nama diperlukan
+    supaya temuan dapat ditindaklanjuti pada orang yang tepat. Bagi pembaca
+    umum, nama tidak menambah pengetahuan apa pun, sedangkan daftar peringkat
+    bernama dapat terbaca sebagai penilaian atas hakim perorangan dan
+    mengundang harapan keliru bahwa hasil perkara bergantung pada siapa yang
+    kebagian memeriksa.
+
+    Karena itu pada modul wajib pajak namanya diganti penanda berurut, dan
+    yang disajikan tetap utuh: sebarannya, keseragamannya, dan bagaimana
+    perkara diputus. Yang hilang hanya identitas orangnya, dan itu memang
+    bukan bagian dari pengetahuan yang hendak disebarkan.
+    """
+    return modul == "Wajib pajak"
 
 
 def temuan(kalimat: str) -> None:
@@ -3878,7 +3989,17 @@ def _ulang_ringkas(dn: pd.DataFrame, dd: pd.DataFrame,
     if not urut:
         return pd.DataFrame()
     return pd.DataFrame({
-        "Wajib pajak": [str(info["nama"].get(x, x))[:38] for x in urut],
+        # Nama disamarkan pada modul wajib pajak.
+        #
+        # Nama nama ini memang tercantum pada risalah yang terbuka untuk umum,
+        # tetapi daftar peringkat siapa paling sering berperkara adalah
+        # bentuk baru yang tidak dibawa dokumen aslinya, dan bobot reputasinya
+        # berbeda. Bagi pembaca umum, yang berguna adalah polanya, bukan
+        # namanya. Pada modul pimpinan dan fiskus nama tetap ditampilkan,
+        # sebab di sana ia dipakai untuk menindaklanjuti perkara tertentu.
+        "Wajib pajak": ([f"Wajib pajak {i + 1}" for i in range(len(urut))]
+                        if modul == "Wajib pajak"
+                        else [str(info["nama"].get(x, x))[:38] for x in urut]),
         "Sengketa beramar": [int(n_amar[x]) for x in urut],
         "Hasil terbanyak": [LABEL_AMAR.get(ca["amar"].get(x),
                                            ca["amar"].get(x)) for x in urut],
@@ -5041,11 +5162,20 @@ def hal_hakim() -> None:
 
     atas = (per_hakim.sort_values(ascending=False).head(15)
             .rename_axis("Hakim").reset_index(name="Putusan"))
-    temuan(
-        f"<b>{atas.iloc[0]['Hakim']}</b> mengucapkan putusan terbanyak, "
-        f"{int(atas.iloc[0]['Putusan']):,}, sedangkan median seluruh hakim "
-        f"{per_hakim.median():.0f} putusan. Sebaran ini mengikuti cakupan "
-        "arsip yang terkumpul, bukan beban kerja sesungguhnya.")
+    if samarkan_hakim():
+        temuan(
+            f"Hakim dengan putusan terbanyak mengucapkan "
+            f"{int(atas.iloc[0]['Putusan']):,} putusan, sedangkan median "
+            f"seluruh hakim {per_hakim.median():.0f} putusan. Yang penting "
+            "dibaca di sini sebaran bebannya, bukan siapa orangnya, dan "
+            "sebaran itu mengikuti cakupan arsip yang terkumpul, bukan beban "
+            "kerja sesungguhnya.")
+    else:
+        temuan(
+            f"<b>{atas.iloc[0]['Hakim']}</b> mengucapkan putusan terbanyak, "
+            f"{int(atas.iloc[0]['Putusan']):,}, sedangkan median seluruh "
+            f"hakim {per_hakim.median():.0f} putusan. Sebaran ini mengikuti "
+            "cakupan arsip yang terkumpul, bukan beban kerja sesungguhnya.")
     bagan_drill(
       batang_peringkat(atas, "Hakim", "Putusan",
                        "Lima belas hakim dengan putusan terbanyak"),
@@ -6460,6 +6590,118 @@ def _karakter_tabel(prof: pd.DataFrame) -> None:
 # Panduan analisis: menjelaskan empat dimensi dengan bahasa sehari hari
 # ---------------------------------------------------------------------------
 
+def hal_istilah() -> None:
+    """
+    Penjelasan istilah dengan bahasa sehari hari, untuk pembaca tanpa latar
+    hukum maupun pajak.
+
+    Seluruh dashboard ini semula ditulis untuk pembaca yang sudah paham
+    istilahnya. Begitu sasarannya bergeser menjadi wajib pajak kebanyakan,
+    anggapan itu runtuh: kata banding, gugatan, amar, dan ketetapan dipakai
+    di mana mana tanpa pernah dijelaskan sekali pun. Pembaca yang tidak
+    mengerti satu kata kunci akan salah membaca seluruh halaman, dan yang
+    lebih buruk, ia tidak tahu bahwa ia salah membaca.
+
+    Ditulis sebagai kalimat pendek dan contoh nyata, bukan definisi hukum.
+    Definisi yang benar sudah ada di undang undang, dan mengulangnya di sini
+    tidak menolong siapa pun yang belum paham.
+    """
+    st.caption("Arti istilah yang dipakai di seluruh halaman, ditulis dengan "
+               "bahasa sehari hari untuk pembaca yang tidak berlatar hukum "
+               "maupun pajak.")
+
+    st.html(TV.catatan_siap(
+        "Yang perlu diketahui lebih dulu.",
+        "Halaman ini menjelaskan apa yang sudah terjadi pada perkara orang "
+        "lain di masa lalu. Ia tidak menilai perkara siapa pun, tidak "
+        "meramalkan hasil, dan bukan nasihat hukum. Untuk perkara Anda "
+        "sendiri, tetap tanyakan kepada kuasa hukum atau konsultan pajak "
+        "yang membaca berkasnya langsung."))
+
+    st.html('<div class="tingkat">Yang Paling Sering Ditanyakan</div>')
+    jelas(
+        "**Apa itu Pengadilan Pajak?** Tempat menyelesaikan perselisihan "
+        "antara wajib pajak dengan kantor pajak atau kantor bea cukai. "
+        "Perselisihan itu biasanya soal jumlah pajak yang harus dibayar.\n\n"
+        "**Apa itu risalah putusan?** Catatan resmi berisi apa yang "
+        "dipersoalkan, alasan kedua pihak, pertimbangan hakim, dan hasil "
+        "akhirnya. Dokumen ini terbuka untuk umum, dan dari kumpulan dokumen "
+        "itulah seluruh angka di dashboard ini dihitung.\n\n"
+        "**Apa bedanya banding dan gugatan?** Banding mempersoalkan besarnya "
+        "pajak yang ditetapkan, misalnya menurut kantor pajak kurang bayar "
+        "satu miliar, sedangkan menurut wajib pajak tidak. Gugatan "
+        "mempersoalkan cara atau prosedurnya, misalnya surat keputusan yang "
+        "diterbitkan tanpa memenuhi syarat. Singkatnya, banding soal "
+        "angkanya, gugatan soal caranya.")
+
+    st.html('<div class="tingkat">Istilah yang Sering Muncul</div>')
+    ist = pd.DataFrame([
+        ("Amar", "Bunyi keputusan hakim. Ini bagian yang menentukan siapa "
+                 "yang menang."),
+        ("Dikabulkan", "Permohonan wajib pajak diterima hakim. Dikabulkan "
+                       "seluruhnya berarti diterima semua, sebagian berarti "
+                       "diterima sebagian."),
+        ("Ditolak", "Permohonan wajib pajak tidak diterima, dan ketetapan "
+                    "kantor pajak tetap berlaku."),
+        ("Tidak dapat diterima", "Perkara gugur sebelum pokok persoalannya "
+                                 "diperiksa, biasanya karena lewat tenggat "
+                                 "atau salah jalur. Ini kekalahan yang paling "
+                                 "disayangkan, sebab isi perkaranya tidak "
+                                 "pernah dinilai."),
+        ("Ketetapan", "Surat resmi dari kantor pajak yang menyatakan berapa "
+                      "pajak yang masih harus dibayar. Inilah yang biasanya "
+                      "disengketakan."),
+        ("Terbanding", "Pihak yang ketetapannya dipersoalkan, yaitu kantor "
+                       "pajak atau kantor bea cukai."),
+        ("Pemohon banding", "Wajib pajak yang mengajukan keberatan ke "
+                            "pengadilan."),
+        ("Majelis", "Kelompok hakim yang memeriksa satu perkara, biasanya "
+                    "tiga orang."),
+        ("Koreksi", "Perubahan angka yang dilakukan kantor pajak atas laporan "
+                    "wajib pajak, misalnya menambah penghasilan yang dianggap "
+                    "belum dilaporkan."),
+        ("Pokok sengketa", "Inti yang dipersoalkan, ditulis pada bagian awal "
+                           "risalah."),
+    ], columns=["Istilah", "Artinya"])
+    st.html(TV.tabel(ist, kolom_kiri=("Istilah", "Artinya"), kelas="rata"))
+
+    st.html('<div class="tingkat">Cara Membaca Angka di Sini</div>')
+    jelas(
+        "**Persentase di sini adalah catatan masa lalu, bukan peluang Anda.** "
+        "Kalau tertulis tujuh puluh persen dikabulkan, artinya dari seratus "
+        "perkara serupa yang pernah diputus, tujuh puluh dimenangkan wajib "
+        "pajak. Itu tidak berarti perkara Anda punya peluang tujuh puluh "
+        "persen, sebab hasil perkara bergantung pada bukti dan alasan yang "
+        "Anda bawa.\n\n"
+        "**Jumlah perkara menentukan seberapa dapat dipercaya angkanya.** "
+        "Tujuh puluh persen dari sepuluh perkara jauh lebih goyah daripada "
+        "tujuh puluh persen dari seribu perkara. Karena itu di banyak tempat "
+        "jumlah perkaranya ikut ditulis, dan sebaiknya selalu Anda lihat.\n\n"
+        "**Tidak semua putusan sudah terkumpul.** Arsip ini masih sebagian, "
+        "dan angkanya akan bergeser seiring bertambahnya dokumen. Bagian "
+        "berwarna kuning di kepala tiap halaman menunjukkan seberapa lengkap "
+        "keterangan yang dipakai halaman itu.")
+
+    st.html('<div class="tingkat">Pelajaran yang Paling Mahal</div>')
+    n_amar = int(d["amar"].notna().sum())
+    n_gugur = int((d["amar"] == "tidak_dapat_diterima").sum())
+    if n_amar:
+        temuan(
+            f"<b>{100 * n_gugur / n_amar:.1f} persen</b> perkara gugur "
+            "sebelum pokok persoalannya sempat diperiksa, yaitu "
+            f"{n_gugur:,} dari {n_amar:,} putusan beramar. Umumnya karena "
+            "lewat tenggat waktu atau salah memilih jalur.")
+    jelas(
+        "Kekalahan semacam ini yang paling disayangkan, sebab isi perkaranya "
+        "tidak pernah dinilai hakim. Sekuat apa pun alasan yang disiapkan, ia "
+        "tidak akan sempat dibaca.\n\n"
+        "Karena itu, sebelum menyiapkan alasan, pastikan dulu tenggat "
+        "waktunya belum lewat dan jalurnya benar, yaitu banding untuk "
+        "persoalan angka dan gugatan untuk persoalan prosedur. Dua hal "
+        "sederhana itu menentukan apakah perkara Anda akan diperiksa sama "
+        "sekali.")
+
+
 def hal_panduan() -> None:
     """
     Halaman penjelasan dimensi analisis, ditulis untuk orang awam.
@@ -6847,6 +7089,7 @@ with st.spinner(f"Menyiapkan halaman {halaman}...", show_time=True):
     "Durasi Penyelesaian Sengketa": hal_kinerja,
     "Karakter Memutus": hal_karakter,
     "Banding Unit": hal_banding,
+    "Istilah Sederhana": hal_istilah,
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
     }[halaman]()
