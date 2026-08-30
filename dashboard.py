@@ -6919,8 +6919,8 @@ def muka_kepala(tanda: str, judul: str, kalimat: str) -> None:
     potret = (
         '<div class="muka-potret">'
         f'<img src="{foto}" alt="Potret penyusun situs">'
-        '<div class="nama">Donny Maha Putra</div>'
-        '<div class="peran">Dosen dan peneliti</div>'
+        '<div class="nama">Dr. Donny</div>'
+        '<div class="peran">Praktisi, Dosen dan Peneliti</div>'
         '</div>') if foto else ""
     st.html(
         '<div class="muka">'
