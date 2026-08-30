@@ -131,6 +131,11 @@ FONT_URL = ("https://fonts.googleapis.com/css2?"
 
 SISI = "2.2rem"       # jarak tepi bidang isi, dipakai juga oleh kop dan kaki
 TINGGI_KOP = 66
+# Tinggi bilah navigasi, digambar tepat di bawah kop. Bilah judul bawaan
+# Streamlit dahulu dimatikan sama sekali, sebab isinya hanya menu tiga titik
+# dan tombol sebar. Sejak navigasi pindah ke kepala halaman, bilah itu juga
+# memuat menunya, sehingga mematikannya berarti menghapus seluruh menu.
+TINGGI_NAV = 54
 TINGGI_KAKI = 43
 
 
@@ -366,7 +371,7 @@ def gaya(gelap: bool) -> str:
   h1, h2, h3, h4, .kop-judul {{ letter-spacing: -.018em; }}
   .stApp {{ background: {p["bidang"]}; }}
   .block-container {{
-    padding: calc({TINGGI_KOP}px + 20px) {SISI}
+    padding: calc({TINGGI_KOP}px + {TINGGI_NAV}px + 20px) {SISI}
              calc({TINGGI_KAKI}px + 26px) {SISI};
     max-width: 100%;
   }}
@@ -412,9 +417,24 @@ def gaya(gelap: bool) -> str:
      bilah samping yang sudah ditutup tidak dapat dibuka lagi sama sekali,
      jadi kerangkanya dibiarkan hidup, isinya saja yang dimatikan. */
   header[data-testid="stHeader"] {{
-    background: transparent !important; height: 0 !important;
-    min-height: 0 !important; pointer-events: none !important;
-    z-index: 1000002 !important;
+    background: {p["permukaan"]} !important;
+    height: auto !important; min-height: {TINGGI_NAV}px !important;
+    pointer-events: auto !important;
+    top: {TINGGI_KOP}px !important;
+    border-bottom: 1px solid {p["tepi"]};
+    z-index: 1000001 !important;
+  }}
+  /* Navigasi tetap dapat disentuh walau bilah alat di sebelahnya dimatikan.
+     Keduanya bersarang di dalam bilah judul yang sama, dan aturan lama
+     mematikan seluruh isinya sekaligus. */
+  header[data-testid="stHeader"] [data-testid="stTopNavSection"],
+  header[data-testid="stHeader"] [data-testid="stTopNavPopover"],
+  header[data-testid="stHeader"] [data-testid="stTopNavLinkContainer"],
+  header[data-testid="stHeader"] [data-testid="stTopNavDropdownLink"] {{
+    pointer-events: auto !important;
+  }}
+  header[data-testid="stHeader"] [data-testid="stTopNavLinkContainer"] a {{
+    font-size: 13px; font-weight: 560;
   }}
   header[data-testid="stHeader"] div[data-testid="stToolbar"] {{
     background: transparent !important; pointer-events: none !important;
@@ -435,7 +455,8 @@ def gaya(gelap: bool) -> str:
   button[data-testid="stExpandSidebarButton"] {{
     pointer-events: auto !important;
     position: fixed !important;
-    top: calc({TINGGI_KOP}px + 12px) !important; left: 12px !important;
+    top: calc({TINGGI_KOP}px + {TINGGI_NAV}px + 12px) !important;
+    left: 12px !important;
     width: 34px !important; height: 34px !important;
     display: inline-flex !important; align-items: center !important;
     justify-content: center !important;
@@ -684,7 +705,7 @@ def gaya(gelap: bool) -> str:
   /* Ruang atas diberi jatah lebih untuk baris tombol pelipat, supaya kotak
      pencarian di bawahnya tidak tertindih. */
   section[data-testid="stSidebar"] > div {{
-    padding-top: calc({TINGGI_KOP}px + 48px);
+    padding-top: calc({TINGGI_KOP}px + {TINGGI_NAV}px + 48px);
     padding-bottom: calc({TINGGI_KAKI}px + 20px);
   }}
   section[data-testid="stSidebar"] div[data-testid="stSidebarHeader"] {{
@@ -698,7 +719,8 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stSidebarCollapseButton"],
   button[data-testid="stSidebarCollapseButton"] {{
     position: absolute !important;
-    top: calc({TINGGI_KOP}px + 9px) !important; right: 10px !important;
+    top: calc({TINGGI_KOP}px + {TINGGI_NAV}px + 9px) !important;
+    right: 10px !important;
     width: 32px !important; height: 32px !important;
     display: inline-flex !important; align-items: center !important;
     justify-content: center !important;
@@ -1867,6 +1889,16 @@ _IKON_AWAL = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "
 def kunci_nav(halaman: str) -> str:
     """Kunci tombol menu, dipakai bersama oleh dashboard dan gaya menu."""
     return "nav-" + re.sub(r"[^a-z0-9]+", "-", str(halaman).lower()).strip("-")
+
+
+def jalur_hal(halaman: str) -> str:
+    """Potongan alamat untuk sebuah halaman, tanpa awalan kunci tombol.
+
+    Kunci tombol berawalan nav supaya tidak bentrok dengan kunci unsur lain,
+    dan awalan itu tidak pantas ikut tercetak pada bilah alamat yang dibaca
+    dan dikirimkan orang. Yang tampil cukup namanya sendiri.
+    """
+    return re.sub(r"[^a-z0-9]+", "-", str(halaman).lower()).strip("-")
 
 
 def ikon_nav(daftar: list, terpilih: str = "", gelap: bool = False) -> str:

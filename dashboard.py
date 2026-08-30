@@ -1538,6 +1538,7 @@ if not st.session_state.get("alamat_terbaca"):
     _q = st.query_params
     if _q.get("modul") in MODUL:
         st.session_state["modul"] = _q["modul"]
+        st.session_state["_modul_terakhir"] = _q["modul"]
     if _q.get("halaman") in HALAMAN_SAH:
         st.session_state["nav"] = _q["halaman"]
     # Alamat langsung ke satu putusan. Wajib pajak yang menemukan perkara
@@ -1604,36 +1605,82 @@ LINGKUP_INSTANSI = {"Semua": None, "Kemenkeu": ("djp", "djbc"),
 # baris penuh yang tampak seperti salah susun. Daftar jatuh selalu setinggi
 # satu baris berapa pun banyak pilihannya, dan menyisakan ruang bagi
 # pilihan baru di kemudian hari.
+# Nilai kendali dititipkan pada kunci biasa, bukan hanya pada kunci
+# pemilihnya sendiri.
+#
+# st.switch_page, yang dipakai perpindahan antar halaman, membuang keadaan
+# kendali yang sudah tergambar sebelum perpindahan itu. Akibatnya paling
+# berbahaya bukan kendalinya kembali ke bawaan, melainkan kendalinya tetap
+# menampilkan pilihan lama sedangkan angka halamannya sudah dihitung dengan
+# nilai bawaan. Pemakai melihat DJBC dan membaca angka seluruh unit, tanpa
+# satu pun tanda bahwa itu terjadi. Sudah diperiksa di peramban sungguhan,
+# bukan hanya pada alat uji.
+#
+# Kunci berawalan garis bawah di bawah ini bukan kunci pemilih, sehingga
+# tidak ikut dibuang, dan dipakai memulihkan pilihannya lewat index.
+_UNIT_OPSI = list(LINGKUP_INSTANSI)
+_unit_simpan = st.session_state.get("_unit_terakhir", _UNIT_OPSI[0])
+if _unit_simpan not in _UNIT_OPSI:
+    _unit_simpan = _UNIT_OPSI[0]
 bagian_instansi.html('<div class="sb-judul">Unit analisis</div>')
 pilih_instansi = bagian_instansi.selectbox(
-    "Unit analisis", list(LINGKUP_INSTANSI), index=0,
+    "Unit analisis", _UNIT_OPSI, index=_UNIT_OPSI.index(_unit_simpan),
     key="lingkup_instansi", label_visibility="collapsed",
     help="Membatasi seluruh halaman pada perkara melawan unit ini. "
          "Kemenkeu adalah gabungan DJP dan DJBC. Putusan yang unitnya "
          "belum terbaca hanya termuat pada pilihan Semua.")
 pilih_instansi = pilih_instansi or "Semua"
+st.session_state["_unit_terakhir"] = pilih_instansi
 kode_instansi = LINGKUP_INSTANSI.get(pilih_instansi)
 
 
 # Bila tujuan drill tidak tersedia pada modul terpilih, modul dipulangkan ke
 # Semua lebih dulu, sebelum pemilih modulnya digambar.
+# Pelebaran modul dan perpindahan halaman dikerjakan pada dua putaran yang
+# berbeda, bukan sekaligus.
+#
+# Perpindahan halaman memakai st.switch_page, dan itu memotong putaran yang
+# sedang berjalan lalu memulai putaran baru. Bila pelebaran modul dikerjakan
+# pada putaran yang sama, pemotongan itu terjadi sebelum nilai barunya
+# mengendap pada pemilih modul, sehingga putaran berikutnya kembali memakai
+# modul lama dan halaman tujuannya justru tidak tersedia di sana. Akibatnya
+# drill menuju halaman di luar modul aktif mendarat di Beranda, dan baru
+# berhasil pada percobaan kedua.
+#
+# Karena itu tujuannya sengaja tidak diambil dulu: modulnya dilebarkan, lalu
+# putarannya diulang, dan perpindahannya dikerjakan pada putaran berikutnya
+# ketika modulnya sudah pasti benar.
 _tujuan = st.session_state.get("nav_tujuan")
 if (_tujuan in HALAMAN
         and _tujuan not in MODUL.get(st.session_state.get("modul", "Semua"),
                                      HALAMAN)):
     st.session_state["modul"] = "Semua"
+    st.session_state["_modul_terakhir"] = "Semua"
+    st.rerun()
 
+# Modul diperlakukan sama dengan unit analisis, dan alasannya sama persis.
+_MODUL_OPSI = list(MODUL)
+_modul_simpan = st.session_state.get("_modul_terakhir", _MODUL_OPSI[0])
+if _modul_simpan not in _MODUL_OPSI:
+    _modul_simpan = _MODUL_OPSI[0]
 bagian_bawah.html('<div class="sb-judul">Modul pengguna</div>')
-modul = bagian_bawah.selectbox("Modul pengguna", list(MODUL), key="modul",
-                               label_visibility="collapsed")
+modul = bagian_bawah.selectbox(
+    "Modul pengguna", _MODUL_OPSI, index=_MODUL_OPSI.index(_modul_simpan),
+    key="modul", label_visibility="collapsed")
+st.session_state["_modul_terakhir"] = modul
 daftar_hal = MODUL[modul]
 
 # Perpindahan halaman lewat kode, misalnya drill dari daftar nomor putusan
 # di halaman lain, dititipkan pada nav_tujuan lalu diterapkan di sini,
 # sebelum pemilih halamannya digambar. Menulis langsung ke keadaan pemilih
 # setelah pemilihnya tergambar dilarang Streamlit.
+# Tujuan drill disimpan dahulu, penerapannya menunggu navigasi terbentuk.
+# Perpindahan halaman kini dikerjakan st.switch_page, dan itu menuntut
+# obyek halamannya sudah ada.
+_pindah_ke = None
 if st.session_state.get("nav_tujuan") in HALAMAN_SAH:
-    st.session_state["nav"] = st.session_state.pop("nav_tujuan")
+    _pindah_ke = st.session_state.pop("nav_tujuan")
+    st.session_state["nav"] = _pindah_ke
 # Pilihan baris pada daftar asal drill dibersihkan di sini, sebelum daftarnya
 # digambar ulang, supaya drill tidak terpicu lagi saat pengguna kembali.
 if st.session_state.get("hapus_kunci"):
@@ -1642,22 +1689,20 @@ if st.session_state.get("hapus_kunci"):
 if st.session_state.get("nav") not in daftar_hal:
     st.session_state["nav"] = daftar_hal[0]
 
-bagian_menu.html('<div class="sb-judul">Halaman</div>')
-# Menu berupa tombol, bukan pilihan bulat: yang dimaksud pengguna adalah
-# berpindah halaman, bukan mencentang sesuatu. Kuncinya juga menjadi sasaran
-# gaya, sehingga ikon dan penanda terpilih tidak bergantung urutan unsur.
 halaman = st.session_state["nav"]
 # Alamat halaman disamakan dengan tampilan yang sedang aktif, sehingga
 # tautannya dapat langsung disalin dari bilah alamat peramban.
+# Nama halaman tidak lagi dititipkan pada tanya jawab alamat, sebab navigasi
+# atas sudah menaruhnya sebagai jalur tersendiri. Yang tersisa hanya modul,
+# yang memang bukan halaman, dan nomor dokumen yang sedang dibuka.
 _doc_buka = st.session_state.get("buka_doc")
-_alamat = {"modul": modul, "halaman": halaman}
+_alamat = {"modul": modul}
 if _doc_buka is not None:
     _alamat["doc"] = str(int(_doc_buka))
 if any(st.query_params.get(k) != v for k, v in _alamat.items()) or (
         _doc_buka is None and st.query_params.get("doc")):
     st.query_params.clear()
     st.query_params.update(_alamat)
-st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # Seluruh tombol menu dikumpulkan dalam satu wadah bernama, supaya jarak
 # antar barisnya dapat dirapatkan sekaligus tanpa mengganggu jarak antar
 # unsur lain di bilah samping.
@@ -1681,6 +1726,33 @@ st.html(TV.ikon_nav(daftar_hal, halaman, GELAP))
 # butuh potret atau telaah; yang ia tahu hanyalah pertanyaannya sendiri.
 # Judul di bawah ini ditulis sebagai pertanyaan itu, urut dari yang paling
 # awal ditanyakan sampai yang paling akhir.
+# Ikon halaman memakai lambang bawaan, bukan topeng CSS seperti dahulu.
+#
+# Topeng lama menyasar kunci tombol di bilah samping, dan tombol itu sudah
+# tidak ada. Lambang bawaan menempel pada halamannya sendiri, sehingga tidak
+# dapat lagi tertinggal ketika halaman baru ditambahkan pada tempat lain.
+IKON_HAL = {
+    "Beranda": ":material/home:",
+    "Ringkasan Eksekutif": ":material/summarize:",
+    "Nilai Sengketa": ":material/payments:",
+    "Risalah Putusan": ":material/search:",
+    "Pola Putusan Sejenis": ":material/bar_chart:",
+    "Pilihan Upaya Hukum": ":material/alt_route:",
+    "Pasal Penentu": ":material/gavel:",
+    "Unit Penerbit Ketetapan": ":material/apartment:",
+    "Konsistensi Putusan Hakim": ":material/balance:",
+    "Sengketa Berulang": ":material/repeat:",
+    "Tema Sengketa": ":material/category:",
+    "Mutu Ketetapan": ":material/fact_check:",
+    "Profil Hakim": ":material/person:",
+    "Durasi Penyelesaian Sengketa": ":material/schedule:",
+    "Karakter Memutus": ":material/scatter_plot:",
+    "Banding Unit": ":material/compare_arrows:",
+    "Istilah Sederhana": ":material/menu_book:",
+    "Panduan Analisis": ":material/help:",
+    "Metodologi": ":material/science:",
+}
+
 KELOMPOK_MENU = [
     ("Mulai dari sini", ["Beranda", "Ringkasan Eksekutif"]),
     ("Apa yang selama ini terjadi", ["Nilai Sengketa", "Risalah Putusan",
@@ -1696,44 +1768,83 @@ KELOMPOK_MENU = [
                                 "Metodologi"]),
 ]
 
-with bagian_menu, st.container(key="menu-nav"):
-    _tersaji = set()
-    for _judul, _isi in KELOMPOK_MENU:
-        _ada = [h for h in _isi if h in daftar_hal]
-        if not _ada:
-            continue
-        st.html(f'<div class="menu-kelompok">{_judul}</div>')
-        for _h in _ada:
-            _tersaji.add(_h)
-            if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
-                if _h != halaman:
-                    st.session_state["nav"] = _h
-                    st.session_state.pop("buka_doc", None)
-                    st.rerun()
-    # Jaring pengaman: halaman baru yang belum dimasukkan ke kelompok mana
-    # pun tetap tampil, supaya menambah halaman tidak diam diam
-    # menghilangkannya dari menu.
-    _sisa = [h for h in daftar_hal if h not in _tersaji]
-    if _sisa:
-        st.html('<div class="menu-kelompok">Lainnya</div>')
-        for _h in _sisa:
-            if st.button(_h, key=TV.kunci_nav(_h), width="stretch"):
-                if _h != halaman:
-                    st.session_state["nav"] = _h
-                    st.session_state.pop("buka_doc", None)
-                    st.rerun()
+# Navigasi dipasang di kepala halaman, bukan di bilah samping.
+#
+# Deretan tombol menurun di sisi kiri adalah bahasa aplikasi kerja, dan situs
+# ini sudah berubah menjadi bahan belajar terbuka. Navigasi bawaan Streamlit
+# pada kedudukan atas menyajikan kelompok menu sebagai bagian tersendiri,
+# sehingga enam tahap belajar itu tetap terbaca sebagai peta, bukan senarai.
+#
+# st.tabs sengaja tidak dipakai walau bentuknya paling mirip yang diminta.
+# Tab menjalankan isi seluruh tab pada tiap muat halaman, bukan hanya yang
+# sedang dibuka, sehingga delapan belas halaman akan dihitung sekaligus tiap
+# kali pembaca menekan apa pun. Navigasi ini hanya menjalankan halaman yang
+# aktif, dan itu sudah diuji sebelum dipilih.
+#
+# Halamannya dibungkus penutup, bukan disodorkan langsung, sebab fungsi
+# penyajinya baru didefinisikan jauh di bawah berkas ini sedangkan
+# navigasinya harus terbentuk di sini, sebelum nama halaman aktif dipakai
+# bagian bagian lain.
+PENYALUR: dict = {}
+
+
+def _bungkus(nama: str):
+    def jalan() -> None:
+        with st.spinner(f"Menyiapkan halaman {nama}...", show_time=True):
+            PENYALUR[nama]()
+        langkah_berikutnya(nama)
+    return jalan
+
+
+_HAL_OBJ = {
+    h: st.Page(_bungkus(h), title=h, url_path=TV.jalur_hal(h),
+               icon=IKON_HAL.get(h), default=(h == daftar_hal[0]))
+    for h in daftar_hal}
+
+_bagian: dict = {}
+_tersaji = set()
+for _judul, _isi in KELOMPOK_MENU:
+    _ada = [_HAL_OBJ[h] for h in _isi if h in _HAL_OBJ]
+    if _ada:
+        _bagian[_judul] = _ada
+        _tersaji.update(h for h in _isi if h in _HAL_OBJ)
+# Jaring pengaman: halaman baru yang belum dimasukkan ke kelompok mana pun
+# tetap tampil, supaya menambah halaman tidak diam diam menghilangkannya.
+_sisa = [_HAL_OBJ[h] for h in daftar_hal if h not in _tersaji]
+if _sisa:
+    _bagian["Lainnya"] = _sisa
+
+pg = st.navigation(_bagian, position="top")
+if _pindah_ke and _pindah_ke in _HAL_OBJ and pg.title != _pindah_ke:
+    st.switch_page(_HAL_OBJ[_pindah_ke])
+halaman = pg.title
+st.session_state["nav"] = halaman
 
 tahun_ada = sorted(int(t) for t in df["tahun_putusan"].dropna().unique())
 if len(tahun_ada) > 1:
     # Penggeser rentang tidak dikenali semua orang. Keterangan pendek di
     # bawahnya menyebutkan gunanya, karena pemakai yang tidak terbiasa
     # cenderung mengira ini penunjuk, bukan alat.
+    # Rentang tahun dititipkan pada kunci biasa dengan alasan yang sama
+    # seperti unit analisis: perpindahan halaman membuang keadaan kendali,
+    # dan penyaring tahun yang diam diam kembali ke rentang penuh mengubah
+    # seluruh angka halaman tanpa satu pun tanda pada tampilannya.
+    _th_penuh = (min(tahun_ada), max(tahun_ada))
+    _th_simpan = st.session_state.get("_tahun_terakhir", _th_penuh)
+    try:
+        _th_simpan = (max(_th_penuh[0], int(_th_simpan[0])),
+                      min(_th_penuh[1], int(_th_simpan[1])))
+        if _th_simpan[0] > _th_simpan[1]:
+            _th_simpan = _th_penuh
+    except (TypeError, ValueError, IndexError):
+        _th_simpan = _th_penuh
     bagian_lingkup.html('<div class="sb-judul">Ruang lingkup data</div>')
     th = bagian_lingkup.slider(
-        "Tahun putusan", min(tahun_ada), max(tahun_ada),
-        (min(tahun_ada), max(tahun_ada)),
+        "Tahun putusan", _th_penuh[0], _th_penuh[1], _th_simpan,
+        key="lingkup_tahun",
         help="Tarik salah satu ujungnya untuk mempersempit tahun. Seluruh "
              "halaman ikut menyesuaikan.")
+    st.session_state["_tahun_terakhir"] = tuple(th)
     bagian_lingkup.caption("Geser untuk melihat tren tahunan.")
 else:
     th = None
@@ -7199,8 +7310,7 @@ elif halaman == "Nilai Sengketa":
 # detik. Perhitungannya sudah dipercepat, tetapi penunjuk ini tetap
 # diperlukan, sebab arsipnya akan terus tumbuh dan halaman yang hari ini
 # sedetik dapat menjadi beberapa detik pada cakupan penuh.
-with st.spinner(f"Menyiapkan halaman {halaman}...", show_time=True):
-    {
+PENYALUR.update({
     "Beranda": hal_beranda,
     "Ringkasan Eksekutif": hal_ikhtisar,
     "Nilai Sengketa": hal_nilai,
@@ -7220,13 +7330,13 @@ with st.spinner(f"Menyiapkan halaman {halaman}...", show_time=True):
     "Istilah Sederhana": hal_istilah,
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
-    }[halaman]()
+})
 
-# Digambar sekali di sini, bukan disalin ke dalam delapan belas fungsi
-# halaman. Letaknya sesudah penyalur supaya selalu berada di kaki apa pun
-# yang baru saja digambar, dan supaya menambah halaman baru tidak menuntut
-# siapa pun ingat menempelkannya lagi.
-langkah_berikutnya(halaman)
+# Halaman aktif dijalankan oleh navigasi, bukan dipanggil langsung di sini.
+# Penunjuk sibuk dan tautan langkah berikutnya ikut dibawa pembungkusnya,
+# sehingga keduanya tetap melekat pada tiap halaman tanpa perlu disalin ke
+# dalam sembilan belas fungsi penyaji.
+pg.run()
 
 _t = keadaan_tarikan()
 if _t["menit"] is None:
