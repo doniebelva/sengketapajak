@@ -119,7 +119,13 @@ def warna_unit(gelap: bool = False) -> dict:
     }
 
 
-SANS = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif'
+# Huruf mengikuti situs rujukan yang diberikan pemilik, Plus Jakarta Sans.
+# Bentuknya lebih bulat dan lebih ramah daripada Inter, dan pada judul tebal
+# ia memberi watak yang jelas tanpa menjadi hiasan. Inter dipertahankan
+# sebagai cadangan pertama, sehingga perangkat yang gagal mengunduh huruf
+# utamanya tidak jatuh ke huruf sistem yang bentuknya jauh berbeda.
+SANS = ('"Plus Jakarta Sans", "Inter", system-ui, -apple-system, '
+        '"Segoe UI", sans-serif')
 # Naskah putusan memakai Aptos, huruf baku dokumen pada lingkungan kerja ini.
 # Aptos tidak tersedia sebagai huruf web, jadi yang terpasang di perangkat
 # pembacalah yang dipakai; pada perangkat tanpa Aptos, cadangannya huruf
@@ -127,6 +133,7 @@ SANS = '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif'
 APTOS = ('"Aptos", "Aptos Display", "Segoe UI Variable Text", "Segoe UI", '
          '"Inter", system-ui, sans-serif')
 FONT_URL = ("https://fonts.googleapis.com/css2?"
+            "family=Plus+Jakarta+Sans:wght@400;500;600;700;800&"
             "family=Inter:wght@400;500;600;700&display=swap")
 
 SISI = "2.2rem"       # jarak tepi bidang isi, dipakai juga oleh kop dan kaki
@@ -144,11 +151,12 @@ TINGGI_NAV = 0
 # berada di sisi kanan bersama tombol penyaring dan saklar tema.
 #
 # Angkanya mengikuti panjang nama situs, yang kini dua kata saja.
-JARAK_MENU_KIRI = 224
+# Judulnya kembali panjang, jadi menu bergeser mengikutinya.
+JARAK_MENU_KIRI = 404
 # Ruang yang dipesan di sisi kanan untuk pencarian, tombol penyaring, dan
 # saklar tema. Tanpa pesanan ini bilah menu melebar sampai ke bawah ketiganya,
 # dan kelompok menu terakhir tertimpa kotak pencarian.
-RUANG_KANAN = 476
+RUANG_KANAN = 404
 TINGGI_KAKI = 43
 
 
@@ -616,13 +624,20 @@ def gaya(gelap: bool) -> str:
 
   /* Kepala halaman terpadu: nama halaman lebih dulu, keterangan pendukung
      menjadi label kecil di sampingnya. */
+  /* Judul halaman mengikuti skala situs rujukan yang diberikan pemilik:
+     berukuran besar, bertebal delapan ratus, dan berspasi huruf rapat.
+     Judul dua puluh satu piksel tidak pernah terbaca sebagai judul, hanya
+     sebagai baris tebal, sehingga halaman terasa datar sejak barisnya yang
+     pertama. Skalanya dipinjam, warnanya tetap milik palet sendiri sebab
+     situs ini punya mode terang dan gelap sekaligus. */
   .kepala-hal {{
-    display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px;
-    margin: 2px 0 2px;
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px;
+    margin: 4px 0 4px;
   }}
   .kepala-hal h3 {{
-    font-size: 21px !important; font-weight: 700 !important;
-    letter-spacing: -.012em; margin: 0 !important; padding: 0 !important;
+    font-size: 33px !important; font-weight: 800 !important;
+    letter-spacing: -.028em; line-height: 1.12;
+    margin: 0 !important; padding: 0 !important;
     color: {p["tinta"]};
   }}
   .kh-dim, .kh-lingkup {{
@@ -847,8 +862,8 @@ def gaya(gelap: bool) -> str:
      pil putih supaya terbaca sebagai tempat mengetik di atas latar gelap,
      dan lebarnya tetap supaya menu di sebelahnya tidak bergeser geser. */
   .st-key-cari-kop {{
-    position: fixed !important; top: 15px !important; right: 236px !important;
-    z-index: 1000004 !important; width: 206px !important;
+    position: fixed !important; top: 15px !important; right: 232px !important;
+    z-index: 1000004 !important; width: 148px !important;
   }}
   .st-key-cari-kop div[data-testid="stElementContainer"] {{
     margin: 0 !important;
@@ -1069,6 +1084,11 @@ def gaya(gelap: bool) -> str:
      Tinggi minimal ditetapkan, dan kolomnya dipaksa saling menyamakan
      tinggi supaya bingkainya rata. */
   div[data-testid="stHorizontalBlock"] {{ align-items: stretch; }}
+  /* Jarak antar lajur dirapatkan mengikuti situs rujukan, yang memakai
+     empat belas piksel. Jarak bawaan Streamlit satu rem membuat deret kartu
+     tampak berserak, dan pada layar lebar kesannya halaman berisi benda
+     benda yang tidak saling berhubungan. */
+  div[data-testid="stHorizontalBlock"] {{ gap: 14px !important; }}
   div[data-testid="stColumn"] > div,
   div[data-testid="stColumn"] div[data-testid="stElementContainer"] {{
     height: 100%;
@@ -1103,7 +1123,7 @@ def gaya(gelap: bool) -> str:
   .kpi {{
     background: {p["permukaan"]};
     border: none;
-    border-radius: 12px; padding: 16px 18px 15px;
+    border-radius: 20px; padding: 18px 20px 17px;
     height: 100%; min-height: 128px;
     display: flex; flex-direction: column;
     box-shadow: 0 1px 2px rgba(0,0,0,.04);
@@ -1119,13 +1139,13 @@ def gaya(gelap: bool) -> str:
      berarti apa apa tetapi tampak berarti lebih menyesatkan daripada tidak
      ada warna sama sekali. */
   .kpi-ket {{ margin-top: auto; }}
-  .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .06em;
+  .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
                 text-transform: uppercase; color: {p["tinta_2"]}; }}
   /* Angka memakai lebar digit seragam. Tanpa itu angka satu jauh lebih
      sempit daripada angka lain, sehingga deretan kartu bersebelahan tampak
      bergeser geser dan sulit dibandingkan sekilas. */
-  .kpi-nilai {{ font-size: 28px; font-weight: 680; color: {p["tinta"]};
-                line-height: 1.15; margin-top: 7px;
+  .kpi-nilai {{ font-size: 31px; font-weight: 780; color: {p["tinta"]};
+                line-height: 1.12; margin-top: 8px;
                 font-variant-numeric: tabular-nums;
                 letter-spacing: -.012em;
                 overflow-wrap: anywhere; }}
@@ -1135,6 +1155,33 @@ def gaya(gelap: bool) -> str:
   .kpi-nilai.panjang {{ font-size: 19px; line-height: 1.25; }}
   .kpi-nilai.sangat-panjang {{ font-size: 15px; line-height: 1.3;
                                font-weight: 620; }}
+  /* Kartu utama: satu angka terpenting pada tiap halaman, dibuat jauh
+     lebih besar daripada tetangganya.
+     Sepuluh kartu berukuran sama membuat semuanya tampak sama penting,
+     sehingga pembaca tidak punya titik masuk dan membaca kesepuluhnya
+     dengan perhatian yang sama, atau tidak membaca satu pun. Satu angka
+     yang jauh lebih besar memberi halaman titik mulai, dan kalimat
+     tafsirnya menjawab pertanyaan yang selalu menyusul angka besar, yaitu
+     lalu apa artinya. */
+  .kpi.utama {{
+    background: linear-gradient(152deg, {lembut(p["kop_terang"], .1)} 0%,
+                                {p["permukaan"]} 55%);
+  }}
+  .kpi.utama .kpi-nilai {{
+    /* Tinggi baris tidak boleh serapat itu pada huruf sebesar ini. Pada
+       1,05 kaki huruf melewati wadahnya enam piksel, dan pengaudit tampilan
+       menolaknya sebagai tulisan terpenggal. Angka memang tidak berekor
+       panjang, tetapi persen dan koma punya, dan justru itu yang terpotong. */
+    font-size: 50px; font-weight: 800; letter-spacing: -.03em;
+    line-height: 1.2; margin-top: 10px; padding-bottom: 2px;
+  }}
+  .kpi.utama .kpi-label {{ color: {p["kop_terang"]}; }}
+  .kpi-tafsir {{
+    margin-top: 9px; padding-top: 9px;
+    border-top: 1px solid {p["tepi"]};
+    font-size: 12.5px; line-height: 1.55; color: {p["tinta"]};
+    font-weight: 550;
+  }}
   .kpi-ket {{
     font-size: 11.5px; color: {p["tinta_2"]}; margin-top: auto;
     padding-top: 6px; line-height: 1.5;
@@ -1590,10 +1637,25 @@ def gaya(gelap: bool) -> str:
   }}
   /* Judul bagian polos tanpa penggal aksen; hiasan berwarna pada judul
      dicabut atas permintaan pemilik. */
+  /* Judul bagian berhenti menjadi label kapital kecil.
+     Sebagai kapital kecil sebelas piksel, ia sejajar dengan keterangan
+     pinggir, sehingga halaman tidak punya tingkatan sama sekali: semua
+     tulisan tampak sama pentingnya. Kini ia judul sungguhan, cukup besar
+     untuk memotong halaman menjadi bagian yang terbaca sekilas. */
   .tingkat {{
-    font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
-    text-transform: uppercase; color: {p["tinta_2"]};
-    margin: 22px 0 6px 0;
+    font-size: 19px; font-weight: 750; letter-spacing: -.018em;
+    color: {p["tinta"]}; margin: 30px 0 10px 0; line-height: 1.25;
+    display: flex; align-items: center; gap: 10px;
+  }}
+  /* Penanda tegak kecil di depan judul bagian.
+     Halaman panjang berisi banyak bagian, dan tanpa penanda apa pun mata
+     tidak punya tempat berpegang ketika menggulir; judul bagian berbaur
+     dengan tulisan lain di sekitarnya. Satu garis tegak bertosca cukup
+     memberi irama tanpa menambah kotak baru, dan warnanya menyambungkan
+     bagian bagian halaman dengan kepala situs. */
+  .tingkat::before {{
+    content: ""; flex: 0 0 4px; width: 4px; height: 20px;
+    border-radius: 999px; background: {p["kop_terang"]};
   }}
   .jejak {{
     font-size: 13px; color: {p["tinta_2"]}; margin: 0 0 12px 0;
@@ -1789,7 +1851,8 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
 
 
 def kartu(label: str, nilai: str, ket: str = "", banding: str = "",
-          arah: int = 0, andal: str = "") -> str:
+          arah: int = 0, andal: str = "", utama: bool = False,
+          tafsir: str = "") -> str:
     """
     Kartu angka, dengan pembanding dan penanda keandalan yang boleh kosong.
 
@@ -1817,8 +1880,14 @@ def kartu(label: str, nilai: str, ket: str = "", banding: str = "",
     n = len(str(nilai))
     kelas = ("kpi-nilai sangat-panjang" if n > 34
              else "kpi-nilai panjang" if n > 18 else "kpi-nilai")
-    return (f'<div class="kpi"><div class="kpi-label">{label}'
-            f'{tanda_andal}</div>'
+    # Kalimat tafsir hanya pada kartu utama, dan letaknya sesudah keterangan
+    # angkanya. Angka besar selalu diikuti pertanyaan yang sama, yaitu lalu
+    # apa artinya, dan kartu yang berhenti pada angkanya membiarkan pembaca
+    # menjawab sendiri.
+    if tafsir:
+        ekor += f'<div class="kpi-tafsir">{tafsir}</div>'
+    return (f'<div class="kpi{" utama" if utama else ""}">'
+            f'<div class="kpi-label">{label}{tanda_andal}</div>'
             f'<div class="{kelas}">{nilai}</div>{ekor}</div>')
 
 

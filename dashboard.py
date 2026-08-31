@@ -1201,7 +1201,7 @@ def unduh_laporan(judul: str, ringkas: list, tabel_df: pd.DataFrame | None,
                   border-left: 3pt solid #0a4442; background: #eef4f3;
                   font-size: 10pt; }}
     </style></head><body>
-      <h1>Belajar Putusan · Sengketa Pajak</h1>
+      <h1>Belajar Analitik Sengketa Pajak</h1>
       <h2>{judul}</h2>
       <p class="sumber">Disusun otomatis pada {kini} dari arsip risalah
       putusan Pengadilan Pajak, sumber setpp.kemenkeu.go.id/risalah.
@@ -1302,6 +1302,19 @@ def batang_peringkat(t: pd.DataFrame, kolom_label: str, kolom_nilai: str,
     fig.update_xaxes(title="", showticklabels=False, showgrid=False,
                      zeroline=False)
     fig.update_yaxes(title="")
+    # Batang teratas ditegaskan, sisanya diredupkan.
+    #
+    # Seluruh batang berwarna sama membuat bagan peringkat kehilangan
+    # gunanya: pembaca tetap harus membandingkan panjang satu per satu untuk
+    # menemukan yang terbesar, padahal justru itu yang dicarinya. Dengan satu
+    # batang berwarna penuh dan sisanya diredupkan, jawabannya terbaca dalam
+    # sekali pandang, sedangkan panjangnya tetap menyatakan besarannya.
+    n = len(t)
+    if n:
+        warna = ([TV.lembut(P["seri"][0], .38)] * (n - 1)) + [P["kop_terang"]]
+        fig.update_traces(marker_color=warna, marker_line_width=0,
+                          textposition="outside", cliponaxis=False,
+                          textfont=dict(size=11.5, color=P["tinta_2"]))
     return fig
 
 
@@ -1343,7 +1356,7 @@ def jeda_hari(df_: pd.DataFrame) -> pd.Series:
 # ketika ia membuka belasan tab sekaligus. Belah ketupat biru sebelumnya
 # tidak menerangkan apa pun; buku terbuka menyatakan bahwa ini bahan belajar,
 # bukan papan pemantau maupun terbitan resmi.
-st.set_page_config(page_title="Belajar Putusan · Sengketa Pajak",
+st.set_page_config(page_title="Belajar Analitik Sengketa Pajak",
                    page_icon="📖", layout="wide",
                    initial_sidebar_state="expanded")
 
@@ -1449,7 +1462,7 @@ _cap_urai = cap_penguraian()
 # siapa pun yang mencarinya.
 # Sisi kanan kop dikosongkan supaya menu punya ruang pada baris yang sama,
 # dan tanggal olahnya pindah ke kaki bersama keterangan situs lainnya.
-st.html(TV.kop("Belajar Putusan", "", ""))
+st.html(TV.kop("Belajar Analitik Sengketa Pajak", "", ""))
 
 with st.container(key="tema"):
     pilih_tema = st.segmented_control(
@@ -1706,7 +1719,7 @@ cari_cepat = str(nilai_kendali("cari_cepat", bawaan="") or "")
 with st.container(key="cari-kop"):
     st.text_input(
         "Cari cepat", key="cari_cepat",
-        placeholder="Cari isi putusan...",
+        placeholder="Cari putusan...",
         label_visibility="collapsed")
 if cari_cepat.strip():
     st.session_state["q_isi"] = cari_cepat.strip()
@@ -2304,10 +2317,17 @@ def _ikhtisar_ringkas() -> None:
     k = st.columns(4)
     k[0].html(TV.kartu("Putusan terurai", f"{len(d):,}",
                        f"dari {corong['unduh']:,} berkas terkumpul"))
+    # Angka pahlawan halaman ini: berapa sering ketetapan yang disengketakan
+    # berujung dikoreksi. Inilah pertanyaan pertama tiap pembaca, apa pun
+    # perannya, sehingga ia yang berhak atas ukuran terbesar.
     k[1].html(TV.kartu("Dikabulkan", f"{pangsa:.1f} %",
                        f"{n_menang:,} dari {len(dd):,} putusan beramar",
                        banding=b_kabul, arah=a_kabul,
-                       andal=andal_ruas("amar", "Amar putusan")))
+                       andal=andal_ruas("amar", "Amar putusan"),
+                       utama=True,
+                       tafsir="Dari setiap sepuluh ketetapan yang "
+                              f"disengketakan, sekitar {pangsa / 10:.0f} "
+                              "dikoreksi pengadilan."))
     k[2].html(TV.kartu(
         "Jeda musyawarah ke pengucapan",
         f"{j.median():.0f} hari" if len(j) else "-",
