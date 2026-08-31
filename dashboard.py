@@ -1292,8 +1292,34 @@ def garis_waktu(t: pd.DataFrame, kolom_x: str, kolom_y: str, judul: str,
     return fig
 
 
+def warna_amar(label) -> str | None:
+    """Warna makna untuk satu kategori amar, atau kosong bila bukan amar.
+
+    Warna di sini membawa keterangan, bukan hiasan. Hijau berarti permohonan
+    wajib pajak diterima, merah berarti perkaranya gugur pada syarat formal
+    sebelum pokoknya sempat diperiksa, dan sisanya dibiarkan netral. Sekali
+    pembaca memahaminya, ia tidak perlu membaca ulang keterangan bagan mana
+    pun sesudah itu.
+
+    Perlu dicatat mengapa hijau merah dipakai di sini padahal pada penunjuk
+    naik turun kartu angka justru dilarang. Pada penunjuk itu, kenaikan angka
+    yang sama berarti kabar baik bagi wajib pajak dan kabar buruk bagi
+    fiskus, sehingga warna akan memihak. Gugur pada syarat formal tidak
+    begitu: perkara yang tidak pernah diperiksa pokoknya adalah kerugian bagi
+    kedua belah pihak dan bagi pengadilan, sebab tidak satu pun persoalan
+    terjawab di sana.
+    """
+    n = str(label).lower()
+    if n.startswith("dikabulkan"):
+        return P["baik"]
+    if "tidak dapat diterima" in n or n.startswith("gugur"):
+        return P["genting"]
+    return None
+
+
 def batang_peringkat(t: pd.DataFrame, kolom_label: str, kolom_nilai: str,
-                     judul: str, teks: str | None = None):
+                     judul: str, teks: str | None = None,
+                     warna_makna: bool = False):
     fig = px.bar(t.sort_values(kolom_nilai), x=kolom_nilai, y=kolom_label,
                  orientation="h", text=teks or kolom_nilai, title=judul)
     # Sumbu mendatar dimatikan. Tiap batang sudah menuliskan nilainya sendiri
@@ -1309,9 +1335,17 @@ def batang_peringkat(t: pd.DataFrame, kolom_label: str, kolom_nilai: str,
     # menemukan yang terbesar, padahal justru itu yang dicarinya. Dengan satu
     # batang berwarna penuh dan sisanya diredupkan, jawabannya terbaca dalam
     # sekali pandang, sedangkan panjangnya tetap menyatakan besarannya.
-    n = len(t)
+    urut = t.sort_values(kolom_nilai)
+    n = len(urut)
     if n:
-        warna = ([TV.lembut(P["seri"][0], .38)] * (n - 1)) + [P["kop_terang"]]
+        if warna_makna:
+            # Warna mengikuti arti kategorinya, bukan peringkatnya. Yang
+            # tidak punya arti khusus dibiarkan netral supaya yang berarti
+            # tetap menonjol.
+            warna = [warna_amar(x) or TV.lembut(P["seri"][0], .45)
+                     for x in urut[kolom_label]]
+        else:
+            warna = ([TV.lembut(P["seri"][0], .38)] * (n - 1)) + [P["kop_terang"]]
         fig.update_traces(marker_color=warna, marker_line_width=0,
                           textposition="outside", cliponaxis=False,
                           textfont=dict(size=11.5, color=P["tinta_2"]))
@@ -3676,7 +3710,8 @@ def hal_belajar() -> None:
     t["Ket"] = [f"{n:,} ({100 * n / len(ss):.0f}%)" for n in t["Putusan"]]
     bagan_drill(
         batang_peringkat(t, "Amar", "Putusan",
-                         "Bagaimana perkara serupa diputus", "Ket"),
+                         "Bagaimana perkara serupa diputus", "Ket",
+                         warna_makna=True),
         max(240, 42 * len(t) + 110), None,
         "dr_belajar_amar", ss, "amar_label", "Amar",
         sebab="Perkara serupa yang berakhir dengan amar tersebut.")
@@ -6243,7 +6278,8 @@ def _tema_rincian(pilih_tema: str, gabung, punya) -> None:
                      zip(ra["Bagian"], ra["Putusan"])]
         bagan_drill(
             batang_peringkat(ra, "Amar", "Putusan",
-                             f"Amar putusan pada tema {pilih_tema}", "Ket"),
+                             f"Amar putusan pada tema {pilih_tema}", "Ket",
+                             warna_makna=True),
             max(240, 40 * len(ra) + 110),
             "Sebaran amar pada tema ini saja, bukan pada seluruh arsip. "
             "Amar yang tidak terbaca dari naskahnya sengaja tidak "

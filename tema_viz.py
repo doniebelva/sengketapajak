@@ -1121,7 +1121,11 @@ def gaya(gelap: bool) -> str:
      bidang berlatar tipis dengan sudut lembut, tanpa garis tepi, dan
      keterangan kakinya didorong ke bawah supaya seluruh kaki sejajar. */
   .kpi {{
-    background: {p["permukaan"]};
+    /* Bidangnya diberi gradasi tipis, bukan putih rata. Tanpa bingkai dan
+       tanpa gradasi, kartu menghilang ke dalam latar halaman dan deretnya
+       terbaca sebagai tulisan yang berserak, bukan sebagai kartu. */
+    background: linear-gradient(158deg, {lembut(p["kop_terang"], .07)} 0%,
+                                {p["permukaan"]} 52%);
     border: none;
     border-radius: 20px; padding: 18px 20px 17px;
     height: 100%; min-height: 128px;
@@ -1527,24 +1531,51 @@ def gaya(gelap: bool) -> str:
      hanya tombol yang dapat memanggil perpindahan halaman, tetapi gayanya
      dibuat sebagai kartu supaya terbaca sebagai pilihan jalan, bukan sebagai
      daftar perintah. */
+  /* Pintu masuk pada halaman muka, dirombak menjadi kartu yang berbicara.
+     Bentuk lamanya kotak putih polos dengan tulisan tiga belas piksel yang
+     terpaksa tercetak di tengah, sehingga empat pertanyaan terpenting di
+     seluruh situs justru tampak seperti tombol setelan. Kini tulisannya
+     tujuh belas piksel bertebal tujuh ratus, rata kiri seperti kalimat yang
+     memang dibaca, dengan latar bergradasi tosca dan panah di sisi kanan
+     yang menyatakan bahwa kartu itu membawa ke suatu tempat. */
   div[class*="st-key-beranda-"] button {{
-    height: 100%; min-height: 78px; text-align: left !important;
-    justify-content: flex-start !important; align-items: flex-start !important;
-    padding: 15px 17px !important; border-radius: 14px !important;
-    border: 1px solid {p["tepi"]} !important;
-    background: {p["permukaan"]} !important;
-    transition: box-shadow .18s ease, transform .18s ease,
-                border-color .18s ease;
+    position: relative;
+    height: 100%; min-height: 104px;
+    display: flex !important;
+    justify-content: flex-start !important; align-items: center !important;
+    padding: 20px 52px 20px 22px !important;
+    border-radius: 20px !important;
+    border: none !important;
+    background: linear-gradient(140deg,
+                {lembut(p["kop_terang"], .16)} 0%,
+                {lembut(p["kop_terang"], .05)} 42%,
+                {p["permukaan"]} 100%) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    transition: box-shadow .2s ease, transform .2s ease, background .2s ease;
+  }}
+  div[class*="st-key-beranda-"] button::after {{
+    content: "→"; position: absolute; right: 22px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 21px; font-weight: 700; color: {p["kop_terang"]};
+    transition: transform .2s ease;
   }}
   div[class*="st-key-beranda-"] button:hover {{
-    border-color: {lembut(p["kop_terang"], .45)} !important;
-    box-shadow: 0 6px 18px rgba(0,0,0,.10);
-    transform: translateY(-1px);
+    background: linear-gradient(140deg,
+                {lembut(p["kop_terang"], .3)} 0%,
+                {lembut(p["kop_terang"], .12)} 45%,
+                {p["permukaan"]} 100%) !important;
+    box-shadow: 0 10px 26px rgba(0,0,0,.13);
+    transform: translateY(-2px);
+  }}
+  div[class*="st-key-beranda-"] button:hover::after {{
+    transform: translateY(-50%) translateX(4px);
   }}
   div[class*="st-key-beranda-"] button p {{
-    font-size: 13.5px !important; font-weight: 560 !important;
-    line-height: 1.5 !important; color: {p["tinta"]} !important;
+    font-size: 17px !important; font-weight: 700 !important;
+    letter-spacing: -.016em !important;
+    line-height: 1.38 !important; color: {p["tinta"]} !important;
     white-space: normal !important; text-align: left !important;
+    width: 100% !important; margin: 0 !important;
   }}
   /* Keterangan isi situs, tiga alinea pendek berdampingan. */
   .muka-isi {{
