@@ -1201,7 +1201,7 @@ def unduh_laporan(judul: str, ringkas: list, tabel_df: pd.DataFrame | None,
                   border-left: 3pt solid #0a4442; background: #eef4f3;
                   font-size: 10pt; }}
     </style></head><body>
-      <h1>Belajar Analitik Sengketa Pajak</h1>
+      <h1>Belajar Putusan · Sengketa Pajak</h1>
       <h2>{judul}</h2>
       <p class="sumber">Disusun otomatis pada {kini} dari arsip risalah
       putusan Pengadilan Pajak, sumber setpp.kemenkeu.go.id/risalah.
@@ -1343,7 +1343,7 @@ def jeda_hari(df_: pd.DataFrame) -> pd.Series:
 # ketika ia membuka belasan tab sekaligus. Belah ketupat biru sebelumnya
 # tidak menerangkan apa pun; buku terbuka menyatakan bahwa ini bahan belajar,
 # bukan papan pemantau maupun terbitan resmi.
-st.set_page_config(page_title="Belajar Analitik Sengketa Pajak",
+st.set_page_config(page_title="Belajar Putusan · Sengketa Pajak",
                    page_icon="📖", layout="wide",
                    initial_sidebar_state="expanded")
 
@@ -1449,7 +1449,7 @@ _cap_urai = cap_penguraian()
 # siapa pun yang mencarinya.
 # Sisi kanan kop dikosongkan supaya menu punya ruang pada baris yang sama,
 # dan tanggal olahnya pindah ke kaki bersama keterangan situs lainnya.
-st.html(TV.kop("Belajar Analitik Sengketa Pajak", "", ""))
+st.html(TV.kop("Belajar Putusan", "", ""))
 
 with st.container(key="tema"):
     pilih_tema = st.segmented_control(
@@ -3093,7 +3093,8 @@ def temuan_peringkat(g, kolom_nama: str, kolom_nilai: str,
     return kal + (f". {apa}" if apa else ".")
 
 
-def daftar_putusan_drill(s, judul: str, kunci: str, sebab: str = "") -> None:
+def daftar_putusan_drill(s, judul: str, kunci: str, sebab: str = "",
+                         kunci_bagan: str = "") -> None:
     """
     Daftar putusan di balik satu titik bagan, dengan jalan pulang.
 
@@ -3108,7 +3109,7 @@ def daftar_putusan_drill(s, judul: str, kunci: str, sebab: str = "") -> None:
             f'<i>›</i><b>{judul}</b></div>')
     if st.button("Tutup rincian", icon=":material/close:",
                  key=f"tutup_{kunci}"):
-        st.session_state["hapus_kunci"] = kunci
+        st.session_state["hapus_kunci"] = kunci_bagan or kunci
         st.rerun()
     if sebab:
         st.caption(sebab)
@@ -3185,7 +3186,19 @@ def bagan_drill(fig, tinggi, catatan, kunci: str, sumber, kolom: str,
         belum_ada(f"Ruas {kolom} tidak tersedia pada lingkup ini.")
         return
     s = sumber[sumber[kolom].astype(str) == str(nilai)]
-    daftar_putusan_drill(s, f"{nama_dimensi} {pilih}", kunci, sebab)
+    # Kunci tabel hasil drill dibedakan dari kunci bagannya.
+    #
+    # Keduanya sempat memakai kunci yang sama persis, sehingga begitu satu
+    # batang diklik, halaman menggambar dua unsur berkunci sama dalam satu
+    # putaran dan Streamlit menghentikan halamannya dengan galat kunci
+    # kembar. Akibatnya tiap bagan yang dapat diklik justru jatuh tepat
+    # ketika diklik, yaitu satu satunya saat ia dipakai.
+    #
+    # Yang dibuang sebelumnya tetap kunci bagannya, sebab itulah yang
+    # menyimpan pilihan batang, dan penghapusan itu memang yang menutup
+    # rinciannya.
+    daftar_putusan_drill(s, f"{nama_dimensi} {pilih}", f"{kunci}_rinci", sebab,
+                         kunci_bagan=kunci)
 
 
 def tampil_detail(r, cuplikan=None, q_isi: str = "") -> None:

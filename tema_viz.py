@@ -142,7 +142,13 @@ TINGGI_NAV = 0
 # antara keduanya, dan itu merampas dua ratus lima puluh piksel dari menu
 # sehingga dua kelompok terdorong ke dalam limpahan. Pencariannya kini
 # berada di sisi kanan bersama tombol penyaring dan saklar tema.
-JARAK_MENU_KIRI = 330
+#
+# Angkanya mengikuti panjang nama situs, yang kini dua kata saja.
+JARAK_MENU_KIRI = 224
+# Ruang yang dipesan di sisi kanan untuk pencarian, tombol penyaring, dan
+# saklar tema. Tanpa pesanan ini bilah menu melebar sampai ke bawah ketiganya,
+# dan kelompok menu terakhir tertimpa kotak pencarian.
+RUANG_KANAN = 476
 TINGGI_KAKI = 43
 
 
@@ -404,8 +410,9 @@ def gaya(gelap: bool) -> str:
   }}
   .kop img {{ height: 40px; width: auto; }}
   .kop-garis {{ width: 1px; height: 36px; background: rgba(255,255,255,.24); }}
-  .kop-judul {{ font-size: 19px; font-weight: 600; color: #fff;
-                line-height: 1.25; letter-spacing: .005em; }}
+  .kop-judul {{ font-size: 19px; font-weight: 680; color: #fff;
+                line-height: 1.25; letter-spacing: -.004em;
+                white-space: nowrap; }}
   /* Sub judul memakai putih 92 persen, bukan 80 persen.
      Toska yang benar benar segar itu terang, dan tulisan putih tipis di
      atasnya jatuh ke bawah ambang keterbacaan. Menebalkan tulisannya
@@ -457,7 +464,7 @@ def gaya(gelap: bool) -> str:
        kelompok padahal kosong. Dengan lebar yang jujur, perhitungannya
        benar dengan sendirinya. */
     left: {JARAK_MENU_KIRI}px !important;
-    width: calc(100% - {JARAK_MENU_KIRI}px) !important;
+    width: calc(100% - {JARAK_MENU_KIRI}px - {RUANG_KANAN}px) !important;
     padding-left: 0 !important;
     pointer-events: none !important;
     top: 0 !important;
