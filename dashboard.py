@@ -1597,52 +1597,18 @@ if not st.session_state.get("alamat_terbaca"):
 _KEND: dict = {}
 
 
-def _sebut_penyaring() -> str:
-    """Judul panel penyaring, menyebutkan apa yang sedang aktif.
-
-    Penyaring yang terlipat berbahaya bila diam: pembaca melihat angka yang
-    sudah dipersempit tanpa tanda apa pun bahwa ia dipersempit. Karena itu
-    judulnya menyebutkan sendiri penyaring mana yang sedang bekerja, dan
-    hanya berbunyi netral ketika memang tidak ada yang menyaring.
-    """
-    aktif = []
-    if pilih_instansi and pilih_instansi != "Semua":
-        aktif.append(pilih_instansi)
-    if pilih_pajak and pilih_pajak != "Semua":
-        aktif.append(pilih_pajak.split(" · ")[-1][:28])
-    if th and tahun_ada and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
-        aktif.append(f"{th[0]}-{th[1]}")
-    if hanya_teks:
-        aktif.append("teks asli saja")
-    if modul and modul != _MODUL_OPSI[0]:
-        aktif.append(f"modul {modul.lower()}")
-    if not aktif:
-        return "Penyaring data, seluruh arsip sedang ditampilkan"
-    return "Penyaring aktif: " + " · ".join(aktif)
-
-
-def _wadah_penyaring() -> None:
-    """Menyiapkan wadah kendali di dalam halaman yang sedang digambar.
-
-    Bentuknya panel terlipat, bukan pita terbuka.
-    #
-    Sebagai pita terbuka, keempat kendali ini memakan hampir satu layar penuh
-    di kepala tiap halaman, sehingga angka yang justru dicari pembaca
-    terdorong ke bawah lipatan layar. Padahal bawaannya tidak menyaring apa
-    apa, jadi ruang sebesar itu dipakai untuk menyatakan bahwa tidak ada yang
-    sedang terjadi. Terlipat, ia tetap ada pada tiap halaman dan tetap dapat
-    dibuka, sedangkan judulnya menyebutkan sendiri bila ada yang aktif.
-    """
-    with st.container(key="bilah-kendali"):
-        with st.expander(_sebut_penyaring(),
-                         expanded=bool(st.session_state.get("buka_saring"))):
-            kol = st.columns([1.2, 1.45, 1.35, 1.0])
-            _KEND["instansi"] = kol[0].container()
-            _KEND["lingkup"] = kol[1].container()
-            _KEND["pajak"] = kol[2].container()
-            _KEND["modul"] = kol[3].container()
-
-
+# Penyaring pindah dari badan halaman ke kop, sebagai satu tombol.
+#
+# Sebagai panel di dalam halaman, ia memakan ruang pada tiap halaman yang
+# dibuka, padahal bawaannya tidak menyaring apa apa, sehingga ruang sebesar
+# itu dipakai untuk menyatakan bahwa tidak ada yang sedang terjadi. Sebagai
+# tombol di kop, ia ikut ke mana pun pembaca pergi, tersedia pada tiap modul
+# dan tiap halaman, tanpa mengambil satu baris pun dari isi yang dibaca.
+#
+# Wadah tunda di bawah ini yang memungkinkannya. Nilai penyaring diperlukan
+# jauh sebelum kopnya digambar, sedangkan kendalinya baru digambar kemudian
+# di dalam tombol itu, jadi perintah menggambarnya dicatat lebih dulu lalu
+# dijalankan di tempat yang benar.
 class _Tunda:
     """Wadah yang isinya baru digambar ketika halamannya digambar.
 
@@ -1699,6 +1665,43 @@ bagian_modul = _Tunda("modul")
 # bersama penyaring yang mengubah angka. Menaruhnya bersama penyaring juga
 # menyesatkan: pencarian tidak menyaring halaman yang sedang dibaca,
 # melainkan membawa pembaca ke halaman risalah.
+# Tombol penyaring di kop, dijalankan sesudah seluruh nilainya terbaca.
+def gambar_saring_kop() -> None:
+    """Menggambar tombol penyaring beserta isinya di kop halaman."""
+    with st.container(key="saring-kop"):
+        with st.popover(_sebut_saring(), icon=":material/tune:",
+                        use_container_width=False):
+            st.html('<div class="saring-judul">Penyaring data</div>')
+            kol = st.columns([1, 1])
+            _KEND["instansi"] = kol[0].container()
+            _KEND["pajak"] = kol[1].container()
+            _KEND["lingkup"] = st.container()
+            _KEND["modul"] = st.container()
+            for w in (bagian_instansi, bagian_pajak, bagian_lingkup,
+                      bagian_modul):
+                w.gambar()
+
+
+def _sebut_saring() -> str:
+    """Tulisan pada tombol penyaring, menyebut yang sedang aktif.
+
+    Penyaring yang tersembunyi di balik tombol berbahaya bila diam: pembaca
+    melihat angka yang sudah dipersempit tanpa satu pun tanda bahwa ia
+    dipersempit. Karena itu tombolnya sendiri yang menyebutkan penyaring mana
+    yang sedang bekerja, dan hanya berbunyi netral ketika memang tidak ada.
+    """
+    aktif = []
+    if pilih_instansi and pilih_instansi != "Semua":
+        aktif.append(pilih_instansi)
+    if pilih_pajak and pilih_pajak != "Semua":
+        aktif.append(pilih_pajak.split(" · ")[-1][:22])
+    if th and tahun_ada and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
+        aktif.append(f"{th[0]}-{th[1]}")
+    if hanya_teks:
+        aktif.append("teks asli")
+    return " · ".join(aktif) if aktif else "Penyaring"
+
+
 cari_cepat = str(nilai_kendali("cari_cepat", bawaan="") or "")
 with st.container(key="cari-kop"):
     st.text_input(
@@ -1944,12 +1947,6 @@ PENYALUR: dict = {}
 
 def _bungkus(nama: str):
     def jalan() -> None:
-        # Penyaring digambar lebih dulu, di dalam halaman ini, sehingga
-        # hubungannya dengan angka di bawahnya terlihat sendiri.
-        _wadah_penyaring()
-        for _w in (bagian_instansi, bagian_lingkup, bagian_pajak,
-                   bagian_modul):
-            _w.gambar()
         with st.spinner(f"Menyiapkan halaman {nama}...", show_time=True):
             PENYALUR[nama]()
         langkah_berikutnya(nama)
@@ -2041,6 +2038,11 @@ bagian_pajak.selectbox(
     help="Membatasi seluruh halaman pada satu jenis pajak. Kode yang "
          "jenisnya tidak pernah tertulis pada risalah tidak ditawarkan di "
          "sini, tetapi putusannya tetap terhitung pada pilihan Semua.")
+
+# Tombolnya digambar di sini, sesudah seluruh nilai penyaring terbaca dan
+# perintah menggambar tiap kendali tercatat, dan sebelum halaman mana pun
+# dijalankan. Letaknya pada kop diatur lewat gaya, bukan lewat urutan kode.
+gambar_saring_kop()
 
 d = df
 if pilih_pajak != "Semua":

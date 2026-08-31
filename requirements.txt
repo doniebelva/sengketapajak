@@ -3,7 +3,7 @@ pandas==3.0.3
 plotly==6.8.0
 numpy==2.4.6
 
-# tema_viz fa10345bc00e
+# tema_viz 07ab33938808
 # Baris di atas bukan paket, melainkan sidik berkas tema,
 # yang memaksa wadah peladen dibangun ulang setiap kali
 # temanya berubah. Tanpa itu, modul tema yang lama tetap

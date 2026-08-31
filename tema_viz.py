@@ -883,6 +883,46 @@ def gaya(gelap: bool) -> str:
     .st-key-cari-kop {{ display: none !important; }}
   }}
 
+  /* Tombol penyaring di kop, di sebelah kiri saklar tema. Bentuknya pil
+     bertepi tipis di atas latar hijau, cukup terbaca sebagai tombol tanpa
+     ikut berebut perhatian dengan menu. Tulisannya berubah sendiri menjadi
+     sebutan penyaring yang sedang aktif, sehingga pembaca tahu angkanya
+     sedang dipersempit tanpa perlu membuka tombolnya. */
+  .st-key-saring-kop {{
+    position: fixed !important; top: 16px !important; right: 92px !important;
+    z-index: 1000004 !important; width: auto !important;
+  }}
+  .st-key-saring-kop div[data-testid="stElementContainer"] {{
+    margin: 0 !important;
+  }}
+  /* Latar tombolnya pekat, bukan putih tembus.
+     Kopnya sendiri tembus pandang supaya warna gradasi di belakangnya yang
+     tampak, sehingga latar putih tembus pada tombol ini secara ukuran
+     berdiri di atas latar halaman yang terang, dan tulisan putih di atasnya
+     ditolak pengaudit dengan rasio 1,13 pada tiga puluh delapan tempat.
+     Warna tosca pekat memberi tulisannya alas yang sungguhan, dan kontrasnya
+     naik menjadi delapan banding satu. */
+  .st-key-saring-kop button {{
+    background: {p["kop"]} !important;
+    border: 1px solid {lembut(p["kop_terang"], .9)} !important;
+    color: #ffffff !important; border-radius: 999px !important;
+    padding: 5px 14px !important; font-size: 12px !important;
+    font-weight: 600 !important; min-height: 0 !important;
+  }}
+  .st-key-saring-kop button:hover {{
+    background: {p["kop_terang"]} !important;
+  }}
+  .st-key-saring-kop button p, .st-key-saring-kop button span {{
+    color: #ffffff !important;
+  }}
+  .saring-judul {{
+    font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: {p["tinta_2"]}; margin-bottom: 8px;
+  }}
+  @media (max-width: 1100px) {{
+    .st-key-saring-kop {{ display: none !important; }}
+  }}
+
   .st-key-tema {{
     position: fixed !important; top: 27px !important; right: 22px !important;
     z-index: 1000003 !important; width: auto !important;
