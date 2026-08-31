@@ -401,6 +401,15 @@ def gaya(gelap: bool) -> str:
      pembacanya: rasio kontrasnya naik dari 4,28 menjadi 5,12. */
   .kop-sub {{ font-size: 12px; color: rgba(255,255,255,.92); margin-top: 3px;
               letter-spacing: .002em; }}
+  /* Keterangan situs di kaki halaman. Dahulu tercetak di bawah judul pada
+     kop, dan di sana ia mengambil ruang paling mahal di seluruh halaman
+     untuk keterangan yang cukup dibaca sekali. Di kaki, keterangan itu tetap
+     ada bagi yang mencarinya tanpa menghalangi yang sudah tahu. */
+  .kaki-ket {{
+    grid-column: 1 / -1; margin-top: 6px; padding-top: 7px;
+    border-top: 1px solid {p["tepi"]};
+    font-size: 10.5px; color: {p["tinta_2"]}; line-height: 1.55;
+  }}
   .kop-kanan {{ margin-left: auto; text-align: right;
                 font-size: 11.5px; color: rgba(255,255,255,.84);
                 line-height: 1.45;
@@ -416,13 +425,28 @@ def gaya(gelap: bool) -> str:
      pembuka bilah samping. Menyembunyikan seluruh bilah alat pernah membuat
      bilah samping yang sudah ditutup tidak dapat dibuka lagi sama sekali,
      jadi kerangkanya dibiarkan hidup, isinya saja yang dimatikan. */
+  /* Bilah navigasi menyambung warna kop, bukan pita putih tersendiri.
+     Dua pita bertumpuk dengan warna berbeda terbaca sebagai dua benda,
+     padahal keduanya kepala situs yang sama. Warnanya diambil dari ujung
+     paling dalam gradasi kop, sehingga kop dan menunya menyatu menurun. */
   header[data-testid="stHeader"] {{
-    background: {p["permukaan"]} !important;
+    background: {p["kop_2"]} !important;
     height: auto !important; min-height: {TINGGI_NAV}px !important;
     pointer-events: auto !important;
     top: {TINGGI_KOP}px !important;
-    border-bottom: 1px solid {p["tepi"]};
+    box-shadow: 0 1px 6px rgba(0,0,0,.22);
     z-index: 1000001 !important;
+  }}
+  /* Tulisan menu dibuat putih, sebab latarnya kini hijau tua. Yang dibuat
+     putih penuh hanya tulisannya; bilah yang sedang terbuka diberi lapisan
+     putih tipis supaya kelompok yang aktif tetap terbaca. */
+  header[data-testid="stHeader"] [data-testid="stTopNavSection"],
+  header[data-testid="stHeader"] [data-testid="stTopNavSection"] * {{
+    color: rgba(255,255,255,.94) !important;
+  }}
+  header[data-testid="stHeader"] [data-testid="stTopNavSection"]:hover {{
+    background: rgba(255,255,255,.12) !important;
+    border-radius: 8px;
   }}
   /* Navigasi tetap dapat disentuh walau bilah alat di sebelahnya dimatikan.
      Keduanya bersarang di dalam bilah judul yang sama, dan aturan lama
@@ -1571,10 +1595,17 @@ def kop(judul: str, sub: str, kanan: str) -> str:
         '<div class="kop">'
         f'{gambar}{garis}'
         f'<div><div class="kop-judul">{judul}</div>'
-        f'<div class="kop-sub">{sub}</div></div>'
+        + (f'<div class="kop-sub">{sub}</div>' if sub else "")
+        + '</div>'
         f'<div class="kop-kanan">{kanan}</div>'
         '</div>'
     )
+
+
+KETERANGAN_SITUS = (
+    "Belajar membaca putusan Pengadilan Pajak dari risalah yang terbuka "
+    "untuk umum &middot; Bukan terbitan resmi lembaga mana pun &middot; "
+    "Sumber data: setpp.kemenkeu.go.id/risalah")
 
 
 def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
@@ -1588,6 +1619,7 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
         f'<span class="titik" style="background:{warna}"></span>'
         f'Penarikan <b>{nyala}</b>, {status_tarik}</span>'
         f'<span class="kanan">{kanan}</span>'
+        f'<span class="kaki-ket">{KETERANGAN_SITUS}</span>'
         '</div>'
     )
 

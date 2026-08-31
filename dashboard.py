@@ -377,6 +377,26 @@ def rapikan_kapital(s):
     return " ".join(hasil)
 
 
+def kode_berlabel(kode_seri, peta: dict) -> list:
+    """Kode jenis pajak yang punya nama, urut menurun menurut banyaknya.
+
+    Sebelas kode pada arsip ini tidak pernah sekali pun disertai keterangan
+    jenis pajaknya, sebab namanya memang diambil dari teks pada risalahnya
+    sendiri dan teks itu tidak pernah tertulis dalam bentuk yang terbaca.
+    Kesebelasnya bersama sama hanya memuat tujuh puluh lima putusan, kurang
+    dari sepertiga persen arsip, tetapi menempati sebelas baris pada daftar
+    pilihan yang isinya tiga puluh sembilan, sehingga daftar itu tampak
+    penuh oleh baris yang tidak dapat dipilih dengan maksud apa pun.
+
+    Yang disingkirkan hanya barisnya dari daftar pilihan. Putusannya tetap
+    terhitung penuh pada pilihan Semua, dan jumlahnya tetap dilaporkan pada
+    halaman Metodologi, sebab menyembunyikan barisnya boleh sedangkan
+    menghilangkan putusannya dari hitungan tidak.
+    """
+    urut = kode_seri.dropna().astype(str).value_counts()
+    return [k for k in urut.index if peta.get(str(k))]
+
+
 def label_kode(kode, peta: dict) -> str:
     if kode is None or (isinstance(kode, float) and math.isnan(kode)):
         return "tidak dikenali"
@@ -1421,10 +1441,14 @@ _cap_urai = cap_penguraian()
 # menyatakan dua hal yang wajib diketahui pembaca sejak detik pertama:
 # datanya terbuka dan dari mana asalnya, dan situs ini bukan terbitan resmi
 # lembaga mana pun.
+# Sub judul dipindah ke kaki halaman, bukan dihapus.
+#
+# Keterangan itu perlu ada, tetapi cukup dibaca sekali, sedangkan tempatnya
+# di bawah judul adalah ruang paling mahal di seluruh halaman dan terbawa
+# menetap pada tiap halaman yang dibuka. Di kaki ia tetap dapat ditemukan
+# siapa pun yang mencarinya.
 st.html(TV.kop("Belajar Analitik Sengketa Pajak",
-               "Belajar membaca putusan Pengadilan Pajak dari risalah yang "
-               "terbuka untuk umum · Bukan terbitan resmi · Sumber data: "
-               "setpp.kemenkeu.go.id/risalah",
+               "",
                ((f"Data diolah<br><b>{_cap_urai}</b>"
                  if _cap_urai else
                  f"Arsip ditarik hingga<br><b>{_cap_tarik}</b>")
@@ -1549,18 +1573,27 @@ if not st.session_state.get("alamat_terbaca"):
         st.session_state["buka_doc"] = int(_q["doc"])
         st.session_state["nav"] = "Risalah Putusan"
 
-# Urutan tampil bilah samping diatur lewat wadah, terlepas dari urutan
-# kode: saklar instansi tampil paling atas karena itu pilihan analisis
-# utama, menu halaman di bawahnya, lalu pencarian dan modul pengguna, dan
-# penyaring lanjutan di paling bawah. Kodenya sendiri tetap berjalan dengan
-# urutan lama, karena pemilih modul harus dihitung sebelum menu halaman.
-bagian_instansi = st.sidebar.container()
-bagian_menu = st.sidebar.container()
-bagian_bawah = st.sidebar.container()
-bagian_lingkup = st.sidebar.container()
+# Kendali berpindah dari bilah samping ke satu baris di bawah kop.
+#
+# Bilah samping dahulu memuat menu halaman, dan kendali menumpang di sana.
+# Sejak menu pindah ke kepala halaman, yang tersisa di bilah itu hanya
+# kendali, sehingga sebuah pita kosong selebar dua ratus piksel menemani
+# pembaca sepanjang halaman tanpa alasan. Kendalinya sendiri tidak dapat
+# ikut dibuang: unit analisis, rentang tahun, pencarian, dan modul itulah
+# yang menentukan angka yang sedang dibaca.
+#
+# Wadahnya dibuat lebih dahulu supaya urutan tampilnya bebas dari urutan
+# kodenya. Pemilih modul, misalnya, harus dihitung sebelum navigasi
+# dibentuk, tetapi tampil paling kanan.
+with st.container(key="bilah-kendali"):
+    _kend = st.columns([1.15, 1.5, 1.6, 1.1])
+    bagian_instansi = _kend[0].container()
+    bagian_lingkup = _kend[1].container()
+    bagian_cari = _kend[2].container()
+    bagian_modul = _kend[3].container()
 
-bagian_bawah.html('<div class="sb-judul">Cari isi putusan</div>')
-cari_cepat = bagian_bawah.text_input(
+bagian_cari.html('<div class="sb-judul">Cari isi putusan</div>')
+cari_cepat = bagian_cari.text_input(
     "Cari cepat", key="cari_cepat", placeholder="Cari isi putusan...",
     label_visibility="collapsed")
 if cari_cepat.strip():
@@ -1663,8 +1696,8 @@ _MODUL_OPSI = list(MODUL)
 _modul_simpan = st.session_state.get("_modul_terakhir", _MODUL_OPSI[0])
 if _modul_simpan not in _MODUL_OPSI:
     _modul_simpan = _MODUL_OPSI[0]
-bagian_bawah.html('<div class="sb-judul">Modul pengguna</div>')
-modul = bagian_bawah.selectbox(
+bagian_modul.html('<div class="sb-judul">Modul pengguna</div>')
+modul = bagian_modul.selectbox(
     "Modul pengguna", _MODUL_OPSI, index=_MODUL_OPSI.index(_modul_simpan),
     key="modul", label_visibility="collapsed")
 st.session_state["_modul_terakhir"] = modul
@@ -3206,8 +3239,7 @@ def hal_telusur() -> None:
             ["Semua"] + sorted(v for v in d["amar_label"].dropna().unique()
                                if v != "Tidak dikenali"),
             key="q_amar")
-        _kode_sering = (d["kode_jenis_pajak"].dropna().astype(str)
-                        .value_counts().head(15).index.tolist())
+        _kode_sering = kode_berlabel(d["kode_jenis_pajak"], kode_peta)[:15]
         q_jp = kol_s[1].selectbox(
             "Jenis pajak",
             ["Semua"] + [label_kode(k, kode_peta) for k in _kode_sering],
@@ -3405,7 +3437,7 @@ def hal_belajar() -> None:
         "gugur. Semua angka adalah catatan masa lalu, bukan ramalan atas "
         "perkara Anda.")
 
-    kode_ada = sorted(d["kode_jenis_pajak"].dropna().astype(str).unique())
+    kode_ada = sorted(kode_berlabel(d["kode_jenis_pajak"], kode_peta))
     kor_ada = sorted({LABEL_KOREKSI.get(x, x)
                       for v in d["jenis_koreksi"].dropna()
                       for x in str(v).split("|")})
@@ -3685,7 +3717,12 @@ def _konsistensi_majelis() -> None:
     # Kelompok pembanding: jenis pajak berputusan terbanyak.
     urut = (dd.groupby("kode_jenis_pajak")["doc_id"].nunique()
             .sort_values(ascending=False))
-    pilihan = [label_kode(k, kode_peta) for k in urut.head(12).index]
+    _berlabel = [k for k in urut.index if kode_peta.get(str(k))]
+    pilihan = [label_kode(k, kode_peta) for k in _berlabel[:12]]
+    if not pilihan:
+        belum_ada("Belum terdapat kelompok perkara yang jenis pajaknya "
+                  "terbaca pada lingkup ini.")
+        return
     pilih = st.selectbox(
         "Kelompok perkara yang dibandingkan", pilihan, key="maj_kelompok",
         help="Perbandingan hanya sah di dalam kelompok perkara yang sama.")
@@ -4878,7 +4915,7 @@ def hal_dasar() -> None:
         return
 
     k1, k2 = st.columns(2)
-    kode_ada = sorted(dd["kode_jenis_pajak"].dropna().astype(str).unique())
+    kode_ada = sorted(kode_berlabel(dd["kode_jenis_pajak"], kode_peta))
     p_kode = k1.selectbox("Jenis pajak", ["Semua"] + kode_ada,
                           format_func=lambda k: k if k == "Semua"
                           else label_kode(k, kode_peta), key="dh_kode")
@@ -5514,9 +5551,9 @@ def _durasi_perkiraan() -> None:
         "Jenis perkara", ["Semua", "Banding", "Gugatan"], key="dur_perkara")
     pilih_pajak = kol[1].selectbox(
         "Jenis pajak",
-        ["Semua"] + [label_kode(k, kode_peta) for k in
-                     sorted(dd["kode_jenis_pajak"].dropna().unique(),
-                            key=str)],
+        ["Semua"] + [label_kode(k, kode_peta)
+                     for k in sorted(kode_berlabel(dd["kode_jenis_pajak"],
+                                                   kode_peta), key=str)],
         key="dur_pajak")
 
     tersaring = dd
