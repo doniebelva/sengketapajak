@@ -62,6 +62,14 @@ TERANG = {
     "kop_terang": "#087274",
     "kop": "#06585b",
     "kop_2": "#04403f",
+    # Tinta judul, sekeluarga dengan warna kop tetapi cukup gelap untuk
+    # dibaca. Judul berwarna hitam biasa membuat halaman terasa seperti
+    # naskah, bukan seperti situs, dan tidak ada satu pun tanda bahwa
+    # kepalanya, judulnya, dan bagannya berasal dari satu keluarga warna.
+    # Kontrasnya 8,03 di atas kartu dan 7,09 di atas latar halaman, keduanya
+    # jauh di atas ambang, sehingga warnanya tidak dibayar dengan
+    # keterbacaan.
+    "tinta_judul": "#0d5a56",
     # Biru tua di bawah ini bukan lagi warna tampilan, melainkan warna data,
     # yaitu penanda unit gabungan pada bagan. Dibiarkan biru supaya sekeluarga
     # dengan warna DJP dan berbeda jelas dari emas DJBC.
@@ -84,6 +92,9 @@ GELAP = {
     "kop_terang": "#076063",
     "kop": "#054749",
     "kop_2": "#033335",
+    # Pada mode gelap arahnya dibalik: tinta judulnya justru lebih terang
+    # daripada tulisan biasa. Kontrasnya 9,31 di atas kartu.
+    "tinta_judul": "#6fd3cb",
     "navy_terang": "#0d3a6e",
     "permukaan": "#1c1f26",
     "bidang": "#12141a",
@@ -638,7 +649,10 @@ def gaya(gelap: bool) -> str:
     font-size: 33px !important; font-weight: 800 !important;
     letter-spacing: -.028em; line-height: 1.12;
     margin: 0 !important; padding: 0 !important;
-    color: {p["tinta"]};
+    /* Warnanya ditegaskan, sebab aturan bawaan Streamlit untuk judul
+       mengalahkan warna yang tidak ditegaskan, dan judul halaman tetap
+       tercetak hitam walau warnanya sudah diatur. */
+    color: {p["tinta_judul"]} !important;
   }}
   .kh-dim, .kh-lingkup {{
     font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
@@ -1171,6 +1185,20 @@ def gaya(gelap: bool) -> str:
     background: linear-gradient(152deg, {lembut(p["kop_terang"], .1)} 0%,
                                 {p["permukaan"]} 55%);
   }}
+  /* Angka pahlawan diwarnai gradasi, bukan tinta rata.
+     Ia satu satunya angka yang berhak menonjol pada halamannya, dan gradasi
+     dari tosca terang ke tosca dalam membuatnya terbaca sebagai sajian,
+     bukan sebagai hasil hitungan yang dituliskan begitu saja. Warna
+     cadangannya tetap dipasang lebih dahulu, sehingga peramban yang tidak
+     mendukung pemotongan latar pada tulisan tetap menampilkan angkanya
+     dengan warna yang terbaca, bukan tulisan tembus pandang. */
+  .kpi.utama .kpi-nilai {{
+    color: {p["tinta_judul"]};
+    background: linear-gradient(96deg, {p["kop_terang"]} 0%,
+                                {p["kop_2"]} 82%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }}
   .kpi.utama .kpi-nilai {{
     /* Tinggi baris tidak boleh serapat itu pada huruf sebesar ini. Pada
        1,05 kaki huruf melewati wadahnya enam piksel, dan pengaudit tampilan
@@ -1675,7 +1703,7 @@ def gaya(gelap: bool) -> str:
      untuk memotong halaman menjadi bagian yang terbaca sekilas. */
   .tingkat {{
     font-size: 19px; font-weight: 750; letter-spacing: -.018em;
-    color: {p["tinta"]}; margin: 30px 0 10px 0; line-height: 1.25;
+    color: {p["tinta_judul"]}; margin: 30px 0 10px 0; line-height: 1.25;
     display: flex; align-items: center; gap: 10px;
   }}
   /* Penanda tegak kecil di depan judul bagian.
