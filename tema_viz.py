@@ -131,11 +131,14 @@ FONT_URL = ("https://fonts.googleapis.com/css2?"
 
 SISI = "2.2rem"       # jarak tepi bidang isi, dipakai juga oleh kop dan kaki
 TINGGI_KOP = 66
-# Tinggi bilah navigasi, digambar tepat di bawah kop. Bilah judul bawaan
-# Streamlit dahulu dimatikan sama sekali, sebab isinya hanya menu tiga titik
-# dan tombol sebar. Sejak navigasi pindah ke kepala halaman, bilah itu juga
-# memuat menunya, sehingga mematikannya berarti menghapus seluruh menu.
-TINGGI_NAV = 54
+# Menu duduk pada baris yang sama dengan judul, bukan pada pita tersendiri
+# di bawahnya. Dua pita bertumpuk menghabiskan seratus dua puluh piksel di
+# kepala tiap halaman untuk keperluan yang muat pada satu baris. Karena itu
+# bilah judul bawaan Streamlit, yang memuat menunya, ditindihkan tepat di
+# atas kop dengan latar tembus pandang, dan diberi jarak kiri secukupnya
+# supaya menunya mulai sesudah judul situs.
+TINGGI_NAV = 0
+JARAK_MENU_KIRI = 600
 TINGGI_KAKI = 43
 
 
@@ -371,7 +374,7 @@ def gaya(gelap: bool) -> str:
   h1, h2, h3, h4, .kop-judul {{ letter-spacing: -.018em; }}
   .stApp {{ background: {p["bidang"]}; }}
   .block-container {{
-    padding: calc({TINGGI_KOP}px + {TINGGI_NAV}px + 20px) {SISI}
+    padding: calc({TINGGI_KOP}px + 20px) {SISI}
              calc({TINGGI_KAKI}px + 26px) {SISI};
     max-width: 100%;
   }}
@@ -388,6 +391,11 @@ def gaya(gelap: bool) -> str:
        pun masih jauh di atas ambang keterbacaan. */
     background: linear-gradient(115deg, {p["kop_terang"]} 0%,
                                 {p["kop"]} 48%, {p["kop_2"]} 100%);
+    /* Garis aksen tipis di kaki kop, memakai emas dari palet sendiri. Ia
+       memberi kop batas bawah yang tegas tanpa menambah tinggi, dan warnanya
+       diambil dari deret bagan supaya kepala halaman sekeluarga dengan
+       isinya. */
+    border-bottom: 2px solid {p["seri"][1]};
     box-shadow: 0 1px 6px rgba(0,0,0,.22);
   }}
   .kop img {{ height: 40px; width: auto; }}
@@ -429,24 +437,39 @@ def gaya(gelap: bool) -> str:
      Dua pita bertumpuk dengan warna berbeda terbaca sebagai dua benda,
      padahal keduanya kepala situs yang sama. Warnanya diambil dari ujung
      paling dalam gradasi kop, sehingga kop dan menunya menyatu menurun. */
+  /* Bilah judul bawaan ditindihkan di atas kop, bukan ditaruh di bawahnya.
+     Latarnya dibuat tembus pandang supaya warna kop yang tampak, dan
+     sentuhan dimatikan pada bilahnya sendiri lalu dihidupkan hanya pada
+     menunya, supaya bilah selebar layar ini tidak menghalangi saklar tema
+     dan tombol lain yang berada di kop. */
   header[data-testid="stHeader"] {{
-    background: {p["kop_2"]} !important;
-    height: auto !important; min-height: {TINGGI_NAV}px !important;
-    pointer-events: auto !important;
-    top: {TINGGI_KOP}px !important;
-    box-shadow: 0 1px 6px rgba(0,0,0,.22);
-    z-index: 1000001 !important;
+    background: transparent !important;
+    height: {TINGGI_KOP}px !important; min-height: 0 !important;
+    padding-left: {JARAK_MENU_KIRI}px !important;
+    pointer-events: none !important;
+    top: 0 !important;
+    z-index: 1000003 !important;
   }}
-  /* Tulisan menu dibuat putih, sebab latarnya kini hijau tua. Yang dibuat
-     putih penuh hanya tulisannya; bilah yang sedang terbuka diberi lapisan
-     putih tipis supaya kelompok yang aktif tetap terbaca. */
+  /* Tiap kelompok menu diberi latar pil sendiri, bukan sekadar tulisan
+     putih di atas bilah tembus pandang.
+     Alasannya dua. Yang pertama keterbacaan yang dapat diukur: bilah judul
+     ini tembus pandang supaya warna kop yang tampak, sehingga tulisan putih
+     di atasnya secara ukuran berdiri di atas latar halaman yang terang, dan
+     pengaudit tampilan benar ketika menolaknya. Latar pil memberi tulisan
+     itu alas yang sungguhan. Yang kedua bentuknya memang lebih terbaca
+     sebagai menu, sebab tiap kelompok punya batas yang jelas. */
+  header[data-testid="stHeader"] [data-testid="stTopNavSection"] {{
+    background: {p["kop"]} !important;
+    border-radius: 9px !important;
+    padding: 5px 11px !important;
+    margin-right: 5px !important;
+  }}
   header[data-testid="stHeader"] [data-testid="stTopNavSection"],
   header[data-testid="stHeader"] [data-testid="stTopNavSection"] * {{
-    color: rgba(255,255,255,.94) !important;
+    color: #ffffff !important;
   }}
   header[data-testid="stHeader"] [data-testid="stTopNavSection"]:hover {{
-    background: rgba(255,255,255,.12) !important;
-    border-radius: 8px;
+    background: {lembut(p["kop_terang"], .92)} !important;
   }}
   /* Navigasi tetap dapat disentuh walau bilah alat di sebelahnya dimatikan.
      Keduanya bersarang di dalam bilah judul yang sama, dan aturan lama
@@ -454,7 +477,8 @@ def gaya(gelap: bool) -> str:
   header[data-testid="stHeader"] [data-testid="stTopNavSection"],
   header[data-testid="stHeader"] [data-testid="stTopNavPopover"],
   header[data-testid="stHeader"] [data-testid="stTopNavLinkContainer"],
-  header[data-testid="stHeader"] [data-testid="stTopNavDropdownLink"] {{
+  header[data-testid="stHeader"] [data-testid="stTopNavDropdownLink"],
+  header[data-testid="stHeader"] [data-testid="stTopNavSection"] * {{
     pointer-events: auto !important;
   }}
   header[data-testid="stHeader"] [data-testid="stTopNavLinkContainer"] a {{
@@ -795,6 +819,30 @@ def gaya(gelap: bool) -> str:
      Cloud, tombol Fork milik peladen digambar menempel di tepi atas kanan,
      di luar bingkai aplikasi sehingga tidak dapat disentuh dari sini, dan
      pada posisi semula kedua unsur itu tampak bertumpuk. */
+  /* Kotak pencarian di dalam kop, bersebelahan dengan nama situs. Bentuknya
+     pil putih supaya terbaca sebagai tempat mengetik di atas latar gelap,
+     dan lebarnya tetap supaya menu di sebelahnya tidak bergeser geser. */
+  .st-key-cari-kop {{
+    position: fixed !important; top: 15px !important; left: 322px !important;
+    z-index: 1000004 !important; width: 262px !important;
+  }}
+  .st-key-cari-kop div[data-testid="stElementContainer"] {{
+    margin: 0 !important;
+  }}
+  .st-key-cari-kop input {{
+    background: #ffffff !important; color: #16202a !important;
+    border-radius: 999px !important; border: none !important;
+    padding: 8px 15px !important; font-size: 12.5px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,.18);
+  }}
+  .st-key-cari-kop input::placeholder {{ color: #6a7480 !important; }}
+  .st-key-cari-kop div[data-baseweb="input"] {{
+    background: transparent !important; border: none !important;
+  }}
+  @media (max-width: 1250px) {{
+    .st-key-cari-kop {{ display: none !important; }}
+  }}
+
   .st-key-tema {{
     position: fixed !important; top: 27px !important; right: 22px !important;
     z-index: 1000003 !important; width: auto !important;
@@ -1609,9 +1657,14 @@ KETERANGAN_SITUS = (
 
 
 def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
-         kanan: str) -> str:
+         kanan: str, diolah: str = "") -> str:
     warna = TERANG["baik"] if aktif else TERANG["tinta_2"]
     nyala = "berjalan" if aktif else "berhenti"
+    # Tanggal arsip terakhir diolah ikut di kaki, bukan di sisi kanan kop.
+    # Di kop ia menempati ruang yang justru diperlukan menu, sedangkan yang
+    # membacanya hanya pembaca yang sedang menimbang seberapa mutakhir
+    # angkanya, dan pembaca itu memang mencarinya sampai ke kaki halaman.
+    cap = f" &middot; Arsip terakhir diolah {diolah}" if diolah else ""
     return (
         '<div class="kaki">'
         f'<span class="kiri">&copy; 2026 Dikembangkan oleh <b>{nama}</b></span>'
@@ -1619,7 +1672,7 @@ def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
         f'<span class="titik" style="background:{warna}"></span>'
         f'Penarikan <b>{nyala}</b>, {status_tarik}</span>'
         f'<span class="kanan">{kanan}</span>'
-        f'<span class="kaki-ket">{KETERANGAN_SITUS}</span>'
+        f'<span class="kaki-ket">{KETERANGAN_SITUS}{cap}</span>'
         '</div>'
     )
 

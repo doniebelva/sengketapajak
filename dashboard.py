@@ -1447,12 +1447,9 @@ _cap_urai = cap_penguraian()
 # di bawah judul adalah ruang paling mahal di seluruh halaman dan terbawa
 # menetap pada tiap halaman yang dibuka. Di kaki ia tetap dapat ditemukan
 # siapa pun yang mencarinya.
-st.html(TV.kop("Belajar Analitik Sengketa Pajak",
-               "",
-               ((f"Data diolah<br><b>{_cap_urai}</b>"
-                 if _cap_urai else
-                 f"Arsip ditarik hingga<br><b>{_cap_tarik}</b>")
-                if (_cap_urai or _cap_tarik) else "")))
+# Sisi kanan kop dikosongkan supaya menu punya ruang pada baris yang sama,
+# dan tanggal olahnya pindah ke kaki bersama keterangan situs lainnya.
+st.html(TV.kop("Belajar Analitik Sengketa Pajak", "", ""))
 
 with st.container(key="tema"):
     pilih_tema = st.segmented_control(
@@ -1585,17 +1582,93 @@ if not st.session_state.get("alamat_terbaca"):
 # Wadahnya dibuat lebih dahulu supaya urutan tampilnya bebas dari urutan
 # kodenya. Pemilih modul, misalnya, harus dihitung sebelum navigasi
 # dibentuk, tetapi tampil paling kanan.
-with st.container(key="bilah-kendali"):
-    _kend = st.columns([1.15, 1.5, 1.6, 1.1])
-    bagian_instansi = _kend[0].container()
-    bagian_lingkup = _kend[1].container()
-    bagian_cari = _kend[2].container()
-    bagian_modul = _kend[3].container()
+# Penyaring digambar di dalam tiap halaman, bukan sekali di atas segalanya.
+#
+# Sebagai pita tersendiri di kepala aplikasi, penyaring terbaca sebagai
+# perkakas milik situs, bukan milik halaman yang sedang dibaca, dan pembaca
+# yang menemukannya di sana tidak tahu bahwa ia mengubah angka di bawahnya.
+# Ditaruh di dalam halaman, hubungan antara penyaring dan angkanya menjadi
+# jelas dengan sendirinya.
+#
+# Nilainya sendiri dibaca dari keadaan sesi jauh sebelum digambar, sebab
+# seluruh penyaringan harus selesai sebelum halaman mana pun dijalankan.
+# Yang digambar belakangan hanya kendalinya; nilainya sudah dipegang sejak
+# awal putaran, sehingga tidak ada satu putaran pun yang tertinggal.
+_KEND: dict = {}
 
-bagian_cari.html('<div class="sb-judul">Cari isi putusan</div>')
-cari_cepat = bagian_cari.text_input(
-    "Cari cepat", key="cari_cepat", placeholder="Cari isi putusan...",
-    label_visibility="collapsed")
+
+def _wadah_penyaring() -> None:
+    """Menyiapkan wadah kendali di dalam halaman yang sedang digambar."""
+    with st.container(key="bilah-kendali"):
+        kol = st.columns([1.2, 1.45, 1.35, 1.0])
+        _KEND["instansi"] = kol[0].container()
+        _KEND["lingkup"] = kol[1].container()
+        _KEND["pajak"] = kol[2].container()
+        _KEND["modul"] = kol[3].container()
+
+
+class _Tunda:
+    """Wadah yang isinya baru digambar ketika halamannya digambar.
+
+    Kode penyaring berjalan jauh sebelum halaman dipilih, sedangkan wadah
+    tempatnya digambar baru ada ketika halaman itu digambar. Kelas ini
+    menampung perintah gambarnya lebih dahulu, lalu menjalankannya kemudian
+    di dalam wadah yang benar, sehingga urutan kode tidak perlu dipaksa
+    mengikuti urutan tampilan.
+    """
+
+    def __init__(self, nama: str) -> None:
+        self.nama = nama
+        self.antre: list = []
+
+    def __getattr__(self, perintah: str):
+        def catat(*args, **kwargs):
+            self.antre.append((perintah, args, kwargs))
+            return None
+        return catat
+
+    def gambar(self) -> None:
+        wadah = _KEND.get(self.nama)
+        if wadah is None:
+            return
+        for perintah, args, kwargs in self.antre:
+            getattr(wadah, perintah)(*args, **kwargs)
+        self.antre.clear()
+
+
+def nilai_kendali(kunci: str, pilihan=None, bawaan=None):
+    """Nilai kendali menurut keadaan sesi, bukan menurut kembalian widget.
+
+    Kendalinya digambar belakangan, di dalam halaman, sedangkan nilainya
+    diperlukan sejak awal putaran untuk menyaring data. Keadaan sesi sudah
+    memuat pilihan terakhir pemakai pada awal putaran, jadi membacanya di
+    sini tidak tertinggal satu putaran pun. Bila pilihannya sudah tidak sah,
+    misalnya karena datanya berubah, nilainya dipulangkan ke bawaan.
+    """
+    nilai = st.session_state.get(kunci, bawaan)
+    if pilihan is not None and nilai not in pilihan:
+        return bawaan
+    return nilai
+
+
+bagian_instansi = _Tunda("instansi")
+bagian_lingkup = _Tunda("lingkup")
+bagian_pajak = _Tunda("pajak")
+bagian_modul = _Tunda("modul")
+
+# Pencarian naik ke kop, bersebelahan dengan nama situs.
+#
+# Pada situs yang isinya bahan bacaan, pencarian adalah pintu masuk kedua
+# sesudah menu, dan tempatnya memang di kepala halaman, bukan berbaris
+# bersama penyaring yang mengubah angka. Menaruhnya bersama penyaring juga
+# menyesatkan: pencarian tidak menyaring halaman yang sedang dibaca,
+# melainkan membawa pembaca ke halaman risalah.
+cari_cepat = str(nilai_kendali("cari_cepat", bawaan="") or "")
+with st.container(key="cari-kop"):
+    st.text_input(
+        "Cari cepat", key="cari_cepat",
+        placeholder="Cari isi putusan, nama, atau nomor...",
+        label_visibility="collapsed")
 if cari_cepat.strip():
     st.session_state["q_isi"] = cari_cepat.strip()
     # Kata kunci baru langsung membawa ke halaman telusur.
@@ -1655,8 +1728,9 @@ _UNIT_OPSI = list(LINGKUP_INSTANSI)
 _unit_simpan = st.session_state.get("_unit_terakhir", _UNIT_OPSI[0])
 if _unit_simpan not in _UNIT_OPSI:
     _unit_simpan = _UNIT_OPSI[0]
+pilih_instansi = nilai_kendali("lingkup_instansi", _UNIT_OPSI, _unit_simpan)
 bagian_instansi.html('<div class="sb-judul">Unit analisis</div>')
-pilih_instansi = bagian_instansi.selectbox(
+bagian_instansi.selectbox(
     "Unit analisis", _UNIT_OPSI, index=_UNIT_OPSI.index(_unit_simpan),
     key="lingkup_instansi", label_visibility="collapsed",
     help="Membatasi seluruh halaman pada perkara melawan unit ini. "
@@ -1696,8 +1770,9 @@ _MODUL_OPSI = list(MODUL)
 _modul_simpan = st.session_state.get("_modul_terakhir", _MODUL_OPSI[0])
 if _modul_simpan not in _MODUL_OPSI:
     _modul_simpan = _MODUL_OPSI[0]
+modul = nilai_kendali("modul", _MODUL_OPSI, _modul_simpan)
 bagian_modul.html('<div class="sb-judul">Modul pengguna</div>')
-modul = bagian_modul.selectbox(
+bagian_modul.selectbox(
     "Modul pengguna", _MODUL_OPSI, index=_MODUL_OPSI.index(_modul_simpan),
     key="modul", label_visibility="collapsed")
 st.session_state["_modul_terakhir"] = modul
@@ -1823,6 +1898,12 @@ PENYALUR: dict = {}
 
 def _bungkus(nama: str):
     def jalan() -> None:
+        # Penyaring digambar lebih dulu, di dalam halaman ini, sehingga
+        # hubungannya dengan angka di bawahnya terlihat sendiri.
+        _wadah_penyaring()
+        for _w in (bagian_instansi, bagian_lingkup, bagian_pajak,
+                   bagian_modul):
+            _w.gambar()
         with st.spinner(f"Menyiapkan halaman {nama}...", show_time=True):
             PENYALUR[nama]()
         langkah_berikutnya(nama)
@@ -1871,8 +1952,13 @@ if len(tahun_ada) > 1:
             _th_simpan = _th_penuh
     except (TypeError, ValueError, IndexError):
         _th_simpan = _th_penuh
+    th = nilai_kendali("lingkup_tahun", bawaan=_th_simpan) or _th_simpan
+    try:
+        th = (max(_th_penuh[0], int(th[0])), min(_th_penuh[1], int(th[1])))
+    except (TypeError, ValueError, IndexError):
+        th = _th_penuh
     bagian_lingkup.html('<div class="sb-judul">Ruang lingkup data</div>')
-    th = bagian_lingkup.slider(
+    bagian_lingkup.slider(
         "Tahun putusan", _th_penuh[0], _th_penuh[1], _th_simpan,
         key="lingkup_tahun",
         help="Tarik salah satu ujungnya untuk mempersempit tahun. Seluruh "
@@ -1882,8 +1968,9 @@ if len(tahun_ada) > 1:
 else:
     th = None
 
-hanya_teks = bagian_lingkup.checkbox(
-    "Hanya dokumen berlapis teks asli", value=False,
+hanya_teks = bool(nilai_kendali("hanya_teks", bawaan=False))
+bagian_lingkup.checkbox(
+    "Hanya dokumen berlapis teks asli", value=False, key="hanya_teks",
     help="Mengeluarkan dokumen hasil pengenalan karakter optis, yang "
          "keandalannya pada angka dan nomor pasal lebih rendah.")
 
@@ -1892,7 +1979,27 @@ hanya_teks = bagian_lingkup.checkbox(
 # peladen berjatah satu gigabita, dan seluruh halaman memang membaca tanpa
 # mengubah. Ketika penyaring aktif, penyaringan itu sendiri sudah
 # menghasilkan bingkai baru, jadi salinan tersendiri tetap tidak perlu.
+# Penyaring jenis pajak berlaku pada seluruh halaman, bukan pada beberapa
+# halaman saja. Sebelumnya tiap halaman menyediakan penyaringnya sendiri
+# sendiri dengan bentuk yang berbeda beda, dan pembaca yang sudah memilih
+# jenis pajak pada satu halaman kehilangan pilihannya begitu berpindah.
+# Bawaannya Semua, sehingga tidak ada yang tersaring sampai pembaca memilih.
+_PAJAK_OPSI = ["Semua"] + [
+    label_kode(k, kode_peta)
+    for k in kode_berlabel(df["kode_jenis_pajak"], kode_peta)]
+pilih_pajak = nilai_kendali("lingkup_pajak", _PAJAK_OPSI, "Semua") or "Semua"
+bagian_pajak.html('<div class="sb-judul">Jenis pajak</div>')
+bagian_pajak.selectbox(
+    "Jenis pajak", _PAJAK_OPSI, index=_PAJAK_OPSI.index(pilih_pajak),
+    key="lingkup_pajak", label_visibility="collapsed",
+    help="Membatasi seluruh halaman pada satu jenis pajak. Kode yang "
+         "jenisnya tidak pernah tertulis pada risalah tidak ditawarkan di "
+         "sini, tetapi putusannya tetap terhitung pada pilihan Semua.")
+
 d = df
+if pilih_pajak != "Semua":
+    _kode_pilih = pilih_pajak.split(" · ")[0]
+    d = d[d["kode_jenis_pajak"].astype(str) == _kode_pilih]
 if th and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
     d = d[d["tahun_putusan"].between(th[0], th[1]) | d["tahun_putusan"].isna()]
 if hanya_teks:
@@ -7391,6 +7498,6 @@ st.html(TV.kaki("Donny Maha Putra",
                 f"<b>{corong['unduh']:,}</b> berkas · {corong['gb']:.0f} GB · "
                 f"cakupan <b>{cakupan:.1f}%</b> · "
                 f"<b>{corong['urai']:,}</b> putusan terurai",
-                _ket, bool(_t["aktif"]), ""))
+                _ket, bool(_t["aktif"]), "", _cap_urai or ""))
 
 st.components.v1.html(TV.PAKU_TETAP, height=0)
