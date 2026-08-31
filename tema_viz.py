@@ -138,7 +138,7 @@ TINGGI_KOP = 66
 # atas kop dengan latar tembus pandang, dan diberi jarak kiri secukupnya
 # supaya menunya mulai sesudah judul situs.
 TINGGI_NAV = 0
-JARAK_MENU_KIRI = 600
+JARAK_MENU_KIRI = 585
 TINGGI_KAKI = 43
 
 
@@ -445,7 +445,16 @@ def gaya(gelap: bool) -> str:
   header[data-testid="stHeader"] {{
     background: transparent !important;
     height: {TINGGI_KOP}px !important; min-height: 0 !important;
-    padding-left: {JARAK_MENU_KIRI}px !important;
+    /* Bilahnya dipersempit dari kiri, bukan diberi jarak dalam.
+       Dengan jarak dalam, lebar bilahnya tetap selebar layar sedangkan
+       ruang yang benar benar tersedia bagi menu jauh lebih sempit, dan
+       Streamlit yang menghitung sendiri berapa kelompok yang muat menjadi
+       meleset: ia menggambar tombol lainnya yang mengaku menyimpan empat
+       kelompok padahal kosong. Dengan lebar yang jujur, perhitungannya
+       benar dengan sendirinya. */
+    left: {JARAK_MENU_KIRI}px !important;
+    width: calc(100% - {JARAK_MENU_KIRI}px) !important;
+    padding-left: 0 !important;
     pointer-events: none !important;
     top: 0 !important;
     z-index: 1000003 !important;
@@ -823,8 +832,8 @@ def gaya(gelap: bool) -> str:
      pil putih supaya terbaca sebagai tempat mengetik di atas latar gelap,
      dan lebarnya tetap supaya menu di sebelahnya tidak bergeser geser. */
   .st-key-cari-kop {{
-    position: fixed !important; top: 15px !important; left: 322px !important;
-    z-index: 1000004 !important; width: 262px !important;
+    position: fixed !important; top: 15px !important; left: 352px !important;
+    z-index: 1000004 !important; width: 208px !important;
   }}
   .st-key-cari-kop div[data-testid="stElementContainer"] {{
     margin: 0 !important;
@@ -836,6 +845,16 @@ def gaya(gelap: bool) -> str:
     box-shadow: 0 1px 3px rgba(0,0,0,.18);
   }}
   .st-key-cari-kop input::placeholder {{ color: #6a7480 !important; }}
+  /* Panel penyaring dibuat setipis satu baris ketika tertutup, dan judulnya
+     diberi warna kop supaya terbaca sebagai kendali, bukan sebagai bagian
+     dari isi halaman. */
+  .st-key-bilah-kendali div[data-testid="stExpander"] summary {{
+    font-size: 12px !important; font-weight: 600 !important;
+    color: {p["kop_terang"]} !important; padding: 5px 0 !important;
+  }}
+  .st-key-bilah-kendali div[data-testid="stExpander"] {{
+    border-top: none !important; margin-bottom: 8px !important;
+  }}
   .st-key-cari-kop div[data-baseweb="input"] {{
     background: transparent !important; border: none !important;
   }}

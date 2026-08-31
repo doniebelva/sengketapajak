@@ -1597,14 +1597,50 @@ if not st.session_state.get("alamat_terbaca"):
 _KEND: dict = {}
 
 
+def _sebut_penyaring() -> str:
+    """Judul panel penyaring, menyebutkan apa yang sedang aktif.
+
+    Penyaring yang terlipat berbahaya bila diam: pembaca melihat angka yang
+    sudah dipersempit tanpa tanda apa pun bahwa ia dipersempit. Karena itu
+    judulnya menyebutkan sendiri penyaring mana yang sedang bekerja, dan
+    hanya berbunyi netral ketika memang tidak ada yang menyaring.
+    """
+    aktif = []
+    if pilih_instansi and pilih_instansi != "Semua":
+        aktif.append(pilih_instansi)
+    if pilih_pajak and pilih_pajak != "Semua":
+        aktif.append(pilih_pajak.split(" · ")[-1][:28])
+    if th and tahun_ada and (th[0] > min(tahun_ada) or th[1] < max(tahun_ada)):
+        aktif.append(f"{th[0]}-{th[1]}")
+    if hanya_teks:
+        aktif.append("teks asli saja")
+    if modul and modul != _MODUL_OPSI[0]:
+        aktif.append(f"modul {modul.lower()}")
+    if not aktif:
+        return "Penyaring data, seluruh arsip sedang ditampilkan"
+    return "Penyaring aktif: " + " · ".join(aktif)
+
+
 def _wadah_penyaring() -> None:
-    """Menyiapkan wadah kendali di dalam halaman yang sedang digambar."""
+    """Menyiapkan wadah kendali di dalam halaman yang sedang digambar.
+
+    Bentuknya panel terlipat, bukan pita terbuka.
+    #
+    Sebagai pita terbuka, keempat kendali ini memakan hampir satu layar penuh
+    di kepala tiap halaman, sehingga angka yang justru dicari pembaca
+    terdorong ke bawah lipatan layar. Padahal bawaannya tidak menyaring apa
+    apa, jadi ruang sebesar itu dipakai untuk menyatakan bahwa tidak ada yang
+    sedang terjadi. Terlipat, ia tetap ada pada tiap halaman dan tetap dapat
+    dibuka, sedangkan judulnya menyebutkan sendiri bila ada yang aktif.
+    """
     with st.container(key="bilah-kendali"):
-        kol = st.columns([1.2, 1.45, 1.35, 1.0])
-        _KEND["instansi"] = kol[0].container()
-        _KEND["lingkup"] = kol[1].container()
-        _KEND["pajak"] = kol[2].container()
-        _KEND["modul"] = kol[3].container()
+        with st.expander(_sebut_penyaring(),
+                         expanded=bool(st.session_state.get("buka_saring"))):
+            kol = st.columns([1.2, 1.45, 1.35, 1.0])
+            _KEND["instansi"] = kol[0].container()
+            _KEND["lingkup"] = kol[1].container()
+            _KEND["pajak"] = kol[2].container()
+            _KEND["modul"] = kol[3].container()
 
 
 class _Tunda:
@@ -1667,7 +1703,7 @@ cari_cepat = str(nilai_kendali("cari_cepat", bawaan="") or "")
 with st.container(key="cari-kop"):
     st.text_input(
         "Cari cepat", key="cari_cepat",
-        placeholder="Cari isi putusan, nama, atau nomor...",
+        placeholder="Cari isi putusan...",
         label_visibility="collapsed")
 if cari_cepat.strip():
     st.session_state["q_isi"] = cari_cepat.strip()
@@ -1861,19 +1897,29 @@ IKON_HAL = {
     "Metodologi": ":material/science:",
 }
 
+# Judulnya diperpendek setelah menu naik ke baris kop, dan ini bukan soal
+# selera melainkan soal muat.
+#
+# Sebagai judul kelompok di bilah samping, kalimat panjang seperti Mengapa
+# perkara menang atau kalah terbaca enak sebab ruangnya menurun tanpa batas.
+# Pada satu baris bersama nama situs dan kotak pencarian, keenamnya menuntut
+# 1.219 piksel, dan pada layar 1.440 piksel sebagian besar menu terdorong
+# bersembunyi di balik tombol lainnya. Menu yang tersembunyi bukan menu.
+# Maknanya dipertahankan, panjangnya dipangkas, dan halaman di dalamnya tetap
+# menerangkan sendiri kelompoknya.
 KELOMPOK_MENU = [
-    ("Mulai dari sini", ["Beranda", "Ringkasan Eksekutif"]),
-    ("Apa yang selama ini terjadi", ["Nilai Sengketa", "Risalah Putusan",
-                                     "Profil Hakim"]),
-    ("Mengapa perkara menang atau kalah",
+    ("Mulai", ["Beranda", "Ringkasan Eksekutif"]),
+    ("Yang sudah terjadi", ["Nilai Sengketa", "Risalah Putusan",
+                            "Profil Hakim"]),
+    ("Menang atau kalah",
      ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
       "Unit Penerbit Ketetapan", "Sengketa Berulang",
       "Konsistensi Putusan Hakim", "Karakter Memutus", "Banding Unit"]),
-    ("Memperkirakan perkara serupa",
+    ("Perkara serupa",
      ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
     ("Menimbang langkah", ["Pilihan Upaya Hukum"]),
-    ("Bekal dan cara membaca", ["Istilah Sederhana", "Panduan Analisis",
-                                "Metodologi"]),
+    ("Bekal membaca", ["Istilah Sederhana", "Panduan Analisis",
+                       "Metodologi"]),
 ]
 
 # Navigasi dipasang di kepala halaman, bukan di bilah samping.
