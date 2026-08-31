@@ -1912,15 +1912,15 @@ IKON_HAL = {
 # menerangkan sendiri kelompoknya.
 KELOMPOK_MENU = [
     ("Mulai", ["Beranda", "Ringkasan Eksekutif"]),
-    ("Yang sudah terjadi", ["Nilai Sengketa", "Risalah Putusan",
-                            "Profil Hakim"]),
+    ("Yang terjadi", ["Nilai Sengketa", "Risalah Putusan",
+                      "Profil Hakim"]),
     ("Menang atau kalah",
      ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
       "Unit Penerbit Ketetapan", "Sengketa Berulang",
       "Konsistensi Putusan Hakim", "Karakter Memutus", "Banding Unit"]),
     ("Perkara serupa",
      ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
-    ("Menimbang langkah", ["Pilihan Upaya Hukum"]),
+    ("Langkah", ["Pilihan Upaya Hukum"]),
     ("Bekal membaca", ["Istilah Sederhana", "Panduan Analisis",
                        "Metodologi"]),
 ]

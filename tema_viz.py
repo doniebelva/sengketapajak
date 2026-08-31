@@ -138,7 +138,11 @@ TINGGI_KOP = 66
 # atas kop dengan latar tembus pandang, dan diberi jarak kiri secukupnya
 # supaya menunya mulai sesudah judul situs.
 TINGGI_NAV = 0
-JARAK_MENU_KIRI = 585
+# Menu mulai tepat sesudah nama situs. Kotak pencarian sempat ditaruh di
+# antara keduanya, dan itu merampas dua ratus lima puluh piksel dari menu
+# sehingga dua kelompok terdorong ke dalam limpahan. Pencariannya kini
+# berada di sisi kanan bersama tombol penyaring dan saklar tema.
+JARAK_MENU_KIRI = 330
 TINGGI_KAKI = 43
 
 
@@ -479,23 +483,6 @@ def gaya(gelap: bool) -> str:
   }}
   header[data-testid="stHeader"] [data-testid="stTopNavSection"]:hover {{
     background: {lembut(p["kop_terang"], .92)} !important;
-  }}
-  /* Tombol lainnya disembunyikan pada layar yang sudah terbukti memuat
-     seluruh kelompok.
-     Streamlit menghitung sendiri berapa kelompok yang tidak muat lalu
-     menawarkannya di balik satu tombol. Perhitungan itu meleset di sini,
-     sehingga tombolnya tetap digambar sambil mengaku menyimpan belasan
-     kelompok padahal isinya tidak ada satu pun tautan, sementara keenam
-     kelompoknya justru tampak seluruhnya. Penanda yang mengaku menyimpan
-     sesuatu padahal kosong lebih menyesatkan daripada tidak ada penanda.
-     Pemilihnya menyasar penanda sisa milik pengatur limpahannya sendiri,
-     bukan tulisannya, dan hanya berlaku mulai 1280 piksel, yaitu lebar
-     terkecil yang sudah diukur memuat keenam kelompok. Di bawah itu tombol
-     ini dibiarkan hidup, sebab di sana limpahannya memang sungguhan. */
-  @media (min-width: 1280px) {{
-    header[data-testid="stHeader"] .rc-overflow-item-rest {{
-      display: none !important;
-    }}
   }}
   /* Navigasi tetap dapat disentuh walau bilah alat di sebelahnya dimatikan.
      Keduanya bersarang di dalam bilah judul yang sama, dan aturan lama
@@ -853,8 +840,8 @@ def gaya(gelap: bool) -> str:
      pil putih supaya terbaca sebagai tempat mengetik di atas latar gelap,
      dan lebarnya tetap supaya menu di sebelahnya tidak bergeser geser. */
   .st-key-cari-kop {{
-    position: fixed !important; top: 15px !important; left: 352px !important;
-    z-index: 1000004 !important; width: 208px !important;
+    position: fixed !important; top: 15px !important; right: 236px !important;
+    z-index: 1000004 !important; width: 206px !important;
   }}
   .st-key-cari-kop div[data-testid="stElementContainer"] {{
     margin: 0 !important;
@@ -881,6 +868,26 @@ def gaya(gelap: bool) -> str:
   }}
   @media (max-width: 1250px) {{
     .st-key-cari-kop {{ display: none !important; }}
+  }}
+
+  /* Pembungkus unsur yang letaknya sudah dipaku ke kop dikeluarkan dari
+     aliran halaman.
+     Kop, kotak pencarian, tombol penyaring, dan saklar tema semuanya dipaku
+     ke kepala halaman lewat gaya, sehingga isinya tidak lagi berada di
+     aliran. Pembungkusnya tetap ada, dan Streamlit memberi jarak enam belas
+     piksel kepada tiap anak wadahnya tanpa peduli anaknya kosong. Lima
+     pembungkus kosong itu bersama sama mendorong judul halaman delapan
+     puluh piksel ke bawah, dan pembaca melihat ruang menganga di bawah kop
+     tanpa satu pun isi di dalamnya. */
+  [data-testid="stMain"] div[data-testid="stElementContainer"]:has(> .kop),
+  [data-testid="stMain"]
+    div[data-testid="stLayoutWrapper"]:has(> .st-key-cari-kop),
+  [data-testid="stMain"]
+    div[data-testid="stLayoutWrapper"]:has(> .st-key-saring-kop),
+  [data-testid="stMain"]
+    div[data-testid="stLayoutWrapper"]:has(> .st-key-tema) {{
+    position: absolute !important; height: 0 !important;
+    margin: 0 !important; padding: 0 !important;
   }}
 
   /* Tombol penyaring di kop, di sebelah kiri saklar tema. Bentuknya pil
