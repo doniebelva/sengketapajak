@@ -480,6 +480,23 @@ def gaya(gelap: bool) -> str:
   header[data-testid="stHeader"] [data-testid="stTopNavSection"]:hover {{
     background: {lembut(p["kop_terang"], .92)} !important;
   }}
+  /* Tombol lainnya disembunyikan pada layar yang sudah terbukti memuat
+     seluruh kelompok.
+     Streamlit menghitung sendiri berapa kelompok yang tidak muat lalu
+     menawarkannya di balik satu tombol. Perhitungan itu meleset di sini,
+     sehingga tombolnya tetap digambar sambil mengaku menyimpan belasan
+     kelompok padahal isinya tidak ada satu pun tautan, sementara keenam
+     kelompoknya justru tampak seluruhnya. Penanda yang mengaku menyimpan
+     sesuatu padahal kosong lebih menyesatkan daripada tidak ada penanda.
+     Pemilihnya menyasar penanda sisa milik pengatur limpahannya sendiri,
+     bukan tulisannya, dan hanya berlaku mulai 1280 piksel, yaitu lebar
+     terkecil yang sudah diukur memuat keenam kelompok. Di bawah itu tombol
+     ini dibiarkan hidup, sebab di sana limpahannya memang sungguhan. */
+  @media (min-width: 1280px) {{
+    header[data-testid="stHeader"] .rc-overflow-item-rest {{
+      display: none !important;
+    }}
+  }}
   /* Navigasi tetap dapat disentuh walau bilah alat di sebelahnya dimatikan.
      Keduanya bersarang di dalam bilah judul yang sama, dan aturan lama
      mematikan seluruh isinya sekaligus. */
@@ -585,11 +602,15 @@ def gaya(gelap: bool) -> str:
     font-size: 11.5px; color: {p["tinta_2"]};
   }}
   .andal-judul {{ margin-right: 3px; }}
+  /* Penanda kelengkapan ditulis sebagai kata bertitik warna, bukan kotak.
+     Berkotak, tiga penanda kecil ini bersaing perhatian dengan kartu angka
+     di bawahnya, padahal isinya keterangan pinggir. Titik warnanya sudah
+     cukup menjadi isyarat cepat, dan tanpa bingkai keduanya berhenti saling
+     berebut. */
   .andal {{
     display: inline-flex; align-items: center; gap: 5px;
-    padding: 1px 8px; border-radius: 999px;
-    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
-    color: {p["tinta"]}; font-weight: 550; white-space: nowrap;
+    padding: 1px 0; margin-right: 14px;
+    color: {p["tinta_2"]}; font-weight: 560; white-space: nowrap;
   }}
   .andal i {{ width: 7px; height: 7px; border-radius: 50%; }}
   .andal-baik i {{ background: {p["baik"]}; }}
@@ -998,30 +1019,43 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stColumn"] div[data-testid="stElementContainer"] {{
     height: 100%;
   }}
+  /* Pembungkus menurun di dalam lajur ikut diregangkan.
+     Dua aturan di atas sudah meregangkan lajur dan wadah unsurnya, tetapi di
+     antara keduanya masih ada satu pembungkus menurun yang tingginya
+     mengikuti isi. Akibatnya kartu tanpa pembanding berhenti tujuh piksel
+     lebih pendek daripada tetangganya, dan pada deret empat kartu
+     bersebelahan ketidaksejajaran sekecil itu tetap terlihat sebagai kaki
+     yang bergerigi. */
+  div[data-testid="stColumn"] div[data-testid="stVerticalBlock"],
+  div[data-testid="stColumn"] div[data-testid="stHtml"] {{
+    height: 100%;
+  }}
+  div[data-testid="stColumn"] div[data-testid="stVerticalBlock"]
+    > div[data-testid="stElementContainer"]:last-child {{
+    flex: 1 1 auto;
+  }}
   /* Kartu angka. Garis aksen di tepi atas pernah dipasang dan dicabut atas
      permintaan pemilik; identitas kartu cukup dari bayangan yang sedikit
      terangkat, tanpa hiasan berwarna. */
+  /* Kartu angka dibuat rata dan tanpa bingkai.
+     Pada tangkapan layar pemilik terlihat jelas dua cacat sekaligus. Yang
+     pertama, kartu yang punya pembanding menjadi lebih tinggi daripada yang
+     tidak, sehingga kaki kartu tidak sejajar dan barisnya tampak bergerigi.
+     Yang kedua, seluruh halaman berisi kotak: penanda kelengkapan kotak,
+     panel penyaring kotak, kartu kotak, sehingga tidak ada lagi yang
+     menonjol dan mata tidak tahu harus mulai dari mana. Kartu kini hanya
+     bidang berlatar tipis dengan sudut lembut, tanpa garis tepi, dan
+     keterangan kakinya didorong ke bawah supaya seluruh kaki sejajar. */
   .kpi {{
-    /* Permukaan diberi gradasi sangat tipis ke arah warna kop, sehingga
-       kartu terasa sekeluarga dengan kepala halaman tanpa menjadi kartu
-       berwarna. Selisihnya hanya beberapa persen, cukup untuk memberi
-       kedalaman pada latar abu halaman, tidak cukup untuk mengganggu
-       pembacaan angkanya. */
-    background: linear-gradient(168deg, {lembut(p["kop_terang"], .045)} 0%,
-                                {p["permukaan"]} 46%);
-    border: 1px solid {p["tepi"]};
-    border-radius: 14px; padding: 15px 17px 14px;
-    height: 100%; min-height: 116px;
-    display: flex; flex-direction: column; justify-content: flex-start;
-    box-shadow: 0 1px 2px rgba(0,0,0,.05);
-    transition: box-shadow .18s ease, transform .18s ease,
-                border-color .18s ease;
+    background: {p["permukaan"]};
+    border: none;
+    border-radius: 12px; padding: 16px 18px 15px;
+    height: 100%; min-height: 128px;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    transition: box-shadow .18s ease;
   }}
-  .kpi:hover {{
-    box-shadow: 0 6px 18px rgba(0,0,0,.10);
-    border-color: {lembut(p["kop_terang"], .38)};
-    transform: translateY(-1px);
-  }}
+  .kpi:hover {{ box-shadow: 0 4px 14px rgba(0,0,0,.09); }}
   /* Bingkai warna berputar tiga warna deret bagan sudah dicabut.
      Putarannya dihitung per tiga kolom, sedangkan baris kartu utama berisi
      empat kartu, sehingga kartu pertama dan keempat selalu sewarna dan
@@ -1047,18 +1081,22 @@ def gaya(gelap: bool) -> str:
   .kpi-nilai.panjang {{ font-size: 19px; line-height: 1.25; }}
   .kpi-nilai.sangat-panjang {{ font-size: 15px; line-height: 1.3;
                                font-weight: 620; }}
-  .kpi-ket {{ font-size: 11.5px; color: {p["tinta_2"]}; margin-top: 4px; }}
+  .kpi-ket {{
+    font-size: 11.5px; color: {p["tinta_2"]}; margin-top: auto;
+    padding-top: 6px; line-height: 1.5;
+  }}
 
   /* Pembanding pada kartu. Warnanya netral, bukan hijau merah, karena naik
      turunnya angka yang sama berarti kabar baik bagi satu pihak dan kabar
      buruk bagi pihak lain: tingkat dikabulkan yang naik menguntungkan wajib
      pajak dan merugikan fiskus. Yang diberikan hanya penunjuk arah. */
+  /* Pembanding ditulis sebagai baris biasa, bukan pil bertepi. Kotak kecil
+     di dalam kartu menambah satu lapisan bingkai lagi, dan pada deret kartu
+     lapisan itulah yang membuat halaman terasa penuh kotak. */
   .kpi-banding {{
-    display: inline-flex; align-items: center; align-self: flex-start;
-    padding: 3px 9px; border-radius: 999px;
-    background: {p["bidang"]}; border: 1px solid {p["tepi"]};
-    font-size: 11px; font-weight: 600; color: {p["tinta_2"]};
-    margin-top: 8px;
+    display: flex; align-items: center;
+    font-size: 11px; font-weight: 620; color: {p["tinta_2"]};
+    margin-top: 7px;
   }}
   .kpi-arah {{ margin-right: 5px; font-size: 9.5px; }}
 
@@ -1175,7 +1213,7 @@ def gaya(gelap: bool) -> str:
      yang paling sering dikutip, sedangkan baris berikutnya penopang, jadi
      tingkatannya dinyatakan lewat ukuran, bukan lewat urutan saja. */
   div[class*="st-key-kartu-kedua"] .kpi {{
-    padding: 12px 14px;
+    padding: 13px 15px; min-height: 104px;
   }}
   div[class*="st-key-kartu-kedua"] .kpi-nilai {{
     font-size: 21px;
