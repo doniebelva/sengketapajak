@@ -489,8 +489,13 @@ def gaya(gelap: bool) -> str:
        yang paling dalam di sisi kanan. Tiga perhentian memberi kedalaman
        tanpa mengurangi kontras tulisan putih, yang pada titik paling terang
        pun masih jauh di atas ambang keterbacaan. */
-    background: linear-gradient(115deg, {p["kop_terang"]} 0%,
-                                {p["kop"]} 48%, {p["kop_2"]} 100%);
+    /* Warna dasar dipasang di bawah gradasinya. Gradasi adalah gambar latar,
+       bukan warna latar, sehingga ketika ia gagal digambar atau ketika
+       keterbacaan diukur, yang terbaca justru latar halaman yang terang dan
+       tulisan putih di atasnya menjadi putih di atas putih. */
+    background-color: {p["kop"]};
+    background-image: linear-gradient(115deg, {p["kop_terang"]} 0%,
+                                      {p["kop"]} 48%, {p["kop_2"]} 100%);
     /* Garis aksen tipis di kaki kop, memakai emas dari palet sendiri. Ia
        memberi kop batas bawah yang tegas tanpa menambah tinggi, dan warnanya
        diambil dari deret bagan supaya kepala halaman sekeluarga dengan
@@ -517,8 +522,8 @@ def gaya(gelap: bool) -> str:
      ada bagi yang mencarinya tanpa menghalangi yang sudah tahu. */
   .kaki-ket {{
     grid-column: 1 / -1; margin-top: 0; padding-top: 5px;
-    border-top: 1px solid {p["tepi"]};
-    font-size: 12px; color: {p["tinta_2"]}; line-height: 1.55;
+    border-top: 1px solid rgba(255,255,255,.22);
+    font-size: 12px; color: rgba(255,255,255,.9); line-height: 1.55;
   }}
   .kop-kanan {{ margin-left: auto; text-align: right;
                 font-size: 13px; color: rgba(255,255,255,.84);
@@ -847,24 +852,66 @@ def gaya(gelap: bool) -> str:
     display: none !important;
   }}
 
+  /* Tombol unduh dibuat mencolok, sebab ia satu satunya tombol yang
+     membawa sesuatu keluar dari situs ini.
+     Bentuk bawaannya kotak putih bergaris tipis, sama persis dengan tombol
+     lain di sekitarnya, sehingga pembaca yang ingin membawa pulang ringkasan
+     halaman harus mencarinya. Warnanya kini warna ajakan yang sama dengan
+     panah pada kartu pintu, terisi penuh, sehingga terbaca sekali pandang
+     sebagai satu satunya hal yang menawarkan sesuatu. Kontras tulisan
+     putihnya di atas warna itu 5,57 banding satu. */
+  div[data-testid="stDownloadButton"] button {{
+    background: {p["ajakan"]} !important;
+    border: none !important; color: #ffffff !important;
+    border-radius: 999px !important;
+    padding: 10px 22px !important; font-weight: 700 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.16);
+    transition: transform .18s ease, box-shadow .18s ease,
+                background .18s ease;
+  }}
+  div[data-testid="stDownloadButton"] button:hover {{
+    background: {lembut(p["ajakan"], .88)} !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    transform: translateY(-1px);
+  }}
+  div[data-testid="stDownloadButton"] button p,
+  div[data-testid="stDownloadButton"] button span,
+  div[data-testid="stDownloadButton"] button div {{
+    color: #ffffff !important; font-weight: 700 !important;
+  }}
+
   /* --- Kaki, dipaku di dasar jendela, satu baris ------------------------ */
   .kaki {{
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000001;
     display: grid; grid-template-columns: auto 1fr auto;
     align-items: center; align-content: center;
     gap: 4px 20px; height: {TINGGI_KAKI}px; padding: 0 {SISI};
-    background: {p["permukaan"]}; border-top: 1px solid {p["tepi"]};
-    box-shadow: 0 -1px 6px rgba(0,0,0,.07);
-    font-size: 13px; color: {p["tinta_2"]};
+    /* Warnanya disamakan dengan kop, sehingga kop dan kaki menjadi sepasang
+       penjepit yang mengapit isi halaman. Gradasinya dibalik arah, dari yang
+       paling dalam di kiri menuju yang lebih terang di kanan, supaya
+       keduanya terbaca sebagai pasangan dan bukan sebagai salinan. Garis
+       aksen emas ikut dipasang di tepi atasnya, sejajar dengan garis yang
+       sama di kaki kop.
+
+       Ketebalan tulisannya dihitung terhadap ujung gradasi yang paling
+       terang, sebab di situlah kontrasnya paling tipis. Pada putih delapan
+       puluh dua persen kontrasnya hanya 4,42 dan jatuh di bawah ambang,
+       sehingga dinaikkan menjadi sembilan puluh dua persen. */
+    background-color: {p["kop"]};
+    background-image: linear-gradient(115deg, {p["kop_2"]} 0%,
+                                      {p["kop"]} 52%, {p["kop_terang"]} 100%);
+    border-top: 2px solid {p["seri"][1]};
+    box-shadow: 0 -1px 6px rgba(0,0,0,.22);
+    font-size: 13px; color: rgba(255,255,255,.92);
   }}
-  .kaki b {{ color: {p["tinta"]}; font-weight: 620; }}
+  .kaki b {{ color: #ffffff; font-weight: 700; }}
   .kaki .kiri {{ display: flex; align-items: center; gap: 9px;
                  white-space: nowrap; }}
   .kaki .tengah {{ justify-self: center; text-align: center; min-width: 0;
                    overflow: hidden; text-overflow: ellipsis;
                    white-space: nowrap; }}
   .kaki .kanan {{ justify-self: end; white-space: nowrap; }}
-  .kaki .pisah {{ color: {p["sumbu"]}; }}
+  .kaki .pisah {{ color: rgba(255,255,255,.5); }}
   .titik {{ display: inline-block; width: 8px; height: 8px; border-radius: 50%;
             margin-right: 6px; vertical-align: -1px; }}
   @media (max-width: 1150px) {{
@@ -1634,23 +1681,25 @@ def gaya(gelap: bool) -> str:
      pernah diberi tahu. Bagian di bawah ini menyediakan tiga hal yang selalu
      ada pada halaman muka situs: satu kalimat yang menyatakan gunanya, pintu
      masuk menurut kebutuhan pembaca, dan keterangan isinya. */
+  /* Halaman muka dibuka tanpa panel, mengikuti rujukan kedua dari pemilik.
+     Panel bergradasi bertepi membuat kalimat pembuka terbaca sebagai kotak
+     pengumuman yang ditempelkan pada halaman. Dilepas dari panelnya, kalimat
+     itu berdiri sendiri sebagai judul, dan ruang kosong di sekelilingnya
+     yang mengerjakan penegasannya, bukan bingkai. */
   .muka {{
-    display: flex; align-items: stretch; gap: 26px;
-    padding: 26px 28px 24px; border-radius: 18px; margin: 2px 0 20px;
-    background: linear-gradient(150deg, {lembut(p["kop_terang"], .10)} 0%,
-                                {lembut(p["kop_terang"], .03)} 58%,
-                                {p["permukaan"]} 100%);
-    border: 1px solid {lembut(p["kop_terang"], .22)};
+    display: flex; align-items: center; gap: 40px;
+    padding: 30px 0 26px; margin: 0 0 8px;
+    background: transparent; border: none;
   }}
   .muka-judul {{
     font-family: {JUDUL_SANS};
-    font-size: 34px; font-weight: 800; color: {p["tinta"]};
-    line-height: 1.22; letter-spacing: -.014em; margin: 0 0 10px;
-    max-width: 44ch;
+    font-size: 52px; font-weight: 800; color: {p["tinta_judul"]};
+    line-height: 1.08; letter-spacing: -.034em; margin: 0 0 16px;
+    max-width: 19ch;
   }}
   .muka-sub {{
-    font-size: 14px; color: {p["tinta_2"]}; line-height: 1.62;
-    max-width: 76ch; margin: 0;
+    font-size: 17.5px; color: {p["tinta_2"]}; line-height: 1.6;
+    max-width: 54ch; margin: 0; font-weight: 450;
   }}
   .muka-tanda {{
     display: inline-flex; align-items: center; gap: 7px;
@@ -1753,7 +1802,8 @@ def gaya(gelap: bool) -> str:
   }}
   @media (max-width: 900px) {{
     .muka-isi {{ grid-template-columns: 1fr; }}
-    .muka-judul {{ font-size: 22px; }}
+    .muka-judul {{ font-size: 32px; max-width: 100%; }}
+    .muka-sub {{ font-size: 15.5px; }}
     .muka {{ flex-direction: column-reverse; align-items: flex-start; }}
     .muka-potret {{ flex-direction: row; align-items: center; gap: 12px; }}
     .muka-potret img {{ width: 84px; height: 92px; }}
