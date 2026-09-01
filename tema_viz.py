@@ -470,7 +470,7 @@ def gaya(gelap: bool) -> str:
      atasnya jatuh ke bawah ambang keterbacaan. Menebalkan tulisannya
      sedikit membuat warna kop boleh lebih hidup tanpa mengorbankan
      pembacanya: rasio kontrasnya naik dari 4,28 menjadi 5,12. */
-  .kop-sub {{ font-size: 12px; color: rgba(255,255,255,.92); margin-top: 3px;
+  .kop-sub {{ font-size: 13px; color: rgba(255,255,255,.92); margin-top: 3px;
               letter-spacing: .002em; }}
   /* Keterangan situs di kaki halaman. Dahulu tercetak di bawah judul pada
      kop, dan di sana ia mengambil ruang paling mahal di seluruh halaman
@@ -479,10 +479,10 @@ def gaya(gelap: bool) -> str:
   .kaki-ket {{
     grid-column: 1 / -1; margin-top: 6px; padding-top: 7px;
     border-top: 1px solid {p["tepi"]};
-    font-size: 10.5px; color: {p["tinta_2"]}; line-height: 1.55;
+    font-size: 12px; color: {p["tinta_2"]}; line-height: 1.55;
   }}
   .kop-kanan {{ margin-left: auto; text-align: right;
-                font-size: 11.5px; color: rgba(255,255,255,.84);
+                font-size: 13px; color: rgba(255,255,255,.84);
                 line-height: 1.45;
                 /* Diberi jarak dari pemilih tema yang menimpa pojok kanan
                    bilah judul, supaya cap pembaruannya tidak tertutup. */
@@ -620,7 +620,7 @@ def gaya(gelap: bool) -> str:
 
   /* Keterangan kapan di atas kartu angka. */
   .kapan {{
-    font-size: 12px; color: {p["tinta_2"]}; margin: 2px 0 12px;
+    font-size: 13px; color: {p["tinta_2"]}; margin: 2px 0 12px;
   }}
   .kapan b {{ color: {p["tinta"]}; font-weight: 620; }}
   .kapan .pisah {{ margin: 0 8px; color: {p["sumbu"]}; }}
@@ -645,7 +645,7 @@ def gaya(gelap: bool) -> str:
     display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
     margin: 2px 0 16px; padding: 0 0 10px;
     border-bottom: 1px solid {p["tepi"]};
-    font-size: 11.5px; color: {p["tinta_2"]};
+    font-size: 13px; color: {p["tinta_2"]};
   }}
   .andal-judul {{ margin-right: 3px; }}
   /* Penanda kelengkapan ditulis sebagai kata bertitik warna, bukan kotak.
@@ -664,7 +664,7 @@ def gaya(gelap: bool) -> str:
   .andal-genting i {{ background: {p["genting"]}; }}
   /* Kalimat penutup pita hanya tampil saat ada bagian kuning atau merah,
      karena hanya di situ ia menambah keterangan. */
-  .andal-ket {{ font-size: 11px; color: {p["tinta_2"]}; }}
+  .andal-ket {{ font-size: 12.5px; color: {p["tinta_2"]}; }}
 
   /* Kepala halaman terpadu: nama halaman lebih dulu, keterangan pendukung
      menjadi label kecil di sampingnya. */
@@ -689,7 +689,7 @@ def gaya(gelap: bool) -> str:
     color: {p["tinta_judul"]} !important;
   }}
   .kh-dim, .kh-lingkup {{
-    font-size: 10.5px; font-weight: 700; letter-spacing: .05em;
+    font-size: 12px; font-weight: 700; letter-spacing: .05em;
     text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
     white-space: nowrap;
   }}
@@ -709,7 +709,7 @@ def gaya(gelap: bool) -> str:
     font-size: 13.5px; font-weight: 680; color: {p["tinta"]};
   }}
   .banding-judul span {{
-    font-size: 11.5px; font-weight: 550; color: {p["tinta_2"]};
+    font-size: 13px; font-weight: 550; color: {p["tinta_2"]};
     white-space: nowrap;
   }}
 
@@ -752,7 +752,7 @@ def gaya(gelap: bool) -> str:
     background: {p["seri"][0]} !important;
   }}
   div[data-testid="stProgress"] p {{
-    color: {p["tinta_2"]} !important; font-size: 12.5px !important;
+    color: {p["tinta_2"]} !important; font-size: 13.5px !important;
   }}
 
   /* --- Tab penelaahan --------------------------------------------------- */
@@ -815,7 +815,7 @@ def gaya(gelap: bool) -> str:
     gap: 20px; height: {TINGGI_KAKI}px; padding: 0 {SISI};
     background: {p["permukaan"]}; border-top: 1px solid {p["tepi"]};
     box-shadow: 0 -1px 6px rgba(0,0,0,.07);
-    font-size: 11.5px; color: {p["tinta_2"]};
+    font-size: 13px; color: {p["tinta_2"]};
   }}
   .kaki b {{ color: {p["tinta"]}; font-weight: 620; }}
   .kaki .kiri {{ display: flex; align-items: center; gap: 9px;
@@ -919,7 +919,7 @@ def gaya(gelap: bool) -> str:
   .st-key-cari-kop input {{
     background: #ffffff !important; color: #16202a !important;
     border-radius: 999px !important; border: none !important;
-    padding: 8px 15px !important; font-size: 12.5px !important;
+    padding: 8px 15px !important; font-size: 13.5px !important;
     box-shadow: 0 1px 3px rgba(0,0,0,.18);
   }}
   .st-key-cari-kop input::placeholder {{ color: #6a7480 !important; }}
@@ -927,7 +927,7 @@ def gaya(gelap: bool) -> str:
      diberi warna kop supaya terbaca sebagai kendali, bukan sebagai bagian
      dari isi halaman. */
   .st-key-bilah-kendali div[data-testid="stExpander"] summary {{
-    font-size: 12px !important; font-weight: 600 !important;
+    font-size: 13px !important; font-weight: 600 !important;
     color: {p["kop_terang"]} !important; padding: 5px 0 !important;
   }}
   .st-key-bilah-kendali div[data-testid="stExpander"] {{
@@ -983,7 +983,7 @@ def gaya(gelap: bool) -> str:
     background: {p["kop"]} !important;
     border: 1px solid {lembut(p["kop_terang"], .9)} !important;
     color: #ffffff !important; border-radius: 999px !important;
-    padding: 5px 14px !important; font-size: 12px !important;
+    padding: 5px 14px !important; font-size: 13px !important;
     font-weight: 600 !important; min-height: 0 !important;
   }}
   .st-key-saring-kop button:hover {{
@@ -993,7 +993,7 @@ def gaya(gelap: bool) -> str:
     color: #ffffff !important;
   }}
   .saring-judul {{
-    font-size: 11px; font-weight: 700; letter-spacing: .06em;
+    font-size: 12.5px; font-weight: 700; letter-spacing: .06em;
     text-transform: uppercase; color: {p["tinta_2"]}; margin-bottom: 8px;
   }}
   @media (max-width: 1100px) {{
@@ -1030,7 +1030,7 @@ def gaya(gelap: bool) -> str:
   }}
 
   .sb-judul {{
-    font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+    font-size: 12px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: {p["tinta_2"]};
     margin: 10px 0 6px 2px;
   }}
@@ -1039,7 +1039,7 @@ def gaya(gelap: bool) -> str:
      ukuran dan garis pemisah, bukan lewat warna yang lebih pudar: tulisan
      sekecil ini akan jatuh di bawah ambang kontras kalau diredupkan. */
   section[data-testid="stSidebar"] .menu-kelompok {{
-    font-size: 9.5px; font-weight: 700; letter-spacing: .07em;
+    font-size: 11px; font-weight: 700; letter-spacing: .07em;
     text-transform: uppercase; color: {p["tinta_2"]};
     margin: 12px 0 4px 3px; padding-top: 8px;
     border-top: 1px solid {p["garis_bantu"]};
@@ -1054,7 +1054,7 @@ def gaya(gelap: bool) -> str:
      ambang kontras. Warnanya dipaksa memakai tinta yang berlaku di sini. */
   div[data-testid="stSliderThumbValue"] {{
     color: {p["tinta"]} !important; opacity: 1 !important;
-    font-size: 11.5px !important; font-weight: 600 !important;
+    font-size: 13px !important; font-weight: 600 !important;
     background: {p["permukaan"]}; padding: 0 5px; border-radius: 5px;
   }}
   /* Angka tahun terkecil dan terbesar di ujung penggeser. Streamlit menamai
@@ -1066,7 +1066,7 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stSliderTickBarMin"],
   div[data-testid="stSliderTickBarMax"] {{
     color: {p["tinta_2"]} !important; opacity: 1 !important;
-    font-size: 11.5px !important;
+    font-size: 13px !important;
   }}
   /* Tombol Deploy disembunyikan. Dashboard ini dijalankan setempat, tombolnya
      tidak ada gunanya, dan tulisannya putih di atas latar terang sehingga
@@ -1191,7 +1191,7 @@ def gaya(gelap: bool) -> str:
      berarti apa apa tetapi tampak berarti lebih menyesatkan daripada tidak
      ada warna sama sekali. */
   .kpi-ket {{ margin-top: auto; }}
-  .kpi-label {{ font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+  .kpi-label {{ font-size: 12px; font-weight: 700; letter-spacing: .07em;
                 text-transform: uppercase; color: {p["tinta_2"]}; }}
   /* Angka memakai lebar digit seragam. Tanpa itu angka satu jauh lebih
      sempit daripada angka lain, sehingga deretan kartu bersebelahan tampak
@@ -1245,18 +1245,23 @@ def gaya(gelap: bool) -> str:
        1,05 kaki huruf melewati wadahnya enam piksel, dan pengaudit tampilan
        menolaknya sebagai tulisan terpenggal. Angka memang tidak berekor
        panjang, tetapi persen dan koma punya, dan justru itu yang terpotong. */
-    font-size: 50px; font-weight: 800; letter-spacing: -.03em;
-    line-height: 1.2; margin-top: 10px; padding-bottom: 2px;
+    /* Angka fokus dibuat jauh lebih besar daripada tetangganya. Selisih
+       yang tanggung tidak terbaca sebagai penegasan, hanya sebagai
+       ketidakrataan. */
+    font-size: 62px; font-weight: 800; letter-spacing: -.034em;
+    line-height: 1.16; margin-top: 12px; padding-bottom: 3px;
   }}
-  .kpi.utama .kpi-label {{ color: {p["kop_terang"]}; }}
+  .kpi.utama .kpi-label {{
+    color: {p["ajakan"]}; font-size: 13px; letter-spacing: .08em;
+  }}
   .kpi-tafsir {{
     margin-top: 9px; padding-top: 9px;
     border-top: 1px solid {p["tepi"]};
-    font-size: 12.5px; line-height: 1.55; color: {p["tinta"]};
+    font-size: 13.5px; line-height: 1.55; color: {p["tinta"]};
     font-weight: 550;
   }}
   .kpi-ket {{
-    font-size: 11.5px; color: {p["tinta_2"]}; margin-top: auto;
+    font-size: 13px; color: {p["tinta_2"]}; margin-top: auto;
     padding-top: 6px; line-height: 1.5;
   }}
 
@@ -1269,10 +1274,10 @@ def gaya(gelap: bool) -> str:
      lapisan itulah yang membuat halaman terasa penuh kotak. */
   .kpi-banding {{
     display: flex; align-items: center;
-    font-size: 11px; font-weight: 620; color: {p["tinta_2"]};
+    font-size: 12.5px; font-weight: 620; color: {p["tinta_2"]};
     margin-top: 7px;
   }}
-  .kpi-arah {{ margin-right: 5px; font-size: 9.5px; }}
+  .kpi-arah {{ margin-right: 5px; font-size: 11px; }}
 
   /* Penanda ruas yang kelengkapannya rendah, menempel pada kartunya sendiri.
      Peringatan di kepala halaman mudah tertinggal ketika pembaca menyalin
@@ -1334,7 +1339,7 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stDataFrame"] {{
     border-radius: 12px; overflow: hidden; border: 1px solid {p["tepi"]};
   }}
-  div[data-testid="stDataFrame"] * {{ font-size: 12.5px !important; }}
+  div[data-testid="stDataFrame"] * {{ font-size: 13.5px !important; }}
 
   /* Kolom kotak centang pada tabel yang dapat dipilih disembunyikan.
      Kotak centang menyatakan pilihan boleh lebih dari satu, padahal di sini
@@ -1356,7 +1361,7 @@ def gaya(gelap: bool) -> str:
     box-shadow: 0 1px 3px rgba(0,0,0,.06);
   }}
   table.tabel th {{
-    text-align: center; font-weight: 650; font-size: 11px;
+    text-align: center; font-weight: 650; font-size: 12.5px;
     letter-spacing: .05em; text-transform: uppercase;
     color: {p["tinta_2"]}; background: {p["bidang"]};
     padding: 10px 14px; border-bottom: 1px solid {p["tepi"]};
@@ -1407,10 +1412,10 @@ def gaya(gelap: bool) -> str:
     font-size: 21px;
   }}
   div[class*="st-key-kartu-kedua"] .kpi-label {{
-    font-size: 9.5px;
+    font-size: 12px;
   }}
   div[class*="st-key-kartu-kedua"] .kpi-ket {{
-    font-size: 11px;
+    font-size: 12.5px;
   }}
 
   /* Kalimat temuan di atas bagan.
@@ -1453,7 +1458,7 @@ def gaya(gelap: bool) -> str:
   .ajakan-klik {{
     color: {p["ajakan"]} !important; font-weight: 620;
     display: inline-flex; align-items: center; gap: 6px;
-    margin: 2px 0 6px 0; font-size: 12.5px; font-weight: 600;
+    margin: 2px 0 6px 0; font-size: 13.5px; font-weight: 600;
     color: {p["seri"][0]};
   }}
   .ajakan-klik::before {{
@@ -1503,18 +1508,18 @@ def gaya(gelap: bool) -> str:
     color: {p["tinta"]};
   }}
   .cari-beranda-ket {{
-    font-size: 12.5px; color: {p["tinta_2"]}; line-height: 1.55;
+    font-size: 13.5px; color: {p["tinta_2"]}; line-height: 1.55;
     margin-bottom: 8px;
   }}
 
   .lanjut-judul {{
     margin: 26px 0 10px 0; padding-top: 16px;
     border-top: 1px solid {p["tepi"]};
-    font-size: 11px; font-weight: 700; letter-spacing: .07em;
+    font-size: 12.5px; font-weight: 700; letter-spacing: .07em;
     text-transform: uppercase; color: {p["tinta_2"]};
   }}
   .lanjut-sebab {{
-    font-size: 12.5px; color: {p["tinta_2"]}; line-height: 1.5;
+    font-size: 13.5px; color: {p["tinta_2"]}; line-height: 1.5;
     margin-bottom: 7px; min-height: 38px;
   }}
 
@@ -1529,17 +1534,17 @@ def gaya(gelap: bool) -> str:
   }}
   /* Keterangan halaman pada tabel bernavigasi. */
   .nav-tabel {{
-    text-align: center; font-size: 12px; color: {p["tinta_2"]};
+    text-align: center; font-size: 13px; color: {p["tinta_2"]};
     padding-top: 9px;
   }}
   div.gulung table.tabel {{ border: none; border-radius: 0; }}
-  table.tabel.rata {{ table-layout: fixed; font-size: 11.5px; }}
+  table.tabel.rata {{ table-layout: fixed; font-size: 13px; }}
   table.tabel.rata th {{
     /* Kepala kolom boleh melipat pada spasi, tetapi tidak di tengah kata.
        Lipatan bebas pernah memenggal DIUCAPKAN menjadi DIUCAPKA dan N,
        yang terbaca seperti salah cetak. */
     white-space: normal; overflow-wrap: break-word; vertical-align: bottom;
-    font-size: 9.5px; padding: 8px 4px;
+    font-size: 12px; padding: 9px 5px;
     position: sticky; top: 0; z-index: 2;
   }}
   table.tabel.rata td {{ overflow-wrap: anywhere; padding: 7px 5px; }}
@@ -1612,7 +1617,7 @@ def gaya(gelap: bool) -> str:
     margin-bottom: 13px; padding: 4px 11px; border-radius: 999px;
     background: {lembut(p["kop_terang"], .14)};
     border: 1px solid {lembut(p["kop_terang"], .3)};
-    font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+    font-size: 12px; font-weight: 700; letter-spacing: .07em;
     text-transform: uppercase; color: {p["tinta"]};
   }}
   /* Pintu masuk menurut kebutuhan pembaca. Bentuknya tombol Streamlit, sebab
@@ -1675,11 +1680,11 @@ def gaya(gelap: bool) -> str:
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
   }}
   .muka-isi b {{
-    display: block; font-size: 12.5px; font-weight: 700; color: {p["tinta"]};
+    display: block; font-size: 13.5px; font-weight: 700; color: {p["tinta"]};
     margin-bottom: 6px;
   }}
   .muka-isi span {{
-    font-size: 12px; color: {p["tinta_2"]}; line-height: 1.6;
+    font-size: 13px; color: {p["tinta_2"]}; line-height: 1.6;
   }}
   /* Potret penyusun di sisi kanan panel muka.
      Situs yang mengajarkan sesuatu lebih dipercaya ketika jelas siapa yang
@@ -1699,11 +1704,11 @@ def gaya(gelap: bool) -> str:
     box-shadow: 0 6px 18px rgba(0,0,0,.14);
   }}
   .muka-potret .nama {{
-    margin-top: 9px; font-size: 12px; font-weight: 700; color: {p["tinta"]};
+    margin-top: 9px; font-size: 13px; font-weight: 700; color: {p["tinta"]};
     text-align: center; line-height: 1.35;
   }}
   .muka-potret .peran {{
-    font-size: 11px; color: {p["tinta_2"]}; text-align: center;
+    font-size: 12.5px; color: {p["tinta_2"]}; text-align: center;
     line-height: 1.45; margin-top: 2px;
   }}
   @media (max-width: 900px) {{
@@ -1732,7 +1737,7 @@ def gaya(gelap: bool) -> str:
     box-shadow: none !important; margin: -8px 0 2px 0 !important;
   }}
   div[class*="st-key-lipat-"] summary {{
-    padding: 2px 0 !important; font-size: 12.5px !important;
+    padding: 2px 0 !important; font-size: 13.5px !important;
     font-weight: 600 !important; color: {p["seri"][0]} !important;
     width: fit-content; background: transparent !important;
   }}
@@ -1751,7 +1756,7 @@ def gaya(gelap: bool) -> str:
   h3 {{ font-size: 16px !important; font-weight: 620 !important;
         color: {p["tinta"]} !important; margin: 4px 0 2px 0 !important; }}
   .stCaption, div[data-testid="stCaptionContainer"] p {{
-    color: {p["tinta_2"]} !important; font-size: 12px !important;
+    color: {p["tinta_2"]} !important; font-size: 13px !important;
     line-height: 1.55 !important;
   }}
   /* Judul bagian polos tanpa penggal aksen; hiasan berwarna pada judul
@@ -1787,7 +1792,7 @@ def gaya(gelap: bool) -> str:
   .saring {{ display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 14px 0; }}
   .saring .chip {{
     display: inline-block; padding: 3px 11px; border-radius: 999px;
-    font-size: 11.5px; color: {p["tinta_2"]};
+    font-size: 13px; color: {p["tinta_2"]};
     background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
   }}
   .saring .chip b {{ color: {p["tinta_2"]}; font-weight: 700;
