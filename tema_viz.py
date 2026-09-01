@@ -209,7 +209,8 @@ def pasang_template(gelap: bool) -> str:
     t = go.layout.Template()
     t.layout = go.Layout(
         font=dict(family=SANS, size=13, color=p["tinta_2"]),
-        title=dict(font=dict(size=15, color=p["tinta"]), x=0,
+        title=dict(font=dict(size=17, color=p["tinta_judul"], weight=700),
+                   x=0,
                    xanchor="left", pad=dict(b=12)),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -237,8 +238,15 @@ def pasang_template(gelap: bool) -> str:
                    automargin=True,
                    tickfont=dict(size=12, color=p["tinta_2"]),
                    title=dict(font=dict(size=12, color=p["tinta_2"]))),
-        bargap=0.34,
-        barcornerradius=6,
+        # Batang dibuat lebih tebal dan sudutnya lebih bulat.
+        #
+        # Batang tipis bersudut tajam adalah bahasa bagan teknis, dan pada
+        # situs yang dibaca orang awam ia terbaca sebagai lampiran laporan,
+        # bukan sebagai sajian. Menebalkan batang juga menambah luas warna,
+        # sehingga penegasan warna pada batang teratas benar benar terlihat,
+        # bukan sekadar garis tipis yang berbeda rona.
+        bargap=0.22,
+        barcornerradius=10,
     )
     pio.templates[nama] = t
     pio.templates.default = nama
@@ -1245,10 +1253,24 @@ def gaya(gelap: bool) -> str:
   }}
 
   /* --- Bagan dan tabel -------------------------------------------------- */
+  /* Bagan keluar dari kartu berbingkai.
+     Bagan adalah isi utama situs ini, tetapi selama ini ia dikurung dalam
+     kartu bergaris tepi yang bahkan punya penggulung sendiri, sehingga
+     bagan tampak seperti lampiran yang ditempelkan pada halaman, bukan
+     seperti isi halamannya. Bingkainya dicabut, jarak dalamnya dilonggarkan,
+     sudutnya disamakan dengan kartu angka, dan latarnya diberi gradasi tipis
+     yang sama supaya seluruh halaman terbaca sebagai satu keluarga. */
   div[data-testid="stPlotlyChart"] {{
-    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
-    border-radius: 12px; padding: 10px 14px 14px 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    background: linear-gradient(158deg, {lembut(p["kop_terang"], .07)} 0%,
+                                {p["permukaan"]} 52%);
+    border: none;
+    border-radius: 20px; padding: 16px 20px 18px 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    overflow: visible;
+  }}
+  div[data-testid="stPlotlyChart"] > div,
+  div[data-testid="stPlotlyChart"] .js-plotly-plot {{
+    overflow: visible !important;
   }}
 
   /* Tata huruf: judul halaman dan judul bagian ditegaskan mengikuti
@@ -1384,7 +1406,10 @@ def gaya(gelap: bool) -> str:
      diberi tepi tipis yang menegas ketika didekati. */
   div[data-testid="stPlotlyChart"]:has(+ div .ajakan-klik),
   div[data-testid="stPlotlyChart"] {{
-    border-radius: 12px; transition: box-shadow .15s ease;
+    border-radius: 20px; transition: box-shadow .15s ease;
+  }}
+  div[data-testid="stPlotlyChart"]:hover {{
+    box-shadow: 0 6px 20px rgba(0,0,0,.09);
   }}
   div[data-testid="stPlotlyChart"] .cursor-pointer,
   div[data-testid="stPlotlyChart"] .points path {{ cursor: pointer; }}
