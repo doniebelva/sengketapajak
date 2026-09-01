@@ -84,6 +84,12 @@ TERANG = {
     # melainkan warna yang menghalangi. Yang ini 5,57 di kartu dan 4,92 di
     # latar halaman.
     "ajakan": "#a35207",
+    # Warna arah naik turun pada kartu angka. Warna baik dan genting yang
+    # dipakai bagan terlalu muda untuk tulisan sekecil ini, hanya 3,35 dan
+    # 4,80 di atas kartu putih, sehingga dipakai nada yang lebih gelap:
+    # 5,32 untuk naik dan 5,62 untuk turun.
+    "arah_naik": "#1f7a4d",
+    "arah_turun": "#c62828",
     # Biru tua di bawah ini bukan lagi warna tampilan, melainkan warna data,
     # yaitu penanda unit gabungan pada bagan. Dibiarkan biru supaya sekeluarga
     # dengan warna DJP dan berbeda jelas dari emas DJBC.
@@ -110,6 +116,10 @@ GELAP = {
     # daripada tulisan biasa. Kontrasnya 9,31 di atas kartu.
     "tinta_judul": "#6fd3cb",
     "ajakan": "#f0a24b",
+    # Pada mode gelap arahnya dibalik, warnanya justru lebih muda supaya
+    # terbaca di atas kartu gelap.
+    "arah_naik": "#4fce86",
+    "arah_turun": "#ff7b73",
     "navy_terang": "#0d3a6e",
     "permukaan": "#1c1f26",
     "bidang": "#12141a",
@@ -1359,11 +1369,20 @@ def gaya(gelap: bool) -> str:
   /* Pembanding ditulis sebagai baris biasa, bukan pil bertepi. Kotak kecil
      di dalam kartu menambah satu lapisan bingkai lagi, dan pada deret kartu
      lapisan itulah yang membuat halaman terasa penuh kotak. */
+  /* Arah naik turun diberi warna, atas permintaan pemilik.
+     Aturan lama sengaja menahan hijau merah di sini, sebab kenaikan angka
+     yang sama berarti kabar baik bagi wajib pajak dan kabar buruk bagi
+     fiskus, sehingga warnanya memihak. Modul bawaan situs ini kini wajib
+     pajak, dan bagi mereka arahnya memang punya rasa. Kata naik dan turun
+     tetap tertulis, tidak diwakili warna saja, supaya pembaca yang tidak
+     dapat membedakan warna tetap memahaminya. */
   .kpi-banding {{
     display: flex; align-items: center;
-    font-size: 12.5px; font-weight: 620; color: {p["tinta_2"]};
+    font-size: 13px; font-weight: 700; color: {p["tinta_2"]};
     margin-top: 7px;
   }}
+  .kpi-banding.naik {{ color: {p["arah_naik"]}; }}
+  .kpi-banding.turun {{ color: {p["arah_turun"]}; }}
   .kpi-arah {{ margin-right: 5px; font-size: 11px; }}
 
   /* Penanda ruas yang kelengkapannya rendah, menempel pada kartunya sendiri.
@@ -2095,7 +2114,9 @@ def kartu(label: str, nilai: str, ket: str = "", banding: str = "",
     ekor = f'<div class="kpi-ket">{ket}</div>' if ket else ""
     if banding:
         tanda = "▲" if arah > 0 else "▼" if arah < 0 else "•"
-        ekor = (f'<div class="kpi-banding"><span class="kpi-arah">{tanda}</span>'
+        rasa = " naik" if arah > 0 else " turun" if arah < 0 else ""
+        ekor = (f'<div class="kpi-banding{rasa}">'
+                f'<span class="kpi-arah">{tanda}</span>'
                 f'{banding}</div>') + ekor
     tanda_andal = (f'<span class="kpi-andal" title="{andal}">!</span>'
                    if andal else "")
