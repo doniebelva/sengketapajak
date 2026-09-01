@@ -1830,6 +1830,59 @@ def gaya(gelap: bool) -> str:
     .muka {{ flex-direction: column-reverse; align-items: flex-start; }}
   }}
 
+  /* --- Ruang belajar ---------------------------------------------------- */
+  /* Kartu langkah bernomor. Nomornya dibuat besar dan berwarna ajakan, sebab
+     yang membedakan alur belajar dari daftar tautan justru urutannya, dan
+     urutan yang tidak terlihat sama saja tidak ada. */
+  .langkah {{
+    background: linear-gradient(155deg, {lembut(p["kop_terang"], .1)} 0%,
+                                {p["permukaan"]} 58%);
+    border-radius: 18px; padding: 20px 22px 16px; min-height: 178px;
+  }}
+  .langkah-nomor {{
+    font-family: {JUDUL_SANS}; font-size: 34px; font-weight: 800;
+    line-height: 1; color: {p["ajakan"]}; margin-bottom: 10px;
+  }}
+  .langkah-judul {{
+    font-family: {JUDUL_SANS}; font-size: 18px; font-weight: 700;
+    line-height: 1.28; color: {p["tinta_judul"]}; margin-bottom: 8px;
+  }}
+  .langkah-isi {{
+    font-size: 13.5px; line-height: 1.6; color: {p["tinta_2"]};
+  }}
+  /* Kepala perkara yang dibedah, memuat nomor dan amarnya. */
+  .bedah-kepala {{
+    display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px;
+    margin: 6px 0 14px; padding-bottom: 10px;
+    border-bottom: 2px solid {lembut(p["kop_terang"], .3)};
+  }}
+  .bedah-kepala b {{
+    font-family: {JUDUL_SANS}; font-size: 19px; font-weight: 700;
+    color: {p["tinta_judul"]};
+  }}
+  .bedah-kepala span {{
+    font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: {p["ajakan"]};
+  }}
+  .bedah-judul {{
+    font-family: {JUDUL_SANS}; font-size: 16px; font-weight: 700;
+    color: {p["tinta_judul"]}; margin: 18px 0 4px;
+  }}
+  /* Catatan pengajar, yaitu kalimat yang menyuruh pembaca memperhatikan apa.
+     Tanpa ini naskah putusan hanya kutipan panjang; dengan ini ia menjadi
+     bahan belajar, sebab pembaca diberi tahu apa yang dicari di dalamnya. */
+  .bedah-catatan {{
+    font-size: 13.5px; line-height: 1.6; color: {p["tinta_2"]};
+    border-left: 3px solid {p["ajakan"]}; padding-left: 12px;
+    margin: 0 0 10px;
+  }}
+  .uji-jawab {{
+    margin: 12px 0 6px; padding: 13px 16px; border-radius: 14px;
+    font-size: 15px; line-height: 1.55; color: {p["tinta"]};
+  }}
+  .uji-jawab.tepat {{ background: {lembut(p["arah_naik"], .14)}; }}
+  .uji-jawab.meleset {{ background: {lembut(p["arah_turun"], .12)}; }}
+
   /* --- Panel lipat ------------------------------------------------------ */
   div[data-testid="stExpander"] {{
     border: none !important; border-top: 1px solid {p["tepi"]} !important;

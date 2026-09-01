@@ -1523,7 +1523,8 @@ HALAMAN = ["Ringkasan Eksekutif", "Nilai Sengketa", "Risalah Putusan", "Pola Put
            "Pasal Penentu", "Unit Penerbit Ketetapan",
            "Profil Hakim", "Karakter Memutus", "Banding Unit",
            "Durasi Penyelesaian Sengketa",
-           "Istilah Sederhana", "Panduan Analisis", "Metodologi"]
+           "Ruang Belajar", "Istilah Sederhana", "Panduan Analisis",
+           "Metodologi"]
 DIMENSI = {"Nilai Sengketa": "Deskriptif, data resmi",
            "Pola Putusan Sejenis": "Prediktif, frekuensi historis",
            "Pilihan Upaya Hukum": "Preskriptif",
@@ -1565,7 +1566,8 @@ MODUL = {
     # dari orang yang perkaranya sedang diperiksa di sana. Yang tidak perlu
     # diketahui publik hanya identitas orangnya, sebab itu tidak menambah
     # pengetahuan apa pun sedangkan dampaknya pada orang tersebut nyata.
-    "Wajib pajak": ["Beranda", "Istilah Sederhana", "Ringkasan Eksekutif",
+    "Wajib pajak": ["Beranda", "Ruang Belajar", "Istilah Sederhana",
+                    "Ringkasan Eksekutif",
                     "Pola Putusan Sejenis", "Pilihan Upaya Hukum",
                     "Risalah Putusan", "Profil Hakim", "Karakter Memutus",
                     "Konsistensi Putusan Hakim",
@@ -1942,6 +1944,7 @@ IKON_HAL = {
     "Durasi Penyelesaian Sengketa": ":material/schedule:",
     "Karakter Memutus": ":material/scatter_plot:",
     "Banding Unit": ":material/compare_arrows:",
+    "Ruang Belajar": ":material/school:",
     "Istilah Sederhana": ":material/menu_book:",
     "Panduan Analisis": ":material/help:",
     "Metodologi": ":material/science:",
@@ -1968,8 +1971,8 @@ KELOMPOK_MENU = [
     ("Perkara serupa",
      ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
     ("Langkah", ["Pilihan Upaya Hukum"]),
-    ("Bekal membaca", ["Istilah Sederhana", "Panduan Analisis",
-                       "Metodologi"]),
+    ("Bekal membaca", ["Ruang Belajar", "Istilah Sederhana",
+                       "Panduan Analisis", "Metodologi"]),
 ]
 
 # Navigasi dipasang di kepala halaman, bukan di bilah samping.
@@ -7019,6 +7022,207 @@ def _karakter_tabel(prof: pd.DataFrame) -> None:
 # Panduan analisis: menjelaskan empat dimensi dengan bahasa sehari hari
 # ---------------------------------------------------------------------------
 
+def _belajar_langkah() -> None:
+    """
+    Alur belajar bernomor, tiga langkah.
+
+    Sembilan belas halaman dalam satu menu adalah karya rujukan, bukan bahan
+    belajar. Rujukan menjawab pertanyaan yang sudah dipunyai pembaca; bahan
+    belajar membentuk pertanyaannya. Pembaca yang baru datang tidak tahu harus
+    mulai dari mana dan tidak pernah tahu kapan ia selesai, sehingga ia
+    menyusuri menu sampai lelah lalu pergi tanpa membawa apa pun.
+
+    Tiga langkah ini menyusun halaman yang sudah ada menjadi urutan yang punya
+    awal dan akhir: pahami katanya, lihat apa yang sudah terjadi, lalu
+    terjemahkan menjadi keputusan sendiri.
+    """
+    st.html('<div class="tingkat">Tiga Langkah</div>')
+    langkah = [
+        ("1", "Pahami dulu kata katanya",
+         "Banding, gugatan, amar, ketetapan. Tanpa arti empat kata ini, "
+         "seluruh angka di situs ini akan salah dibaca, dan yang paling "
+         "berbahaya, salah dibaca tanpa terasa salah.",
+         "Istilah Sederhana"),
+        ("2", "Lihat apa yang sudah pernah terjadi",
+         "Pilih ciri perkara yang mirip dengan persoalan Anda, lalu baca "
+         "rekam jejaknya: berapa yang dikabulkan, argumen apa yang menyertai "
+         "yang menang, dan kesalahan apa yang membuat perkara gugur.",
+         "Pola Putusan Sejenis"),
+        ("3", "Terjemahkan menjadi langkah",
+         "Catatan masa lalu baru berguna ketika berubah menjadi keputusan: "
+         "jalur mana yang ditempuh, apa yang harus disiapkan, dan tenggat "
+         "apa yang tidak boleh terlewat.",
+         "Pilihan Upaya Hukum"),
+    ]
+    kol = st.columns(3)
+    for kk, (nomor, judul, isi, tujuan) in zip(kol, langkah):
+        with kk:
+            st.html(
+                '<div class="langkah">'
+                f'<div class="langkah-nomor">{nomor}</div>'
+                f'<div class="langkah-judul">{judul}</div>'
+                f'<div class="langkah-isi">{isi}</div>'
+                '</div>')
+            if tujuan in daftar_hal and st.button(
+                    f"Buka {tujuan}", key=f"belajar-{TV.kunci_nav(tujuan)}",
+                    width="stretch"):
+                st.session_state["nav_tujuan"] = tujuan
+                st.rerun()
+
+
+def _belajar_bedah() -> None:
+    """
+    Satu perkara yang dibedah utuh, bukan potongan angka.
+
+    Untuk bahan hukum, satu perkara nyata yang ditelusuri dari awal sampai
+    akhir mengajarkan lebih banyak daripada sepuluh bagan. Bagan memberi tahu
+    berapa sering sesuatu terjadi; perkara yang dibedah memberi tahu bagaimana
+    ia terjadi, dan bagaimana itulah yang dapat ditiru pembaca pada
+    perkaranya sendiri.
+
+    Perkaranya dipilih menurut aturan, bukan ditulis mati, supaya tetap sahih
+    ketika arsipnya bertambah: putusan beramar jelas yang bab pokok sengketa
+    dan pertimbangan majelisnya sama sama terbaca, dan yang paling panjang
+    pertimbangannya, sebab di situlah alasannya paling terurai.
+    """
+    st.html('<div class="tingkat">Bedah Satu Perkara</div>')
+    jelas(
+        "Angka memberi tahu berapa sering sesuatu terjadi. Perkara yang "
+        "dibedah memberi tahu bagaimana ia terjadi, dan bagian itulah yang "
+        "dapat ditiru pada perkara Anda sendiri.\n\n"
+        "Perkara di bawah ini bukan pilihan redaksi, melainkan hasil "
+        "penyaringan: putusan yang amarnya jelas dan yang pertimbangan "
+        "majelisnya paling terurai pada lingkup yang sedang tampil.")
+
+    calon = d[d["amar"].notna()].head(400)
+    terpilih = None
+    for _, r in calon.iterrows():
+        bab = anatomi_tersimpan(int(r["doc_id"]))
+        isi_bab = {b["nama"]: b["isi"] for b in bab}
+        if len(isi_bab.get("Pertimbangan majelis", "")) > 400:
+            terpilih = (r, isi_bab)
+            break
+    if terpilih is None:
+        belum_ada("Belum terdapat putusan yang bab pertimbangannya cukup "
+                  "terurai pada lingkup ini.")
+        return
+
+    r, isi_bab = terpilih
+    st.html(
+        '<div class="bedah-kepala">'
+        f'<b>{tampil(r.get("nomor_tampil"), "Putusan tanpa nomor")}</b>'
+        f'<span>{LABEL_AMAR.get(r["amar"], "amar tidak dikenali")}</span>'
+        '</div>')
+
+    bagian = [
+        ("Yang dipersoalkan", isi_bab.get("Pokok sengketa", ""),
+         "Bagian ini menyebutkan inti perselisihannya. Perhatikan bahwa yang "
+         "dipersoalkan hampir selalu satu hal yang sangat sempit, bukan "
+         "seluruh isi ketetapan."),
+        ("Alasan majelis memutus", isi_bab.get("Pertimbangan majelis", ""),
+         "Di sinilah perkara sesungguhnya dimenangkan atau dikalahkan. "
+         "Perhatikan apa yang dinilai majelis: hampir selalu soal ada atau "
+         "tidaknya bukti, bukan soal siapa yang paling benar menurut teori."),
+    ]
+    for judul, teks, catatan in bagian:
+        if not str(teks).strip():
+            continue
+        st.html(f'<div class="bedah-judul">{judul}</div>')
+        st.html(f'<div class="bedah-catatan">{catatan}</div>')
+        potong = str(teks).strip()
+        if len(potong) > 1400:
+            potong = potong[:1400].rsplit(" ", 1)[0] + " ..."
+        st.html(f'<div class="anatomi-isi">{potong}</div>')
+
+    if st.button("Buka putusan ini seutuhnya", key="belajar-buka-perkara",
+                 icon=":material/arrow_forward:"):
+        st.session_state["buka_doc"] = int(r["doc_id"])
+        st.session_state["nav_tujuan"] = "Risalah Putusan"
+        st.rerun()
+
+
+def _belajar_uji() -> None:
+    """
+    Uji pemahaman: pembaca menebak dahulu, baru diberi tahu.
+
+    Pemahaman melekat ketika orang mencoba dan salah, bukan ketika ia
+    membaca kesimpulan yang sudah jadi. Bentuknya sengaja paling sederhana:
+    satu pokok sengketa, tiga kemungkinan hasil, lalu jawabannya dibuka
+    beserta alasannya.
+
+    Yang perlu dijaga, halaman ini tidak boleh terbaca sebagai peramal. Karena
+    itu sesudah jawabannya dibuka, yang ditegaskan bukan bahwa pembaca benar
+    atau salah, melainkan bahwa satu perkara tidak mewakili perkara lain.
+    """
+    st.html('<div class="tingkat">Uji Pemahaman</div>')
+    kunci_soal = "belajar_soal"
+    if kunci_soal not in st.session_state:
+        pilih = d[d["amar"].notna() & d["pokok_sengketa"].notna()]
+        if pilih.empty:
+            belum_ada("Belum terdapat putusan yang dapat dijadikan soal pada "
+                      "lingkup ini.")
+            return
+        st.session_state[kunci_soal] = int(
+            pilih.iloc[len(pilih) // 3]["doc_id"])
+    soal = d[d["doc_id"] == st.session_state[kunci_soal]]
+    if soal.empty:
+        st.session_state.pop(kunci_soal, None)
+        belum_ada("Soal sebelumnya tidak berada pada lingkup ini lagi.")
+        return
+    r = soal.iloc[0]
+
+    st.html('<div class="bedah-catatan">Bacalah pokok sengketanya, tebak '
+            'hasilnya, baru buka jawabannya.</div>')
+    st.html(f'<div class="anatomi-isi">'
+            f'{tampil(r["pokok_sengketa"], "tidak tersedia")}</div>')
+
+    tebak = st.radio(
+        "Menurut Anda, bagaimana perkara ini berakhir?",
+        ["Dikabulkan, seluruhnya atau sebagian",
+         "Ditolak",
+         "Gugur pada syarat formal, pokoknya tidak diperiksa"],
+        key="belajar_tebak", index=None)
+    if tebak is None:
+        return
+
+    benar = ("Dikabulkan, seluruhnya atau sebagian"
+             if r["amar"] in AMAR_MENANG
+             else "Gugur pada syarat formal, pokoknya tidak diperiksa"
+             if r["amar"] == "tidak_dapat_diterima" else "Ditolak")
+    tepat = tebak == benar
+    st.html(
+        f'<div class="uji-jawab {"tepat" if tepat else "meleset"}">'
+        f'{"Tebakan Anda tepat." if tepat else "Tebakan Anda meleset."} '
+        f'Perkara ini berakhir <b>{LABEL_AMAR.get(r["amar"], "tidak dikenali")}'
+        '</b>.</div>')
+    jelas(
+        "Yang penting di sini bukan tepat atau melesetnya tebakan Anda, "
+        "melainkan satu hal yang mudah terlupa: **satu perkara tidak "
+        "mewakili perkara lain.** Dua sengketa yang pokoknya terdengar sama "
+        "dapat berakhir berbeda karena buktinya berbeda, dan itulah sebabnya "
+        "situs ini menyajikan sebaran, bukan ramalan.")
+    if st.button("Ganti soal", key="belajar-ganti-soal",
+                 icon=":material/refresh:"):
+        st.session_state.pop(kunci_soal, None)
+        st.session_state.pop("belajar_tebak", None)
+        st.rerun()
+
+
+def hal_ruang_belajar() -> None:
+    """
+    Ruang belajar: alur bernomor, satu perkara yang dibedah, dan uji paham.
+
+    Halaman lain menjawab pertanyaan. Halaman ini membentuk pertanyaannya,
+    dan itu yang membedakan situs yang dipakai orang yang sudah paham dari
+    situs yang membuat orang menjadi paham.
+    """
+    st.caption("Tempat memulai bila Anda belum pernah membaca putusan "
+               "pengadilan pajak sama sekali.")
+    _belajar_langkah()
+    _belajar_bedah()
+    _belajar_uji()
+
+
 def hal_istilah() -> None:
     """
     Penjelasan istilah dengan bahasa sehari hari, untuk pembaca tanpa latar
@@ -7606,6 +7810,7 @@ PENYALUR.update({
     "Durasi Penyelesaian Sengketa": hal_kinerja,
     "Karakter Memutus": hal_karakter,
     "Banding Unit": hal_banding,
+    "Ruang Belajar": hal_ruang_belajar,
     "Istilah Sederhana": hal_istilah,
     "Panduan Analisis": hal_panduan,
     "Metodologi": hal_metode,
