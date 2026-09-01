@@ -1775,38 +1775,40 @@ def gaya(gelap: bool) -> str:
   .muka-isi span {{
     font-size: 13px; color: {p["tinta_2"]}; line-height: 1.6;
   }}
-  /* Potret penyusun di sisi kanan panel muka.
-     Situs yang mengajarkan sesuatu lebih dipercaya ketika jelas siapa yang
-     menyusunnya, dan wajah mengerjakan itu jauh lebih cepat daripada satu
-     alinea riwayat. Gambarnya dipotong menjadi kotak bersudut bulat supaya
-     tingginya mengikuti panel, bukan panelnya yang memanjang mengikuti
-     potret. */
+  /* Tiga angka arsip di sisi kanan halaman muka, menggantikan potret.
+
+     Potret penyusun dilepas atas permintaan pemilik, sesudah ditimbang bahwa
+     wajah pada situs yang menganalisis mutu ketetapan membuat sebagian
+     pembaca membacanya sebagai orang lembaga yang berbicara, bukan sebagai
+     pengolah data terbuka. Namanya tetap tercantum di kaki halaman.
+
+     Yang menggantikannya angka arsip itu sendiri. Disusun menurun dan
+     dipisah satu garis tegak, bukan sebagai kartu, supaya ia terbaca sebagai
+     keterangan yang menyertai judul dan tidak bersaing dengan deretan kartu
+     di bawahnya. */
   .muka-teks {{ flex: 1 1 auto; min-width: 0; }}
-  .muka-potret {{
-    flex: 0 0 168px; display: flex; flex-direction: column;
-    align-items: center; justify-content: flex-end;
+  .muka-angka {{
+    flex: 0 0 236px; display: flex; flex-direction: column; gap: 15px;
+    padding-left: 26px;
+    border-left: 2px solid {lembut(p["kop_terang"], .3)};
   }}
-  .muka-potret img {{
-    width: 168px; height: 186px; object-fit: cover; object-position: 50% 18%;
-    border-radius: 16px; display: block;
-    border: 1px solid {lembut(p["kop_terang"], .3)};
-    box-shadow: 0 6px 18px rgba(0,0,0,.14);
+  .muka-biji b {{
+    display: block; font-family: {JUDUL_SANS};
+    font-size: 30px; font-weight: 800; letter-spacing: -.028em;
+    line-height: 1.16; color: {p["tinta_judul"]};
   }}
-  .muka-potret .nama {{
-    margin-top: 9px; font-size: 13px; font-weight: 700; color: {p["tinta"]};
-    text-align: center; line-height: 1.35;
+  .muka-biji span {{
+    display: block; font-size: 13px; color: {p["tinta_2"]};
+    line-height: 1.45; margin-top: 3px;
   }}
-  .muka-potret .peran {{
-    font-size: 12.5px; color: {p["tinta_2"]}; text-align: center;
-    line-height: 1.45; margin-top: 2px;
+  @media (max-width: 1100px) {{
+    .muka-angka {{ display: none; }}
   }}
   @media (max-width: 900px) {{
     .muka-isi {{ grid-template-columns: 1fr; }}
     .muka-judul {{ font-size: 32px; max-width: 100%; }}
     .muka-sub {{ font-size: 15.5px; }}
     .muka {{ flex-direction: column-reverse; align-items: flex-start; }}
-    .muka-potret {{ flex-direction: row; align-items: center; gap: 12px; }}
-    .muka-potret img {{ width: 84px; height: 92px; }}
   }}
 
   /* --- Panel lipat ------------------------------------------------------ */

@@ -7277,7 +7277,8 @@ def _beranda_cari() -> None:
             st.rerun()
 
 
-def muka_kepala(tanda: str, judul: str, kalimat: str) -> None:
+def muka_kepala(tanda: str, judul: str, kalimat: str,
+                angka: list | None = None) -> None:
     """
     Kepala halaman muka: satu penanda, satu judul, satu alinea.
 
@@ -7287,13 +7288,25 @@ def muka_kepala(tanda: str, judul: str, kalimat: str) -> None:
     dari mana angkanya. Halaman muka situs selalu menjawab dua hal itu lebih
     dulu, sebelum menyodorkan angka apa pun.
     """
-    foto = TV.potret_penyusun()
-    potret = (
-        '<div class="muka-potret">'
-        f'<img src="{foto}" alt="Potret penyusun situs">'
-        '<div class="nama">Dr. Donny</div>'
-        '<div class="peran">Praktisi, Dosen dan Peneliti</div>'
-        '</div>') if foto else ""
+    # Sisi kanan halaman muka diisi angka, bukan potret penyusunnya.
+    #
+    # Potret dilepas atas permintaan pemilik, sesudah ditimbang bahwa wajah
+    # pada situs yang menganalisis mutu ketetapan membuat sebagian pembaca
+    # membacanya sebagai orang lembaga yang berbicara, bukan sebagai
+    # pengolah data terbuka, dan yang menjadi sasaran ketidaksetujuan
+    # akhirnya orangnya, bukan datanya. Namanya tetap tercantum di kaki
+    # halaman, tempat penanggung jawab memang lazim disebut.
+    #
+    # Yang menggantikannya angka arsip itu sendiri, sebab pada halaman muka
+    # situs analitik angkanya bukan hiasan melainkan bukti bahwa situsnya
+    # memang berisi. Pembaca yang ragu apakah tempat ini layak dibaca
+    # mendapat jawabannya dalam sekali pandang.
+    potret = ""
+    if angka:
+        biji = "".join(
+            f'<div class="muka-biji"><b>{n}</b><span>{lbl}</span></div>'
+            for n, lbl in angka)
+        potret = f'<div class="muka-angka">{biji}</div>'
     st.html(
         '<div class="muka">'
         '<div class="muka-teks">'
@@ -7455,7 +7468,12 @@ def hal_beranda() -> None:
             "Ribuan perkara pajak sudah pernah diputus, dan seluruh "
             "risalahnya terbuka untuk siapa saja. Situs ini membaca ulang "
             "arsip itu dengan bahasa sehari hari, supaya Anda tahu apa yang "
-            "sudah pernah terjadi sebelum memutuskan langkah sendiri.")
+            "sudah pernah terjadi sebelum memutuskan langkah sendiri.",
+            angka=[
+                (f"{len(d):,}".replace(",", "."), "putusan dibaca ulang"),
+                (rentang_tahun(d), "rentang tahun putusan"),
+                (f"{tingkat:.0f}%", "dikabulkan secara historis"),
+            ])
         # Pencarian didahulukan pada modul ini, sebelum satu angka pun
         # disajikan. Wajib pajak datang membawa perkaranya sendiri, dan
         # pertanyaan pertamanya bukan berapa persen yang dikabulkan
