@@ -192,7 +192,13 @@ JARAK_MENU_KIRI = 404
 # saklar tema. Tanpa pesanan ini bilah menu melebar sampai ke bawah ketiganya,
 # dan kelompok menu terakhir tertimpa kotak pencarian.
 RUANG_KANAN = 404
-TINGGI_KAKI = 43
+# Kaki halaman kini dua baris, bukan satu.
+#
+# Baris keduanya memuat keterangan situs yang dahulu berada di bawah judul.
+# Ketika tingginya masih dihitung untuk satu baris, baris pertamanya terdorong
+# ke atas dan isinya tidak lagi berada di tengah, dan itulah yang terlihat
+# sebagai kaki yang posisinya meleset.
+TINGGI_KAKI = 64
 
 
 def palet(gelap: bool) -> dict:
@@ -302,6 +308,39 @@ def rapikan(fig, tinggi: int | None = None, gelap: bool = False):
                       legend_title_text="")
     if tinggi:
         fig.update_layout(height=tinggi)
+        # Tebal batang dibatasi dalam piksel, bukan dalam pecahan slot.
+        #
+        # Jarak antar batang pada template dinyatakan sebagai pecahan lebar
+        # slot, sehingga pada bagan yang isinya hanya satu dua batang, slotnya
+        # menjadi sangat lebar dan batangnya melar memenuhi kartu. Cacat ini
+        # muncul begitu jaraknya dirapatkan untuk menebalkan batang, dan
+        # bentuknya bukan bagan lagi melainkan bidang warna besar yang tidak
+        # menyatakan besaran apa pun.
+        #
+        # Yang dihitung di sini tebal yang pantas dalam piksel, lalu
+        # dikembalikan menjadi pecahan slot menurut tinggi bagan dan banyak
+        # batangnya. Batasnya hanya berlaku ke bawah: bagan berbatang banyak
+        # tidak ikut dikuruskan, sebab di sana slotnya memang sudah sempit.
+        n_kategori = 0
+        for t in fig.data:
+            if getattr(t, "type", "") != "bar":
+                continue
+            # Deret nilainya diperiksa dengan None, bukan dengan atau.
+            #
+            # Deret angka pada bagan berupa larik, dan larik tidak dapat
+            # dinilai benar salah begitu saja, sehingga pemakaian atau pada
+            # baris ini menghentikan seluruh halaman dengan keluhan bahwa
+            # nilai kebenaran lariknya rancu. Empat halaman jatuh karenanya.
+            nilai = getattr(t, "y", None)
+            if nilai is None:
+                nilai = getattr(t, "x", None)
+            if nilai is not None:
+                n_kategori = max(n_kategori, len(nilai))
+        if n_kategori:
+            slot = max(1.0, (tinggi - 90) / n_kategori)
+            pecahan = min(0.86, 42.0 / slot)
+            if pecahan < 0.86:
+                fig.update_traces(width=pecahan, selector=dict(type="bar"))
 
     batang = [t for t in fig.data if getattr(t, "type", None) == "bar"]
     satu_deret = len(batang) <= 1
@@ -477,7 +516,7 @@ def gaya(gelap: bool) -> str:
      untuk keterangan yang cukup dibaca sekali. Di kaki, keterangan itu tetap
      ada bagi yang mencarinya tanpa menghalangi yang sudah tahu. */
   .kaki-ket {{
-    grid-column: 1 / -1; margin-top: 6px; padding-top: 7px;
+    grid-column: 1 / -1; margin-top: 0; padding-top: 5px;
     border-top: 1px solid {p["tepi"]};
     font-size: 12px; color: {p["tinta_2"]}; line-height: 1.55;
   }}
@@ -811,8 +850,9 @@ def gaya(gelap: bool) -> str:
   /* --- Kaki, dipaku di dasar jendela, satu baris ------------------------ */
   .kaki {{
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000001;
-    display: grid; grid-template-columns: auto 1fr auto; align-items: center;
-    gap: 20px; height: {TINGGI_KAKI}px; padding: 0 {SISI};
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; align-content: center;
+    gap: 4px 20px; height: {TINGGI_KAKI}px; padding: 0 {SISI};
     background: {p["permukaan"]}; border-top: 1px solid {p["tepi"]};
     box-shadow: 0 -1px 6px rgba(0,0,0,.07);
     font-size: 13px; color: {p["tinta_2"]};
@@ -1956,21 +1996,26 @@ KETERANGAN_SITUS = (
 
 def kaki(nama: str, status_data: str, status_tarik: str, aktif: bool,
          kanan: str, diolah: str = "") -> str:
-    warna = TERANG["baik"] if aktif else TERANG["tinta_2"]
-    nyala = "berjalan" if aktif else "berhenti"
+    # Keadaan penarikan diganti tanggal pembaruan data.
+    #
+    # Kalimat lamanya berbunyi penarikan berhenti sekian jam lalu, dan itu
+    # keterangan mesin, bukan keterangan yang dicari pembaca. Pembaca ingin
+    # tahu satu hal saja, yaitu angka yang sedang dibacanya berasal dari arsip
+    # kapan. Keadaan mesin penariknya sendiri tetap tercatat pada catatan
+    # penyegaran, tempat yang memang untuk itu.
+    _ = (aktif, status_tarik)
     # Tanggal arsip terakhir diolah ikut di kaki, bukan di sisi kanan kop.
     # Di kop ia menempati ruang yang justru diperlukan menu, sedangkan yang
     # membacanya hanya pembaca yang sedang menimbang seberapa mutakhir
     # angkanya, dan pembaca itu memang mencarinya sampai ke kaki halaman.
-    cap = f" &middot; Arsip terakhir diolah {diolah}" if diolah else ""
+    tanggal = (f'<span class="pisah"> &middot; </span>'
+               f'Tanggal update data <b>{diolah}</b>') if diolah else ""
     return (
         '<div class="kaki">'
         f'<span class="kiri">&copy; 2026 Dikembangkan oleh <b>{nama}</b></span>'
-        f'<span class="tengah">{status_data}<span class="pisah"> · </span>'
-        f'<span class="titik" style="background:{warna}"></span>'
-        f'Penarikan <b>{nyala}</b>, {status_tarik}</span>'
+        f'<span class="tengah">{status_data}{tanggal}</span>'
         f'<span class="kanan">{kanan}</span>'
-        f'<span class="kaki-ket">{KETERANGAN_SITUS}{cap}</span>'
+        f'<span class="kaki-ket">{KETERANGAN_SITUS}</span>'
         '</div>'
     )
 

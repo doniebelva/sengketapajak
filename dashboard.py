@@ -1718,7 +1718,7 @@ def gambar_saring_kop() -> None:
     with st.container(key="saring-kop"):
         with st.popover(_sebut_saring(), icon=":material/tune:",
                         use_container_width=False):
-            st.html('<div class="saring-judul">Penyaring data</div>')
+            st.html('<div class="saring-judul">Filter Data</div>')
             kol = st.columns([1, 1])
             _KEND["instansi"] = kol[0].container()
             _KEND["pajak"] = kol[1].container()
@@ -1746,7 +1746,7 @@ def _sebut_saring() -> str:
         aktif.append(f"{th[0]}-{th[1]}")
     if hanya_teks:
         aktif.append("teks asli")
-    return " · ".join(aktif) if aktif else "Penyaring"
+    return " · ".join(aktif) if aktif else "Filter Data"
 
 
 cari_cepat = str(nilai_kendali("cari_cepat", bawaan="") or "")
@@ -2614,7 +2614,7 @@ def _nilai_konsentrasi(rs: pd.DataFrame, rp: pd.DataFrame,
           "namun nilainya sangat besar, "
             "sehingga di sanalah risiko fiskal terbesar berada.")
 
-    st.html('<div class="tingkat">Mutu Ketetapan Bernilai Besar</div>')
+    st.html('<div class="tingkat">Ketetapan Bernilai Besar</div>')
     isi = rp.dropna(subset=["nilai_awal"]).copy()
     isi["menang"] = isi["amar"].isin(AMAR_MENANG)
     tepi = [0, 1e8, 1e9, 1e10, 1e11, float("inf")]
@@ -3716,7 +3716,7 @@ def hal_belajar() -> None:
         "dr_belajar_amar", ss, "amar_label", "Amar",
         sebab="Perkara serupa yang berakhir dengan amar tersebut.")
 
-    st.html('<div class="tingkat">Argumen Hukum pada Putusan yang Dikabulkan</div>')
+    st.html('<div class="tingkat">Argumen yang Menang</div>')
     dh = muat_dasar_hukum()
     menang_id = set(ss[ss["amar"].isin(AMAR_MENANG)]["doc_id"])
     dh = dh[dh["doc_id"].isin(menang_id)]
@@ -4029,7 +4029,7 @@ def _konsistensi_majelis() -> None:
 
 
 def _konsistensi_perkara() -> None:
-    st.html('<div class="tingkat">Keseragaman Antar Kelompok Perkara</div>')
+    st.html('<div class="tingkat">Keseragaman Antar Kelompok</div>')
     k = ledak_koreksi(beramar(d))
     dom = []
     for (kode, kor), grp in k.groupby(["kode_jenis_pajak", "Jenis koreksi"]):
@@ -4093,7 +4093,7 @@ def _konsistensi_perkara() -> None:
         tabel_bernavigasi(t.sort_values("Keseragaman"), "kelompok_norma",
                           kolom_persen=("Keseragaman",))
 
-    st.html('<div class="tingkat">Konsistensi Putusan Antar Hakim Ketua</div>')
+    st.html('<div class="tingkat">Konsistensi Antar Hakim</div>')
     dd = beramar(d)
     dd = dd[dd["hakim_ketua"].notna() & dd["kode_jenis_pajak"].notna()].copy()
     if len(dd):
@@ -4289,7 +4289,7 @@ def _ulang_peringkat(dn: pd.DataFrame, dd: pd.DataFrame,
             "Pokok terbanyak": kor.index[0] if len(kor) else "-",
             "Dikabulkan": round(100 * ga["menang"].mean(), 2)
             if len(ga) else 0.0})
-    st.html('<div class="tingkat">Lima Belas Wajib Pajak Teratas</div>')
+    st.html('<div class="tingkat">Lima Belas Teratas</div>')
     if len(vc2):
         temuan(
             f"<b>{int(vc2.iloc[0]):,} sengketa</b> berasal dari satu wajib "
@@ -4968,7 +4968,7 @@ def _mutu_instansi() -> None:
       sebab="Putusan pada instansi tersebut, pada lingkup yang sedang "
             "aktif.")
 
-    st.html('<div class="tingkat">Tren Hasil Putusan Tiap Instansi</div>')
+    st.html('<div class="tingkat">Tren Tiap Instansi</div>')
     fig = go.Figure()
     ada_deret = False
     for kode in g["instansi_terbanding"]:
@@ -5084,7 +5084,7 @@ def _mutu_formal() -> None:
               "membaik, atau wajib pajak makin memahami tenggat dan "
               "jalurnya. Garis yang naik menandakan sebaliknya.")
 
-    st.html('<div class="tingkat">Di Mana Kegagalan Formal Terpusat</div>')
+    st.html('<div class="tingkat">Pusat Kegagalan Formal</div>')
     LABEL_INS = {"djp": "Direktorat Jenderal Pajak",
                  "djbc": "Direktorat Jenderal Bea dan Cukai",
                  "pemda": "Pemerintah daerah"}
@@ -5613,7 +5613,7 @@ def hal_hakim() -> None:
     potongan_jujur(len(atas), len(per_hakim), "hakim terhitung",
                    "pada tabel rekapitulasi di bawah")
 
-    st.html('<div class="tingkat">Rincian menurut Kategori Amar</div>')
+    st.html('<div class="tingkat">Rincian Menurut Amar</div>')
     URUT_AMAR = [LABEL_AMAR[a] for a in
                  ("kabul_seluruhnya", "kabul_sebagian", "tolak",
                   "tidak_dapat_diterima", "cabut", "batal", "gugur",
@@ -5897,7 +5897,7 @@ def _durasi_keadaan(j: pd.Series) -> None:
               "tetap tinggi berarti percepatan belum menyentuh sebagian "
               "besar perkara.")
 
-    st.html('<div class="tingkat">Lama Sengketa dari Masuk sampai Putus</div>')
+    st.html('<div class="tingkat">Lama Penyelesaian</div>')
     lag = d.dropna(subset=["lag_tahun"])
     lag = lag[lag["lag_tahun"].between(0, 15)]
     if len(lag) >= 20:
@@ -6064,7 +6064,7 @@ def hal_metode() -> None:
             "dan pada risalah yang memuat lebih dari satu amar, dan menjadi "
             "antrean perbaikan penguraian.")
 
-    st.html('<div class="tingkat">Keterbatasan Data dan Metode</div>')
+    st.html('<div class="tingkat">Batas Data dan Metode</div>')
     st.markdown(
         f"**Data belum lengkap.** Cakupan baru {cakupan:.1f} persen dari "
         "perkiraan seluruh arsip. Penarikan berjalan dengan urutan acak "
@@ -6647,7 +6647,7 @@ def hal_banding() -> None:
                       kanan_nama: vb[1], "Selisih": selisih})
     tabel_bernavigasi(pd.DataFrame(baris), "banding_ringkas", per=10)
 
-    st.html('<div class="tingkat">Arah Dikabulkan dari Tahun ke Tahun</div>')
+    st.html('<div class="tingkat">Arah dari Tahun ke Tahun</div>')
     fig = go.Figure()
     ada = False
     for nama, bingkai in ((kiri_nama, a), (kanan_nama, b)):
@@ -6682,7 +6682,7 @@ def hal_banding() -> None:
         belum_ada("Belum cukup tahun bermuatan putusan memadai pada salah "
                   "satu unit untuk menggambarkan arahnya.")
 
-    st.html('<div class="tingkat">Tema Sengketa Teratas Tiap Unit</div>')
+    st.html('<div class="tingkat">Tema Teratas Tiap Unit</div>')
     kol2 = st.columns(2)
     for kolom, nama, bingkai in ((kol2[0], kiri_nama, a),
                                  (kol2[1], kanan_nama, b)):
@@ -6897,7 +6897,7 @@ def _karakter_ragam(prof: pd.DataFrame) -> None:
           "berakhir berbeda tergantung majelis yang memeriksanya. Ini bahan "
           "pembakuan pedoman, bukan penilaian perorangan.")
 
-    st.html('<div class="tingkat">Tiga Keragaman yang Paling Layak Dibahas</div>')
+    st.html('<div class="tingkat">Tiga Keragaman Utama</div>')
     for kolom, judul, ket in (
             ("Gugur formal", "Ketatnya syarat formal",
              "Menentukan perkara diperiksa atau tidak, sebelum pokok "
@@ -7047,7 +7047,7 @@ def hal_istilah() -> None:
         "sendiri, tetap tanyakan kepada kuasa hukum atau konsultan pajak "
         "yang membaca berkasnya langsung."))
 
-    st.html('<div class="tingkat">Yang Paling Sering Ditanyakan</div>')
+    st.html('<div class="tingkat">Sering Ditanyakan</div>')
     jelas(
         "**Apa itu Pengadilan Pajak?** Tempat menyelesaikan perselisihan "
         "antara wajib pajak dengan kantor pajak atau kantor bea cukai. "
@@ -7063,7 +7063,7 @@ def hal_istilah() -> None:
         "diterbitkan tanpa memenuhi syarat. Singkatnya, banding soal "
         "angkanya, gugatan soal caranya.")
 
-    st.html('<div class="tingkat">Istilah yang Sering Muncul</div>')
+    st.html('<div class="tingkat">Istilah yang Sering Dipakai</div>')
     ist = pd.DataFrame([
         ("Amar", "Bunyi keputusan hakim. Ini bagian yang menentukan siapa "
                  "yang menang."),
@@ -7112,7 +7112,7 @@ def hal_istilah() -> None:
         "berwarna kuning di kepala tiap halaman menunjukkan seberapa lengkap "
         "keterangan yang dipakai halaman itu.")
 
-    st.html('<div class="tingkat">Pelajaran yang Paling Mahal</div>')
+    st.html('<div class="tingkat">Pelajaran Penting</div>')
     n_amar = int(d["amar"].notna().sum())
     n_gugur = int((d["amar"] == "tidak_dapat_diterima").sum())
     if n_amar:
