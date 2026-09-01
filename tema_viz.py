@@ -70,6 +70,20 @@ TERANG = {
     # jauh di atas ambang, sehingga warnanya tidak dibayar dengan
     # keterbacaan.
     "tinta_judul": "#0d5a56",
+    # Warna ajakan, lawan dari tosca.
+    #
+    # Tosca sendirian membuat situs ini kalem terus menerus, dan tidak ada
+    # satu pun warna yang menyatakan bahwa sesuatu dapat disentuh. Jingga
+    # amber dipakai khusus untuk hal yang mengajak, yaitu panah pada pintu,
+    # ajakan memilih batang, dan penanda sorotan. Tosca tetap warna
+    # keterangan, amber menjadi warna ajakan, sehingga pembaca belajar sekali
+    # lalu tahu mana yang hanya memberi tahu dan mana yang mengajak.
+    # Nadanya digelapkan sampai lolos ambang keterbacaan. Amber yang lebih
+    # cerah tampak lebih bertenaga tetapi hanya mencapai 3,59 di atas latar
+    # halaman, dan warna yang tidak terbaca bukan warna yang menarik,
+    # melainkan warna yang menghalangi. Yang ini 5,57 di kartu dan 4,92 di
+    # latar halaman.
+    "ajakan": "#a35207",
     # Biru tua di bawah ini bukan lagi warna tampilan, melainkan warna data,
     # yaitu penanda unit gabungan pada bagan. Dibiarkan biru supaya sekeluarga
     # dengan warna DJP dan berbeda jelas dari emas DJBC.
@@ -95,6 +109,7 @@ GELAP = {
     # Pada mode gelap arahnya dibalik: tinta judulnya justru lebih terang
     # daripada tulisan biasa. Kontrasnya 9,31 di atas kartu.
     "tinta_judul": "#6fd3cb",
+    "ajakan": "#f0a24b",
     "navy_terang": "#0d3a6e",
     "permukaan": "#1c1f26",
     "bidang": "#12141a",
@@ -137,6 +152,14 @@ def warna_unit(gelap: bool = False) -> dict:
 # utamanya tidak jatuh ke huruf sistem yang bentuknya jauh berbeda.
 SANS = ('"Plus Jakarta Sans", "Inter", system-ui, -apple-system, '
         '"Segoe UI", sans-serif')
+# Judul memakai keluarga huruf yang berbeda dari isinya.
+#
+# Satu keluarga untuk segalanya membuat halaman rata rasa: judul hanya
+# tampak sebagai tulisan yang lebih tebal, bukan sebagai judul. Sora
+# bentuknya geometris dan bertenaga, cocok untuk judul dan angka, sedangkan
+# isi tetap memakai huruf yang nyaman dibaca berparagraf panjang. Ketegangan
+# antara keduanya itulah yang memberi watak pada halaman.
+JUDUL_SANS = ('"Sora", "Plus Jakarta Sans", system-ui, sans-serif')
 # Naskah putusan memakai Aptos, huruf baku dokumen pada lingkungan kerja ini.
 # Aptos tidak tersedia sebagai huruf web, jadi yang terpasang di perangkat
 # pembacalah yang dipakai; pada perangkat tanpa Aptos, cadangannya huruf
@@ -145,6 +168,7 @@ APTOS = ('"Aptos", "Aptos Display", "Segoe UI Variable Text", "Segoe UI", '
          '"Inter", system-ui, sans-serif')
 FONT_URL = ("https://fonts.googleapis.com/css2?"
             "family=Plus+Jakarta+Sans:wght@400;500;600;700;800&"
+            "family=Sora:wght@600;700;800&"
             "family=Inter:wght@400;500;600;700&display=swap")
 
 SISI = "2.2rem"       # jarak tepi bidang isi, dipakai juga oleh kop dan kaki
@@ -437,7 +461,8 @@ def gaya(gelap: bool) -> str:
   }}
   .kop img {{ height: 40px; width: auto; }}
   .kop-garis {{ width: 1px; height: 36px; background: rgba(255,255,255,.24); }}
-  .kop-judul {{ font-size: 19px; font-weight: 680; color: #fff;
+  .kop-judul {{ font-family: {JUDUL_SANS};
+                font-size: 20px; font-weight: 700; color: #fff;
                 line-height: 1.25; letter-spacing: -.004em;
                 white-space: nowrap; }}
   /* Sub judul memakai putih 92 persen, bukan 80 persen.
@@ -654,7 +679,8 @@ def gaya(gelap: bool) -> str:
     margin: 4px 0 4px;
   }}
   .kepala-hal h3 {{
-    font-size: 33px !important; font-weight: 800 !important;
+    font-family: {JUDUL_SANS};
+    font-size: 38px !important; font-weight: 800 !important;
     letter-spacing: -.028em; line-height: 1.12;
     margin: 0 !important; padding: 0 !important;
     /* Warnanya ditegaskan, sebab aturan bawaan Streamlit untuk judul
@@ -1170,8 +1196,15 @@ def gaya(gelap: bool) -> str:
   /* Angka memakai lebar digit seragam. Tanpa itu angka satu jauh lebih
      sempit daripada angka lain, sehingga deretan kartu bersebelahan tampak
      bergeser geser dan sulit dibandingkan sekilas. */
-  .kpi-nilai {{ font-size: 31px; font-weight: 780; color: {p["tinta"]};
-                line-height: 1.12; margin-top: 8px;
+  /* Tinggi barisnya dilonggarkan mengikuti huruf judul yang baru.
+     Sora berbadan lebih tinggi daripada huruf sebelumnya, sehingga pada
+     tinggi baris 1,12 kaki angkanya melewati wadah empat piksel dan
+     pengaudit tampilan menolaknya sebagai tulisan terpenggal pada seluruh
+     kartu sekaligus. Angka memang tidak berekor, tetapi persen dan koma
+     punya, dan justru itu yang terpotong. */
+  .kpi-nilai {{ font-family: {JUDUL_SANS};
+                font-size: 34px; font-weight: 700; color: {p["tinta"]};
+                line-height: 1.28; margin-top: 8px; padding-bottom: 2px;
                 font-variant-numeric: tabular-nums;
                 letter-spacing: -.012em;
                 overflow-wrap: anywhere; }}
@@ -1296,7 +1329,7 @@ def gaya(gelap: bool) -> str:
      paragraf itulah yang membedakan dashboard ini dari sekadar bagan. */
   div[data-testid="stMainBlockContainer"]
       div[data-testid="stMarkdownContainer"] p {{
-    font-size: 14px; line-height: 1.68;
+    font-size: 15.5px; line-height: 1.7;
   }}
   div[data-testid="stDataFrame"] {{
     border-radius: 12px; overflow: hidden; border: 1px solid {p["tepi"]};
@@ -1418,6 +1451,7 @@ def gaya(gelap: bool) -> str:
      berwarna aksen supaya terbaca sebagai tawaran, bukan sebagai catatan
      kaki yang boleh dilewati. */
   .ajakan-klik {{
+    color: {p["ajakan"]} !important; font-weight: 620;
     display: inline-flex; align-items: center; gap: 6px;
     margin: 2px 0 6px 0; font-size: 12.5px; font-weight: 600;
     color: {p["seri"][0]};
@@ -1564,7 +1598,8 @@ def gaya(gelap: bool) -> str:
     border: 1px solid {lembut(p["kop_terang"], .22)};
   }}
   .muka-judul {{
-    font-size: 27px; font-weight: 700; color: {p["tinta"]};
+    font-family: {JUDUL_SANS};
+    font-size: 34px; font-weight: 800; color: {p["tinta"]};
     line-height: 1.22; letter-spacing: -.014em; margin: 0 0 10px;
     max-width: 44ch;
   }}
@@ -1609,7 +1644,7 @@ def gaya(gelap: bool) -> str:
   div[class*="st-key-beranda-"] button::after {{
     content: "→"; position: absolute; right: 22px; top: 50%;
     transform: translateY(-50%);
-    font-size: 21px; font-weight: 700; color: {p["kop_terang"]};
+    font-size: 23px; font-weight: 700; color: {p["ajakan"]};
     transition: transform .2s ease;
   }}
   div[class*="st-key-beranda-"] button:hover {{
@@ -1727,7 +1762,8 @@ def gaya(gelap: bool) -> str:
      tulisan tampak sama pentingnya. Kini ia judul sungguhan, cukup besar
      untuk memotong halaman menjadi bagian yang terbaca sekilas. */
   .tingkat {{
-    font-size: 19px; font-weight: 750; letter-spacing: -.018em;
+    font-family: {JUDUL_SANS};
+    font-size: 22px; font-weight: 700; letter-spacing: -.02em;
     color: {p["tinta_judul"]}; margin: 30px 0 10px 0; line-height: 1.25;
     display: flex; align-items: center; gap: 10px;
   }}
