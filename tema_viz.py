@@ -1596,11 +1596,26 @@ def gaya(gelap: bool) -> str:
   /* Isi tiap bab pada anatomi sengketa. Dibuat serapat naskah hukum, dengan
      lebar baris terbatas supaya mata tidak kehilangan baris pada kalimat
      panjang khas risalah yang kerap melampaui seratus kata. */
+  /* Kutipan naskah disajikan dua kolom bila isinya panjang.
+     Satu kolom setinggi layar membuat pembaca kehilangan tempatnya, dan
+     karena lebar barisnya tetap dibatasi demi kenyamanan membaca, separuh
+     kanan bidang tinggal kosong. Dua kolom memakai ruang yang memang sudah
+     ada dan memendekkan bloknya menjadi separuh. */
   .anatomi-isi {{
-    font-size: 13.5px; line-height: 1.75; color: {p["tinta"]};
-    text-align: left; max-width: 78ch; hyphens: none;
-    background: {p["bidang"]}; padding: 12px 14px; border-radius: 9px;
+    font-size: 14.5px; line-height: 1.72; color: {p["tinta"]};
+    text-align: left; hyphens: none;
+    background: {p["bidang"]}; padding: 14px 18px; border-radius: 9px;
     border-left: 3px solid {p["seri"][0]};
+  }}
+  .anatomi-isi.dua {{
+    columns: 2; column-gap: 38px;
+    column-rule: 1px solid {p["tepi"]};
+  }}
+  .anatomi-isi p {{ margin: 0 0 10px 0; }}
+  .anatomi-isi p:last-child {{ margin-bottom: 0; }}
+  /* Pada layar sempit dua kolom menyisakan baris terlalu pendek. */
+  @media (max-width: 1000px) {{
+    .anatomi-isi.dua {{ columns: 1; }}
   }}
   .anatomi-isi mark {{
     background: {lembut(p["awas"], .55)}; color: {p["tinta"]};
@@ -2505,6 +2520,119 @@ PENANDA_ALINEA = re.compile(
     r"MEMUTUSKAN\b|Pendapat\b|Menurut\b|Demikian\b|DEMI\b|PUTUSAN\b|"
     r"[A-Z][A-Z\s]{4,}$)")
 
+# Kepala halaman berkas asli, yang ikut terangkut oleh mesin pembaca teks.
+RE_KEPALA_HAL = re.compile(
+    r"\s*[Hh]alaman\s+\d+\s+dari\s+\d+\s+halaman\s*\.?\s*")
+# Sisa kepala halaman hanya dibuang bila memang berbunyi seperti kepala.
+RE_MULA_KEPALA = re.compile(r"^(?:Putusan|PUTUSAN|Nomor|NOMOR|PUT)\b")
+# Cadangan untuk penggalan yang hanya memuat satu sisipan, sehingga tidak ada
+# pembanding untuk mengukur bagian yang berulang. Yang dibuang dibatasi pada
+# rangkaian yang bentuknya sudah pasti kepala halaman.
+RE_SISA_KEPALA = re.compile(
+    r"^\s*Putusan\s+Nomor\s+\S+(?:\s+Tahun\s+\d{4})?\s*", re.IGNORECASE)
+BATAS_KEPALA = 220
+
+
+def _sama_di_depan(a: str, b: str) -> int:
+    """Panjang awalan yang sama persis antara dua penggal teks."""
+    n = min(len(a), len(b))
+    i = 0
+    while i < n and a[i] == b[i]:
+        i += 1
+    return i
+
+
+def buang_kepala_halaman(teks: str) -> str:
+    """
+    Membuang kepala halaman berkas asli yang menyusup ke tengah kalimat.
+
+    Tiap halaman berkas putusan memuat baris berjalan seperti Halaman 9 dari
+    89 halaman, diikuti nomor putusan dan nama pihak. Mesin pembaca teks
+    membaca baris itu sebagai isi, sehingga ia terselip di antara kata pada
+    setiap pergantian halaman. Akibatnya kalimat terpotong di tengah oleh
+    keterangan yang bukan bagian dari putusan, dan pembaca menyangka naskahnya
+    memang kacau. Pada contoh enam ratus naskah mutakhir, lima ratus enam
+    puluh enam di antaranya tercemar begini.
+
+    Bagian yang berubah ubah, yaitu nomor halamannya, dikenali dengan pola.
+    Bagian yang tetap, yaitu nomor putusan dan nama pihak, tidak dapat dipola
+    sebab nama pihak berbeda tiap perkara. Maka panjangnya tidak ditebak,
+    melainkan diukur: tiap sisipan dibandingkan dengan sisipan lain pada
+    naskah yang sama, lalu yang dibuang hanya sepanjang bagian yang benar
+    benar berulang. Cara ini aman menurut bentuknya, sebab yang tidak berulang
+    tidak akan pernah terhapus. Pembandingnya diambil yang paling cocok, bukan
+    yang paling pendek, supaya satu halaman yang salah baca tidak menggagalkan
+    pembersihan pada halaman lainnya.
+    """
+    isi = teks or ""
+    tanda = list(RE_KEPALA_HAL.finditer(isi))
+    if not tanda:
+        return isi
+
+    ekor = [isi[m.end():m.end() + BATAS_KEPALA] for m in tanda]
+    potong = []
+    for i, e in enumerate(ekor):
+        # Padanan terbaik, bukan yang terpendek: salah baca pada satu halaman
+        # tidak boleh memendekkan pembersihan halaman yang lain.
+        sama = max((_sama_di_depan(e, lain)
+                    for j, lain in enumerate(ekor) if j != i), default=0)
+        cuil = e[:sama]
+        if not RE_MULA_KEPALA.match(cuil.strip()):
+            # Tanpa pembanding, panjang bagian yang berulang tidak terukur.
+            # Yang dibuang lalu dibatasi pada bentuk yang sudah pasti, dan
+            # nama pihak dibiarkan daripada menebak batasnya.
+            m2 = RE_SISA_KEPALA.match(e)
+            potong.append(m2.end() if m2 else 0)
+            continue
+        # Dirapikan ke batas kata supaya tidak memenggal kata berikutnya.
+        # Batasnya sembarang aksara kosong, bukan spasi saja: nama pihak
+        # kerap dipisahkan baris baru dari isi halaman, sehingga mencari
+        # spasi terakhir justru mundur satu kata dan menyisakan penggalan
+        # nama pihak di tengah kalimat.
+        if sama < len(e) and not e[sama:sama + 1].isspace():
+            sama -= len(re.search(r"\S*$", cuil).group(0))
+        potong.append(max(0, sama))
+
+    keluar, jangkar = [], 0
+    for m, n in zip(tanda, potong):
+        # Satu spasi disisipkan agar kalimat sebelum dan sesudah kepala
+        # halaman tidak menyatu menjadi satu kata.
+        keluar.append(isi[jangkar:m.start()])
+        keluar.append(" ")
+        jangkar = m.end() + n
+    keluar.append(isi[jangkar:])
+    return "".join(keluar)
+
+
+def alinea_padat(teks: str) -> list[str]:
+    """
+    Memecah teks yang sudah kehilangan baris barunya menjadi alinea kembali.
+
+    Bab anatomi disimpan sesudah seluruh baris barunya dirapatkan, sehingga
+    ia sampai ke pembaca sebagai satu blok tanpa jeda sama sekali. Naskah
+    hukum menandai pergantian pokok pikirannya dengan kata pembuka yang tetap,
+    terutama kata bahwa, sehingga jeda alineanya dapat dipulihkan dari kata
+    itu tanpa menebak nebak isinya. Penggal yang terlalu pendek dirapatkan
+    kembali supaya tidak lahir alinea sepotong kata.
+    """
+    isi = " ".join((teks or "").split())
+    if not isi:
+        return []
+    batas = [m.start() for m in re.finditer(
+        r"(?<=[\s.;:])(?:bahwa|Bahwa|Menimbang|Mengingat|Memperhatikan|"
+        r"Menurut|Pendapat|Demikian)\b", isi)]
+    titik = [0] + [b for b in batas if b > 0] + [len(isi)]
+    keluar: list[str] = []
+    for a, b in zip(titik, titik[1:]):
+        bagian = isi[a:b].strip()
+        if not bagian:
+            continue
+        if keluar and len(bagian) < 90:
+            keluar[-1] += " " + bagian
+        else:
+            keluar.append(bagian)
+    return keluar
+
 
 def alinea(teks: str) -> list[str]:
     """
@@ -2517,7 +2645,7 @@ def alinea(teks: str) -> list[str]:
     atau baris ini diawali penanda bagian yang lazim pada risalah.
     """
     t = RE_SPASI_HURUF.sub(lambda m: m.group(0).replace(" ", ""),
-                           teks.replace("\r", ""))
+                           buang_kepala_halaman(teks).replace("\r", ""))
     t = re.sub(r"[ \t]+", " ", t)
     # Baris yang seluruhnya huruf besar dan pendek adalah kepala bagian,
     # seperti MENGADILI atau DEMI KEADILAN BERDASARKAN KETUHANAN YANG MAHA

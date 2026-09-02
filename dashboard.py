@@ -1004,7 +1004,7 @@ def hal_anatomi(r, isi: str, istilah: list) -> None:
     for b in bagian:
         with st.expander(b["nama"], expanded=(b["nama"] == "Pertimbangan majelis")):
             st.caption(b["guna"])
-            st.html(f'<div class="anatomi-isi">{sorot(b["isi"], istilah)}</div>')
+            kutipan_naskah(b["isi"], istilah)
             if b["dipotong"]:
                 st.caption("Bagian ini dipotong karena panjang. Selebihnya "
                            "ada pada naskah utuh di bawah.")
@@ -1028,6 +1028,41 @@ def sorot(teks: str, istilah: list[str]) -> str:
         aman = _re.sub(f"({_re.escape(html.escape(kata))})",
                        r"<mark>\1</mark>", aman, flags=_re.IGNORECASE)
     return aman
+
+
+AMBANG_DUA_KOLOM = 900
+
+
+def kutipan_naskah(teks: str, istilah: list[str] | None = None,
+                   batas: int | None = None) -> None:
+    """
+    Satu pintu untuk menyajikan kutipan naskah putusan.
+
+    Sebelum ini tiap tempat menyajikan kutipan dengan caranya sendiri, dan
+    ketiganya sama sama menampilkan teks mentah apa adanya: kepala halaman
+    berkas asli ikut tercetak di tengah kalimat, seluruh isinya menyatu tanpa
+    jeda alinea, dan bloknya menjulang satu kolom sementara separuh kanan
+    bidang menganggur. Tiga perkara itu diselesaikan di sini sekali saja,
+    supaya perbaikannya berlaku di semua halaman dan tidak perlu diulang
+    ketika kelak ada tempat penyajian yang baru.
+
+    Dua kolom hanya dipakai bila isinya memang panjang. Teks pendek yang
+    dipecah dua kolom justru terbaca sebagai dua potongan yang tidak
+    berhubungan.
+
+    Pemotongan panjang dikerjakan sesudah pembersihan, bukan sebelumnya,
+    supaya jatah huruf yang disediakan terpakai untuk isi putusan dan bukan
+    untuk kepala halaman yang toh akan dibuang.
+    """
+    bersih = TV.buang_kepala_halaman(str(teks or ""))
+    if batas and len(bersih) > batas:
+        bersih = bersih[:batas].rsplit(" ", 1)[0] + " ..."
+    alinea = TV.alinea_padat(bersih)
+    if not alinea:
+        return
+    kelas = "anatomi-isi dua" if len(bersih) > AMBANG_DUA_KOLOM else "anatomi-isi"
+    isi = "".join(f"<p>{sorot(a, istilah or [])}</p>" for a in alinea)
+    st.html(f'<div class="{kelas}">{isi}</div>')
 
 
 def bagan(fig, tinggi: int | None = None, tabel: pd.DataFrame | None = None,
@@ -1566,11 +1601,27 @@ MODUL = {
     # dari orang yang perkaranya sedang diperiksa di sana. Yang tidak perlu
     # diketahui publik hanya identitas orangnya, sebab itu tidak menambah
     # pengetahuan apa pun sedangkan dampaknya pada orang tersebut nyata.
+    # Modul umum dilebarkan supaya tiap kelompok menu benar benar berisi.
+    #
+    # Sebelumnya modul ini tidak memuat satu pun halaman dari kelompok
+    # mengapa perkara menang atau kalah, padahal justru itu pertanyaan pokok
+    # orang yang sedang belajar. Situs belajar yang tidak menjawabnya cacat di
+    # intinya, dan kelompok menunya pun tampil kosong tanpa sebab yang
+    # terlihat pembaca.
+    #
+    # Yang ditambahkan halaman yang menerangkan sebab dan keadaan, yaitu tema
+    # sengketa, mutu ketetapan, pasal penentu, lama penyelesaian, dan nilai
+    # sengketa. Yang tetap ditahan halaman peringkat unit penerbit dan banding
+    # unit, sebab keduanya menilai kinerja kantor dan lebih berguna bagi
+    # pembina daripada bagi orang yang sedang belajar membaca putusan.
     "Wajib pajak": ["Beranda", "Ruang Belajar", "Istilah Sederhana",
-                    "Ringkasan Eksekutif",
-                    "Pola Putusan Sejenis", "Pilihan Upaya Hukum",
-                    "Risalah Putusan", "Profil Hakim", "Karakter Memutus",
+                    "Ringkasan Eksekutif", "Nilai Sengketa",
+                    "Risalah Putusan",
+                    "Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
+                    "Profil Hakim", "Karakter Memutus",
                     "Konsistensi Putusan Hakim",
+                    "Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa",
+                    "Pilihan Upaya Hukum",
                     "Panduan Analisis", "Metodologi"],
     # Beranda ikut disertakan di sini.
     #
@@ -1961,19 +2012,35 @@ IKON_HAL = {
 # Maknanya dipertahankan, panjangnya dipangkas, dan halaman di dalamnya tetap
 # menerangkan sendiri kelompoknya.
 KELOMPOK_MENU = [
-    ("Mulai", ["Beranda", "Ringkasan Eksekutif"]),
-    ("Yang terjadi", ["Nilai Sengketa", "Risalah Putusan",
-                      "Profil Hakim"]),
+    # Urutannya mengikuti perjalanan belajar, bukan urutan pembuatan halaman.
+    #
+    # Susunan sebelumnya menaruh Ruang Belajar pada kelompok terakhir bersama
+    # Metodologi, dan itu terbalik: pintu masuk pemula justru ditempatkan
+    # paling ujung, sesudah delapan halaman analisis yang tidak akan ia
+    # pahami. Kini ia berada di kelompok pertama, bersebelahan dengan
+    # Beranda dan Istilah Sederhana, sehingga tiga langkah pertama seorang
+    # pemula berada dalam satu tempat.
+    ("Mulai belajar", ["Beranda", "Ruang Belajar", "Istilah Sederhana"]),
+    ("Yang terjadi", ["Ringkasan Eksekutif", "Nilai Sengketa",
+                      "Risalah Putusan"]),
     ("Menang atau kalah",
      ["Mutu Ketetapan", "Tema Sengketa", "Pasal Penentu",
-      "Unit Penerbit Ketetapan", "Sengketa Berulang",
-      "Konsistensi Putusan Hakim", "Karakter Memutus", "Banding Unit"]),
-    ("Perkara serupa",
-     ["Pola Putusan Sejenis", "Durasi Penyelesaian Sengketa"]),
-    ("Langkah", ["Pilihan Upaya Hukum"]),
-    ("Bekal membaca", ["Ruang Belajar", "Istilah Sederhana",
-                       "Panduan Analisis", "Metodologi"]),
+      "Sengketa Berulang", "Unit Penerbit Ketetapan", "Banding Unit"]),
+    # Halaman hakim dikumpulkan menjadi satu kelompok tersendiri. Sebelumnya
+    # ketiganya berserak, Profil Hakim di kelompok keadaan sedangkan
+    # Konsistensi dan Karakter di kelompok sebab, padahal ketiganya menjawab
+    # pertanyaan yang sama, yaitu bagaimana majelis memutus.
+    ("Yang memutus", ["Profil Hakim", "Konsistensi Putusan Hakim",
+                      "Karakter Memutus"]),
+    # Kelompok berisi satu halaman bukan kelompok, hanya tautan yang diberi
+    # judul. Pilihan Upaya Hukum digabung ke sini sebab ia memang lanjutan
+    # langsung dari membaca perkara serupa.
+    ("Perkara serupa", ["Pola Putusan Sejenis",
+                        "Durasi Penyelesaian Sengketa",
+                        "Pilihan Upaya Hukum"]),
+    ("Cara kerja", ["Panduan Analisis", "Metodologi"]),
 ]
+
 
 # Navigasi dipasang di kepala halaman, bukan di bilah samping.
 #
@@ -6309,7 +6376,8 @@ def _tema_rincian(pilih_tema: str, gabung, punya) -> None:
             f"Kutipan sengketa apa adanya dari naskah, {len(tampak)} contoh "
             f"pertama dari {len(ringkas):,} putusan yang uraiannya terbaca:")
         st.html("<ol class='pokok-daftar'>" + "".join(
-            f"<li>{sorot(x[:300], [])}</li>" for x in tampak) + "</ol>")
+            f"<li>{sorot(TV.buang_kepala_halaman(x)[:300], [])}</li>"
+            for x in tampak) + "</ol>")
     else:
         belum_ada("Uraian sengketa belum terbaca pada putusan bertema ini.")
 
@@ -7129,10 +7197,7 @@ def _belajar_bedah() -> None:
             continue
         st.html(f'<div class="bedah-judul">{judul}</div>')
         st.html(f'<div class="bedah-catatan">{catatan}</div>')
-        potong = str(teks).strip()
-        if len(potong) > 1400:
-            potong = potong[:1400].rsplit(" ", 1)[0] + " ..."
-        st.html(f'<div class="anatomi-isi">{potong}</div>')
+        kutipan_naskah(teks, batas=1400)
 
     if st.button("Buka putusan ini seutuhnya", key="belajar-buka-perkara",
                  icon=":material/arrow_forward:"):
@@ -7173,8 +7238,7 @@ def _belajar_uji() -> None:
 
     st.html('<div class="bedah-catatan">Bacalah pokok sengketanya, tebak '
             'hasilnya, baru buka jawabannya.</div>')
-    st.html(f'<div class="anatomi-isi">'
-            f'{tampil(r["pokok_sengketa"], "tidak tersedia")}</div>')
+    kutipan_naskah(tampil(r["pokok_sengketa"], "tidak tersedia"))
 
     tebak = st.radio(
         "Menurut Anda, bagaimana perkara ini berakhir?",
