@@ -197,11 +197,22 @@ TINGGI_NAV = 0
 #
 # Angkanya mengikuti panjang nama situs, yang kini dua kata saja.
 # Judulnya kembali panjang, jadi menu bergeser mengikutinya.
-JARAK_MENU_KIRI = 404
+# Angkanya diukur, bukan dikira kira: pada 1366 piksel judul situs berakhir
+# di piksel 324, sehingga jarak 344 sudah menyisakan dua puluh piksel jeda.
+JARAK_MENU_KIRI = 344
 # Ruang yang dipesan di sisi kanan untuk pencarian, tombol penyaring, dan
 # saklar tema. Tanpa pesanan ini bilah menu melebar sampai ke bawah ketiganya,
 # dan kelompok menu terakhir tertimpa kotak pencarian.
-RUANG_KANAN = 404
+#
+# Semula empat ratus empat, dan itu keliru besar. Perkakas kanan sesungguhnya
+# hanya selebar tujuh puluh delapan piksel, jadi dua ratus sembilan puluh satu
+# piksel dipesan untuk sesuatu yang tidak ada. Pada layar 1366 piksel, yang
+# paling lazim dipakai, bilah menu tinggal tiga ratus empat puluh dua piksel
+# padahal kelima kelompoknya perlu tujuh ratus satu, sehingga tiga kelompok
+# terakhir terpotong diam diam ke dalam tombol lainnya. Cacat ini sempat luput
+# karena pemeriksa hanya membaca kotak batas tiap kelompok, dan kotak batas
+# tetap terbaca utuh walaupun butirnya sudah terpotong oleh wadahnya.
+RUANG_KANAN = 145
 # Kaki halaman kini dua baris, bukan satu.
 #
 # Baris keduanya memuat keterangan situs yang dahulu berada di bawah judul.
@@ -597,6 +608,36 @@ def gaya(gelap: bool) -> str:
   header[data-testid="stHeader"] [data-testid="stTopNavSection"]:hover {{
     background: {lembut(p["kop_terang"], .92)} !important;
   }}
+  /* Pada layar sempit menunya dirapatkan, bukan dilipat.
+     Lebar yang dibutuhkan kelima kelompok tujuh ratus satu piksel,
+     sedangkan layar 1366 piksel hanya menyediakan enam ratus enam puluh
+     satu. Selisihnya ditutup dengan merapatkan jarak dalam tiap kelompok
+     dan memajukan pangkal menu, sebab melipat kelompok ke dalam tombol
+     lainnya berarti menyembunyikannya dari pembaca, dan justru itu yang
+     hendak diperbaiki. Ukuran hurufnya tidak diturunkan. */
+  @media (max-width: 1460px) {{
+    header[data-testid="stHeader"] {{
+      left: 306px !important;
+      width: calc(100% - 306px - 122px) !important;
+    }}
+    header[data-testid="stHeader"] [data-testid="stTopNavSection"] {{
+      padding: 5px 6px !important; margin-right: 2px !important;
+    }}
+    .kop-judul, .kop b {{ font-size: 16px !important; }}
+  }}
+  /* Tingkat kedua untuk layar 1280 piksel, yang masih lazim pada laptop
+     lama. Selisihnya tinggal sekitar tiga puluh piksel, jadi cukup
+     dirapatkan sekali lagi tanpa mengurangi ukuran huruf menunya. */
+  @media (max-width: 1330px) {{
+    header[data-testid="stHeader"] {{
+      left: 288px !important;
+      width: calc(100% - 288px - 112px) !important;
+    }}
+    header[data-testid="stHeader"] [data-testid="stTopNavSection"] {{
+      padding: 5px 4px !important; margin-right: 1px !important;
+    }}
+    .kop-judul, .kop b {{ font-size: 15px !important; }}
+  }}
   /* Navigasi tetap dapat disentuh walau bilah alat di sebelahnya dimatikan.
      Keduanya bersarang di dalam bilah judul yang sama, dan aturan lama
      mematikan seluruh isinya sekaligus. */
@@ -610,6 +651,10 @@ def gaya(gelap: bool) -> str:
   header[data-testid="stHeader"] [data-testid="stTopNavLinkContainer"] a {{
     font-size: 13px; font-weight: 560;
   }}
+  /* Lebar bilah alat tidak boleh dikosongkan. Bilah menu bersarang di
+     dalamnya, sehingga mengosongkan lebarnya meruntuhkan menu itu sendiri
+     menjadi tiga puluh dua piksel dan melipat seluruh kelompok ke dalam
+     tombol lainnya. Ini sudah dicoba dan diukur, jadi jangan diulang. */
   header[data-testid="stHeader"] div[data-testid="stToolbar"] {{
     background: transparent !important; pointer-events: none !important;
   }}
