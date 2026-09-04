@@ -787,6 +787,23 @@ def gaya(gelap: bool) -> str:
        tercetak hitam walau warnanya sudah diatur. */
     color: {p["tinta_judul"]} !important;
   }}
+  /* Judul halaman diberi gradasi dari tosca ke jingga.
+     Gradasi pada tulisan berbahaya justru karena enak dipandang: warnanya
+     berubah sepanjang kata, sehingga memeriksa satu warna saja tidak
+     membuktikan apa apa. Kedua ujungnya beserta sembilan titik di antaranya
+     sudah diukur terhadap latar terang dan gelap, dan yang terburuk 5.57
+     pada mode terang serta 7.80 pada mode gelap, keduanya masih di atas
+     ambang 4.5 untuk tulisan biasa, apalagi untuk judul sebesar ini.
+     Warna dasarnya tetap disetel supaya peramban yang tidak mengenal
+     pemotongan latar pada tulisan tidak menerima judul yang tak tampak. */
+  @supports ((-webkit-background-clip: text) or (background-clip: text)) {{
+    .kepala-hal h3 {{
+      background-image: linear-gradient(96deg,
+        {p["tinta_judul"]} 0%, {p["ajakan"]} 100%);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }}
+  }}
   .kh-dim, .kh-lingkup {{
     font-size: 12px; font-weight: 700; letter-spacing: .05em;
     text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
@@ -1294,8 +1311,21 @@ def gaya(gelap: bool) -> str:
   div[data-testid="stColumn"] div[data-testid="stHtml"] {{
     height: 100%;
   }}
-  div[data-testid="stColumn"] div[data-testid="stVerticalBlock"]
-    > div[data-testid="stElementContainer"]:last-child {{
+  /* Bagan dikecualikan dari peregangan ini, dan pengecualiannya wajib.
+     Bagan Plotly membaca tinggi wadahnya lalu menyetel tingginya sendiri
+     sebesar itu. Selama wadahnya berbasis tetap, keduanya diam. Begitu
+     wadahnya diregangkan mengikuti isi, sedangkan isinya bagan itu sendiri,
+     keduanya saling mendorong tanpa henti: tinggi bagan Paling seragam
+     terukur naik dari 4.636 ke 5.996 lalu 7.322 dan 8.648 piksel hanya dalam
+     dua belas detik, dan batangnya melar menjadi bidang biru sebesar kartu.
+     Bagan tetangganya tetap 418 piksel semata mata karena di bawahnya ada
+     satu baris keterangan, sehingga bukan bagan itu yang menjadi unsur
+     terakhir.
+     Yang dilakukan di sini hanya mengecualikan, bukan menimpa. Streamlit
+     sudah menyetel basis tetap sebesar tinggi bagannya sendiri, dan
+     percobaan menimpanya dengan flex 0 0 auto justru menghapus basis itu
+     sehingga bagan yang tadinya sehat ikut lari. */
+  div[data-testid="stColumn"] div[data-testid="stVerticalBlock"] > div[data-testid="stElementContainer"]:last-child:not(:has(div[data-testid="stPlotlyChart"])) {{
     flex: 1 1 auto;
   }}
   /* Kartu angka. Garis aksen di tepi atas pernah dipasang dan dicabut atas
@@ -2002,10 +2032,79 @@ def gaya(gelap: bool) -> str:
      dengan tulisan lain di sekitarnya. Satu garis tegak bertosca cukup
      memberi irama tanpa menambah kotak baru, dan warnanya menyambungkan
      bagian bagian halaman dengan kepala situs. */
+  /* Penandanya ikut bergradasi dari tosca ke jingga, senada dengan judul
+     halaman, dan dibuat lebih tebal serta lebih tinggi supaya warnanya
+     benar benar terbaca sebagai irama halaman, bukan sekadar garis tipis.
+     Judul bagiannya sendiri tetap satu warna: empat puluh delapan judul
+     bergradasi dalam satu situs berubah menjadi bising, dan yang hendak
+     dicapai justru susunan yang jelas mana induk mana anak. */
   .tingkat::before {{
-    content: ""; flex: 0 0 4px; width: 4px; height: 20px;
-    border-radius: 999px; background: {p["kop_terang"]};
+    content: ""; flex: 0 0 6px; width: 6px; height: 26px;
+    border-radius: 999px;
+    background: linear-gradient(180deg,
+      {p["kop_terang"]} 0%, {p["ajakan"]} 100%);
   }}
+  /* Infografik alur.
+     Penjelasan yang panjang tentang urutan kejadian selalu kalah oleh
+     gambar urutan itu sendiri. Pembaca yang ingin tahu di titik mana
+     perkaranya bisa gugur harus menyusuri seratus dua puluh sembilan kata
+     untuk menemukan jawabannya, padahal jawabannya satu langkah dalam
+     rangkaian. Bentuk ini menaruh rangkaiannya di depan mata, dan langkah
+     yang mematikan perkara diberi warna merah supaya langsung terlihat. */
+  .alur {{ display: flex; flex-wrap: wrap; gap: 10px; margin: 8px 0 16px; }}
+  .alur-langkah {{
+    flex: 1 1 200px; min-width: 200px; padding: 14px 16px;
+    background: {p["permukaan"]}; border: 1px solid {p["tepi"]};
+    border-radius: 13px;
+  }}
+  .alur-langkah.gugur {{
+    border-color: {p["arah_turun"]}; border-width: 2px;
+    background: {lembut(p["arah_turun"], .07)};
+  }}
+  .alur-nomor {{
+    width: 27px; height: 27px; border-radius: 999px; color: #ffffff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; margin-bottom: 9px;
+    background: linear-gradient(135deg,
+      {p["kop_terang"]} 0%, {p["ajakan"]} 100%);
+  }}
+  .alur-langkah.gugur .alur-nomor {{
+    background: {p["arah_turun"]};
+  }}
+  .alur-judul {{
+    font-family: {JUDUL_SANS}; font-size: 15.5px; font-weight: 700;
+    color: {p["tinta_judul"]}; margin-bottom: 5px; line-height: 1.3;
+  }}
+  .alur-langkah.gugur .alur-judul {{ color: {p["arah_turun"]}; }}
+  .alur-isi {{
+    font-size: 13.5px; color: {p["tinta_2"]}; line-height: 1.55;
+  }}
+
+  /* Infografik butir bertanda.
+     Dipakai untuk peringatan dan pengertian pendek yang sebelumnya ditulis
+     sebagai alinea beruntun. Tiga alinea beruntun dibaca sebagai satu blok
+     dan yang terbaca hanya kalimat pertamanya, sedangkan tiga kartu
+     bersebelahan terbaca ketiganya. */
+  .poin {{
+    display: grid; gap: 12px; margin: 8px 0 16px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  }}
+  .poin-kartu {{
+    padding: 15px 17px; border-radius: 13px; background: {p["bidang"]};
+    border-left: 5px solid {p["kop_terang"]};
+  }}
+  .poin-kartu.awas {{ border-left-color: {p["ajakan"]}; }}
+  .poin-tanda {{
+    font-family: {JUDUL_SANS}; font-size: 25px; font-weight: 800;
+    line-height: 1; margin-bottom: 8px; color: {p["kop_terang"]};
+  }}
+  .poin-kartu.awas .poin-tanda {{ color: {p["ajakan"]}; }}
+  .poin-judul {{
+    font-family: {JUDUL_SANS}; font-size: 15px; font-weight: 700;
+    color: {p["tinta"]}; margin-bottom: 4px; line-height: 1.3;
+  }}
+  .poin-isi {{ font-size: 13.5px; color: {p["tinta_2"]}; line-height: 1.55; }}
+
   .jejak {{
     font-size: 13px; color: {p["tinta_2"]}; margin: 0 0 12px 0;
     padding: 9px 14px; border-radius: 10px;
@@ -2408,6 +2507,43 @@ def kepala_halaman(judul: str, dimensi: str | None,
     if lingkup:
         label += f'<span class="kh-lingkup">{lingkup}</span>'
     return (f'<div class="kepala-hal"><h3>{judul}</h3>{label}</div>')
+
+
+def alur(langkah: list[tuple]) -> str:
+    """
+    Infografik rangkaian langkah, menggantikan penjelasan urutan yang panjang.
+
+    Tiap langkah berupa pasangan judul dan satu kalimat. Langkah yang
+    mematikan perkara ditandai dengan menambahkan True pada unsur ketiga,
+    dan ia digambar merah supaya pembaca menemukan titik gugurnya tanpa
+    membaca satu kalimat pun.
+    """
+    potong = []
+    for i, butir in enumerate(langkah, start=1):
+        judul, isi = butir[0], butir[1]
+        gugur = len(butir) > 2 and butir[2]
+        potong.append(
+            f'<div class="alur-langkah{" gugur" if gugur else ""}">'
+            f'<div class="alur-nomor">{i}</div>'
+            f'<div class="alur-judul">{judul}</div>'
+            f'<div class="alur-isi">{isi}</div></div>')
+    return '<div class="alur">' + "".join(potong) + "</div>"
+
+
+def poin(butir: list[tuple], awas: bool = False) -> str:
+    """
+    Infografik butir bertanda, menggantikan alinea beruntun.
+
+    Tiap butir berupa tanda pendek, judul, dan satu kalimat. Tandanya boleh
+    berupa angka, lambang, atau kata sangat pendek.
+    """
+    kelas = "poin-kartu awas" if awas else "poin-kartu"
+    potong = [
+        f'<div class="{kelas}"><div class="poin-tanda">{t}</div>'
+        f'<div class="poin-judul">{j}</div>'
+        f'<div class="poin-isi">{i}</div></div>'
+        for t, j, i in butir]
+    return '<div class="poin">' + "".join(potong) + "</div>"
 
 
 def keterangan_waktu(rentang: str, diperbarui: str | None,

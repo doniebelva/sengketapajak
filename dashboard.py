@@ -5124,23 +5124,22 @@ def _mutu_formal() -> None:
         f"{len(jeda):,} putusan"
         if len(jeda) else "tanggalnya belum terbaca"))
 
+    jelas("Perkara gugur di langkah ketiga, sebelum isinya sempat dinilai.")
+    st.html(TV.alur([
+        ("Ketetapan terbit",
+         "Kantor pajak menetapkan jumlah yang menurutnya kurang dibayar."),
+        ("Wajib pajak mengajukan",
+         "Banding untuk persoalan angka, gugatan untuk persoalan prosedur."),
+        ("Syarat formal diperiksa",
+         "Tenggat, jalur, surat kuasa, kelengkapan berkas. Gagal di sini, "
+         "perkara berhenti sampai di sini.", True),
+        ("Pokok sengketa dinilai",
+         "Hanya perkara yang lolos syarat formal yang sampai ke tahap ini."),
+    ]))
     jelas(
-        "Amar **tidak dapat diterima** berarti pengadilan tidak pernah "
-        "sampai menilai benar salahnya koreksi. Perkaranya sudah gugur lebih "
-        "dulu pada syarat formal, misalnya diajukan lewat tenggat, ditempuh "
-        "melalui jalur yang keliru, surat kuasanya tidak sah, atau berkasnya "
-        "kurang.\n\n"
-        "Contohnya begini. Wajib pajak menerima ketetapan, tidak setuju, "
-        "lalu mengajukan banding pada hari ke seratus sembilan. Tenggat "
-        "banding tiga bulan. Perkaranya diterima, diregistrasi, dijadwalkan, "
-        "dan disidangkan, tetapi berakhir dengan amar tidak dapat diterima "
-        "tanpa satu pun koreksi diperiksa. Biaya sudah keluar dari kedua "
-        "sisi, dan pokok sengketanya tetap tidak terselesaikan.\n\n"
-        "Itu sebabnya bagian ini disajikan terpisah. Berbeda dari perkara "
-        "yang kalah karena koreksinya memang benar, **seluruh perkara di "
-        "kelompok ini dapat dicegah**, dan pencegahannya tidak memerlukan "
-        "perubahan aturan, cukup pemberitahuan yang jelas kepada wajib pajak "
-        "beserta penelitian kelengkapan berkas di tahap pendaftaran.")
+        "Bedanya dengan kalah biasa: di sini alasan sekuat apa pun tidak "
+        "pernah dibaca. **Seluruh perkara di kelompok ini dapat dicegah**, "
+        "dan pencegahannya tidak memerlukan perubahan aturan.")
 
     st.html('<div class="tingkat">Tren dari Tahun ke Tahun</div>')
     t = (dd.dropna(subset=["tahun_putusan"])
@@ -7340,20 +7339,20 @@ def hal_istilah() -> None:
         "yang membaca berkasnya langsung."))
 
     st.html('<div class="tingkat">Sering Ditanyakan</div>')
-    jelas(
-        "**Apa itu Pengadilan Pajak?** Tempat menyelesaikan perselisihan "
-        "antara wajib pajak dengan kantor pajak atau kantor bea cukai. "
-        "Perselisihan itu biasanya soal jumlah pajak yang harus dibayar.\n\n"
-        "**Apa itu risalah putusan?** Catatan resmi berisi apa yang "
-        "dipersoalkan, alasan kedua pihak, pertimbangan hakim, dan hasil "
-        "akhirnya. Dokumen ini terbuka untuk umum, dan dari kumpulan dokumen "
-        "itulah seluruh angka di dashboard ini dihitung.\n\n"
-        "**Apa bedanya banding dan gugatan?** Banding mempersoalkan besarnya "
-        "pajak yang ditetapkan, misalnya menurut kantor pajak kurang bayar "
-        "satu miliar, sedangkan menurut wajib pajak tidak. Gugatan "
-        "mempersoalkan cara atau prosedurnya, misalnya surat keputusan yang "
-        "diterbitkan tanpa memenuhi syarat. Singkatnya, banding soal "
-        "angkanya, gugatan soal caranya.")
+    st.html(TV.poin([
+        ("?", "Apa itu Pengadilan Pajak",
+         "Tempat menyelesaikan perselisihan antara wajib pajak dengan kantor "
+         "pajak atau kantor bea cukai, umumnya soal jumlah yang harus "
+         "dibayar."),
+        ("?", "Apa itu risalah putusan",
+         "Catatan resmi berisi pokok persoalan, alasan kedua pihak, "
+         "pertimbangan hakim, dan hasilnya. Terbuka untuk umum, dan dari "
+         "sanalah seluruh angka di sini dihitung."),
+        ("?", "Beda banding dan gugatan",
+         "Banding soal angkanya, misalnya kurang bayar satu miliar atau "
+         "tidak. Gugatan soal caranya, misalnya surat terbit tanpa memenuhi "
+         "syarat."),
+    ]))
 
     st.html('<div class="tingkat">Istilah yang Sering Dipakai</div>')
     ist = pd.DataFrame([
@@ -7409,21 +7408,18 @@ def hal_istilah() -> None:
                      kelas="uraian"))
 
     st.html('<div class="tingkat">Cara Membaca Angka di Sini</div>')
-    jelas(
-        "**Persentase di sini adalah catatan masa lalu, bukan peluang Anda.** "
-        "Kalau tertulis tujuh puluh persen dikabulkan, artinya dari seratus "
-        "perkara serupa yang pernah diputus, tujuh puluh dimenangkan wajib "
-        "pajak. Itu tidak berarti perkara Anda punya peluang tujuh puluh "
-        "persen, sebab hasil perkara bergantung pada bukti dan alasan yang "
-        "Anda bawa.\n\n"
-        "**Jumlah perkara menentukan seberapa dapat dipercaya angkanya.** "
-        "Tujuh puluh persen dari sepuluh perkara jauh lebih goyah daripada "
-        "tujuh puluh persen dari seribu perkara. Karena itu di banyak tempat "
-        "jumlah perkaranya ikut ditulis, dan sebaiknya selalu Anda lihat.\n\n"
-        "**Tidak semua putusan sudah terkumpul.** Arsip ini masih sebagian, "
-        "dan angkanya akan bergeser seiring bertambahnya dokumen. Bagian "
-        "berwarna kuning di kepala tiap halaman menunjukkan seberapa lengkap "
-        "keterangan yang dipakai halaman itu.")
+    st.html(TV.poin([
+        ("70%", "Catatan masa lalu, bukan peluang Anda",
+         "Artinya dari seratus perkara serupa yang pernah diputus, tujuh "
+         "puluh dimenangkan wajib pajak. Hasil perkara Anda ditentukan "
+         "bukti yang Anda bawa."),
+        ("10 : 1.000", "Jumlah perkara menentukan kepercayaan",
+         "Tujuh puluh persen dari sepuluh perkara jauh lebih goyah daripada "
+         "tujuh puluh persen dari seribu. Selalu lihat jumlahnya."),
+        ("belum utuh", "Arsipnya masih bertambah",
+         "Angkanya akan bergeser seiring bertambahnya dokumen. Pita kuning "
+         "di kepala halaman menunjukkan kelengkapannya."),
+    ], awas=True))
 
     st.html('<div class="tingkat">Pelajaran Penting</div>')
     n_amar = int(d["amar"].notna().sum())
@@ -7434,15 +7430,13 @@ def hal_istilah() -> None:
             "sebelum pokok persoalannya sempat diperiksa, yaitu "
             f"{n_gugur:,} dari {n_amar:,} putusan beramar. Umumnya karena "
             "lewat tenggat waktu atau salah memilih jalur.")
-    jelas(
-        "Kekalahan semacam ini yang paling disayangkan, sebab isi perkaranya "
-        "tidak pernah dinilai hakim. Sekuat apa pun alasan yang disiapkan, ia "
-        "tidak akan sempat dibaca.\n\n"
-        "Karena itu, sebelum menyiapkan alasan, pastikan dulu tenggat "
-        "waktunya belum lewat dan jalurnya benar, yaitu banding untuk "
-        "persoalan angka dan gugatan untuk persoalan prosedur. Dua hal "
-        "sederhana itu menentukan apakah perkara Anda akan diperiksa sama "
-        "sekali.")
+    jelas("Sebelum menyiapkan alasan, pastikan dua hal ini lebih dulu.")
+    st.html(TV.poin([
+        ("1", "Tenggatnya belum lewat",
+         "Terlambat sehari pun, perkara berhenti sebelum alasannya dibaca."),
+        ("2", "Jalurnya benar",
+         "Banding untuk persoalan angka, gugatan untuk persoalan prosedur."),
+    ]))
 
 
 def hal_panduan() -> None:
